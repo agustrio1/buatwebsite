@@ -21,7 +21,7 @@ export async function loader() {
 export default function SiteLayout() {
   const { settings } = useLoaderData<typeof loader>();
 
-  // Extract SEO & General Data — nama field harus sama persis dengan seed.ts
+  // Extract SEO & General Data
   const seoData = settings.seo || {};
   const generalData = settings.general || {};
   const contactData = settings.contact || {};
@@ -29,7 +29,6 @@ export default function SiteLayout() {
   const siteName = generalData.siteName || "WebCraft";
   const siteDescription =
     seoData.metaDescription || generalData.siteTagline || "Jasa Pembuatan Website Profesional & Layanan Digital.";
-  const siteKeywords = Array.isArray(seoData.keywords) ? seoData.keywords.join(", ") : seoData.keywords || "";
   const siteUrl = generalData.siteUrl || "https://trioagus.id";
 
   // Extract WhatsApp Phone Number
@@ -40,44 +39,33 @@ export default function SiteLayout() {
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent("Halo, saya ingin bertanya mengenai layanan Anda.")}`
     : "#";
 
-  // Schema.org JSON-LD (Organization / ProfessionalService)
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ProfessionalService",
-  name: siteName,
-  description: siteDescription,
-  url: siteUrl,
-  telephone: cleanPhone ? `+${cleanPhone}` : undefined,
-  address: contactData.address
-    ? {
-        "@type": "PostalAddress",
-        streetAddress: contactData.address,
-        addressLocality: contactData.province,
-        postalCode: contactData.postalCode,
-        addressCountry: "ID",
-      }
-    : undefined,
-  sameAs: settings.socials ? Object.values(settings.socials).filter(Boolean) : [],
-};
-
-const websiteJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: siteName,
-  url: siteUrl,
-};
+  // Schema.org JSON-LD tunggal untuk ProfessionalService / Organization
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: siteName,
+    description: siteDescription,
+    url: siteUrl,
+    telephone: cleanPhone ? `+${cleanPhone}` : undefined,
+    address: contactData.address
+      ? {
+          "@type": "PostalAddress",
+          streetAddress: contactData.address,
+          addressLocality: contactData.province,
+          postalCode: contactData.postalCode,
+          addressCountry: "ID",
+        }
+      : undefined,
+    sameAs: settings.socials ? Object.values(settings.socials).filter(Boolean) : [],
+  };
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Script JSON-LD disuntikkan secara eksplisit agar masuk ke DOM Elements inspect */}
+      {/* Script JSON-LD Tunggal */}
       <script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-/>
-<script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-/>
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
 
       <SiteHeader settings={settings} />
 
