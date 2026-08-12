@@ -301,9 +301,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {services.map((s) => {
-                const priceText = s.isPriceVisible
-                  ? s.priceLabel || formatPrice(s.priceAmount, s.priceUnit) || "Hubungi kami"
-                  : null;
+                const priceAmountText = formatPrice(s.priceAmount, s.priceUnit);
                 const waPackage = buildWaLink(
                   contact.whatsappNumber,
                   (templates.packageInquiry ?? "Halo, saya berminat dengan paket {packageName}").replace(
@@ -328,8 +326,17 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     {s.summary && <p className="text-sm text-slate-500 mt-1.5">{s.summary}</p>}
 
                     <div className="mt-5">
-                      {priceText ? (
-                        <p className="text-3xl font-bold text-brand-dark">{priceText}</p>
+                      {!s.isPriceVisible ? (
+                        <p className="text-lg font-semibold text-slate-400 italic">Hubungi kami untuk harga</p>
+                      ) : priceAmountText ? (
+                        <>
+                          {s.priceLabel && (
+                            <p className="text-sm font-medium text-slate-500 mb-1">{s.priceLabel}</p>
+                          )}
+                          <p className="text-3xl font-bold text-brand-dark">{priceAmountText}</p>
+                        </>
+                      ) : s.priceLabel ? (
+                        <p className="text-3xl font-bold text-brand-dark">{s.priceLabel}</p>
                       ) : (
                         <p className="text-lg font-semibold text-slate-400 italic">Hubungi kami untuk harga</p>
                       )}
