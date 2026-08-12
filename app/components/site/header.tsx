@@ -14,7 +14,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
     { label: "Layanan", to: "/#layanan" },
     { label: "Projek", to: "/projek" },
     ...(features.showBlogSection !== false ? [{ label: "Blog", to: "/blog" }] : []),
-    { label: "Kontak", to: "/#kontak" },
+    { label: "Kontak", to: "/kontak" },
   ];
 
   const waLink = buildWaLink(contact.whatsappNumber, templates.defaultConsultation);

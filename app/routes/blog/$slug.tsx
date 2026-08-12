@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, data as createResponse } from "react-router";
 import type { Route } from "./+types/$slug";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
@@ -7,14 +7,9 @@ import { ArrowLeft, User, Calendar } from "lucide-react";
 import { RichTextView } from "~/components/site/rich-text-view";
 import type { JSONContent } from "@tiptap/react";
 
-export function headers() {
-  return {
-    // Cache halaman selama 60 detik (S-Maxage).
-    // Setelah 60 detik, gunakan cache lama (stale) sambil fetch data baru di background selama 10 menit.
-    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
-  };
+export function headers({ loaderHeaders }: Route.HeadersArgs) {
+  return loaderHeaders;
 }
-
 
 export async function loader({ params }: Route.LoaderArgs) {
   const post = await db.query.posts.findFirst({
@@ -26,14 +21,23 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw new Response("Not found", { status: 404 });
   }
 
-  return { post };
+  return createResponse(
+    { post },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+      },
+    }
+  );
 }
 
-export function meta({ data }: Route.MetaArgs) {
-  if (!data?.post) return [{ title: "Artikel tidak ditemukan" }];
+export function meta({ data: loaderData }: Route.MetaArgs) {
+  if (!loaderData?.post) {
+    return [{ title: "Artikel tidak ditemukan" }];
+  }
   return [
-    { title: data.post.title },
-    { name: "description", content: data.post.summary ?? "" },
+    { title: loaderData.post.title },
+    { name: "description", content: loaderData.post.summary ?? "" },
   ];
 }
 

@@ -11,6 +11,7 @@ export default [
 route("layanan/:slug", "routes/layanan/$slug.tsx"),
 route("legal/syarat-ketentuan", "routes/legal/syarat-ketentuan.tsx"),
 route("legal/kebijakan-privasi", "routes/legal/kebijakan-privasi.tsx"),
+route("kontak", "routes/kontak.tsx"),
 ]),
   route("login", "routes/login.tsx"),
   route("logout", "routes/logout.tsx"),

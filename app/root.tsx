@@ -6,26 +6,12 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-
 import type { Route } from "./+types/root";
 import "./app.css";
 
-export const links: Route.LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-  },
-];
-
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="id">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -46,30 +32,39 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
+  let status = 500;
+  let message = "Terjadi Kesalahan";
+  let details = "Maaf, terjadi kesalahan yang tidak terduga.";
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
+    status = error.status;
+    message = status === 404 ? "Halaman Tidak Ditemukan" : "Terjadi Kesalahan";
     details =
-      error.status === 404
-        ? "The requested page could not be found."
+      status === 404
+        ? "Halaman yang Anda cari tidak ada atau sudah dipindahkan."
         : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+  } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
-    stack = error.stack;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="text-center max-w-md">
+        <p className="text-brand-500 font-bold text-6xl">{status}</p>
+        <h1 className="text-2xl font-bold text-brand-dark mt-4">{message}</h1>
+        <p className="text-slate-500 mt-2 leading-relaxed">{details}</p>
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3 rounded-full mt-6 transition-colors"
+        >
+          Kembali ke Beranda
+        </a>
+        {import.meta.env.DEV && error instanceof Error && error.stack && (
+          <pre className="mt-6 p-4 bg-slate-100 rounded-lg text-left text-xs overflow-x-auto text-slate-600">
+            {error.stack}
+          </pre>
+        )}
+      </div>
+    </div>
   );
 }

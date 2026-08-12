@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
 } from "lucide-react";
+import { useNavigation } from "react-router";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { role, userId } = await requireAdmin(request);
@@ -35,6 +36,12 @@ export default function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const activeItem = navItems.find((item) => location.pathname.startsWith(item.path));
+  const navigation = useNavigation();
+const isLoading = navigation.state !== "idle";
+
+{isLoading && (
+  <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-brand-500 animate-pulse" />
+)}
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
