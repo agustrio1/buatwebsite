@@ -27,8 +27,6 @@ export default function SiteLayout() {
   const contactData = settings.contact || {};
 
   const siteName = generalData.siteName || "WebCraft";
-  const siteDescription =
-    seoData.metaDescription || generalData.siteTagline || "Jasa Pembuatan Website Profesional & Layanan Digital.";
   const siteUrl = generalData.siteUrl || "https://trioagus.id";
 
   // Extract WhatsApp Phone Number
@@ -39,32 +37,20 @@ export default function SiteLayout() {
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent("Halo, saya ingin bertanya mengenai layanan Anda.")}`
     : "#";
 
-  // Schema.org JSON-LD tunggal untuk ProfessionalService / Organization
-  const organizationJsonLd = {
+  // Hanya memakai WebSite Schema (WebSite JSON-LD)
+  const websiteJsonLd = {
     "@context": "https://schema.org",
-    "@type": "ProfessionalService",
+    "@type": "WebSite",
     name: siteName,
-    description: siteDescription,
     url: siteUrl,
-    telephone: cleanPhone ? `+${cleanPhone}` : undefined,
-    address: contactData.address
-      ? {
-          "@type": "PostalAddress",
-          streetAddress: contactData.address,
-          addressLocality: contactData.province,
-          postalCode: contactData.postalCode,
-          addressCountry: "ID",
-        }
-      : undefined,
-    sameAs: settings.socials ? Object.values(settings.socials).filter(Boolean) : [],
   };
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Script JSON-LD Tunggal */}
+      {/* Script WebSite JSON-LD */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
 
       <SiteHeader settings={settings} />
