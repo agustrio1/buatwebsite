@@ -5,6 +5,15 @@ import { posts } from "~/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { User } from "lucide-react";
 
+export function headers() {
+  return {
+    // Cache halaman selama 60 detik (S-Maxage).
+    // Setelah 60 detik, gunakan cache lama (stale) sambil fetch data baru di background selama 10 menit.
+    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+  };
+}
+
+
 export async function loader() {
   const allPosts = await db.query.posts.findMany({
     where: eq(posts.status, "published"),

@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { MapPin, Mail, Phone } from "lucide-react";
+import { servicePages } from "~/data/service-pages";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -58,6 +59,14 @@ const socialIcons: Record<string, (props: React.SVGProps<SVGSVGElement>) => Reac
   tiktok: TiktokIcon,
 };
 
+const navigasiLinks = [
+  { label: "Beranda", to: "/" },
+  { label: "Portofolio", to: "/projek" },
+  { label: "Blog", to: "/blog" },
+  { label: "Harga", to: "/#layanan" },
+  { label: "Kontak", to: "/#kontak" },
+];
+
 export function SiteFooter({ settings }: { settings: Record<string, any> }) {
   const general = settings.general ?? {};
   const contact = settings.contact ?? {};
@@ -68,11 +77,11 @@ export function SiteFooter({ settings }: { settings: Record<string, any> }) {
   ) as [string, string][];
 
   return (
-    <footer id="kontak" className="bg-brand-dark text-slate-400 mt-16">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <footer id="kontak" className="bg-white text-slate-600 border-t border-slate-200 mt-16">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         <div>
-          <h3 className="text-white font-semibold mb-3">{general.siteName ?? "Website"}</h3>
-          <p className="text-sm leading-relaxed">{general.siteTagline}</p>
+          <h3 className="text-slate-900 font-semibold mb-3">{general.siteName ?? "Website"}</h3>
+          <p className="text-sm leading-relaxed text-slate-500">{general.siteTagline}</p>
           {socialEntries.length > 0 && (
             <div className="flex gap-3 mt-4">
               {socialEntries.map(([key, url]) => {
@@ -83,7 +92,7 @@ export function SiteFooter({ settings }: { settings: Record<string, any> }) {
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-colors"
+                    className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-colors border border-slate-200/60"
                   >
                     <Icon width={16} height={16} />
                   </a>
@@ -93,36 +102,63 @@ export function SiteFooter({ settings }: { settings: Record<string, any> }) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <h3 className="text-white font-semibold mb-3">Kontak</h3>
-          {contact.address && (
-            <p className="flex items-start gap-2 text-sm">
-              <MapPin size={16} className="mt-0.5 shrink-0" /> {contact.address}
-            </p>
-          )}
-          {contact.emailPrimary && (
-            <p className="flex items-center gap-2 text-sm">
-              <Mail size={16} className="shrink-0" /> {contact.emailPrimary}
-            </p>
-          )}
-          {contact.phoneOffice && (
-            <p className="flex items-center gap-2 text-sm">
-              <Phone size={16} className="shrink-0" /> {contact.phoneOffice}
-            </p>
-          )}
+        <div>
+          <h3 className="text-slate-900 font-semibold mb-3">Navigasi</h3>
+          <div className="flex flex-col gap-2 text-sm">
+            {navigasiLinks.map((item) => (
+              <Link key={item.to} to={item.to} className="hover:text-brand-600 transition-colors">
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div>
-          <h3 className="text-white font-semibold mb-3">Tautan</h3>
+          <h3 className="text-slate-900 font-semibold mb-3">Layanan Kami</h3>
           <div className="flex flex-col gap-2 text-sm">
-            <a href="#layanan" className="hover:text-white transition-colors">Layanan</a>
-            <a href="#projek" className="hover:text-white transition-colors">Projek</a>
-            <Link to="/login" className="hover:text-white transition-colors">Login Admin</Link>
+            {servicePages.map((s) => (
+              <Link key={s.slug} to={`/layanan/${s.slug}`} className="hover:text-brand-600 transition-colors">
+                {s.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <h3 className="text-slate-900 font-semibold mb-3">Legal</h3>
+            <div className="flex flex-col gap-2 text-sm">
+              <Link to="/legal/syarat-ketentuan" className="hover:text-brand-600 transition-colors">
+                Syarat & Ketentuan
+              </Link>
+              <Link to="/legal/kebijakan-privasi" className="hover:text-brand-600 transition-colors">
+                Kebijakan Privasi
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-slate-900 font-semibold mb-3">Kontak</h3>
+            {contact.address && (
+              <p className="flex items-start gap-2 text-sm text-slate-500">
+                <MapPin size={16} className="mt-0.5 shrink-0 text-slate-400" /> {contact.address}
+              </p>
+            )}
+            {contact.emailPrimary && (
+              <p className="flex items-center gap-2 text-sm text-slate-500">
+                <Mail size={16} className="shrink-0 text-slate-400" /> {contact.emailPrimary}
+              </p>
+            )}
+            {contact.phoneOffice && (
+              <p className="flex items-center gap-2 text-sm text-slate-500">
+                <Phone size={16} className="shrink-0 text-slate-400" /> {contact.phoneOffice}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="border-t border-white/10 py-5 text-center text-xs">
+      <div className="border-t border-slate-200 py-5 text-center text-xs text-slate-400">
         {general.copyrightText ?? `© ${new Date().getFullYear()} ${general.siteName ?? ""}`}
       </div>
     </footer>

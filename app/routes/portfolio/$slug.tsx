@@ -7,6 +7,15 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { RichTextView } from "~/components/site/rich-text-view";
 import type { JSONContent } from "@tiptap/react";
 
+export function headers() {
+  return {
+    // Cache halaman selama 60 detik (S-Maxage).
+    // Setelah 60 detik, gunakan cache lama (stale) sambil fetch data baru di background selama 10 menit.
+    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+  };
+}
+
+
 export async function loader({ params }: Route.LoaderArgs) {
   const project = await db.query.projects.findFirst({
     where: eq(projects.slug, params.slug),
