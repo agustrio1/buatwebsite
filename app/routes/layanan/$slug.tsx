@@ -11,11 +11,11 @@ export function loader({ params }: Route.LoaderArgs) {
   return { service };
 }
 
-export function meta({ data }: Route.MetaArgs) {
-  if (!data?.service) return [{ title: "Layanan tidak ditemukan" }];
+export function meta({ loaderData }: Route.MetaArgs) {
+  if (!loaderData?.service) return [{ title: "Layanan tidak ditemukan" }];
   return [
-    { title: data.service.title },
-    { name: "description", content: data.service.shortDesc },
+    { title: loaderData.service.title },
+    { name: "description", content: loaderData.service.shortDesc },
   ];
 }
 

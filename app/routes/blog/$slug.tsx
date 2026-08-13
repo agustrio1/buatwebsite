@@ -17,6 +17,13 @@ export async function loader({ params }: Route.LoaderArgs) {
     with: { category: true, author: true },
   });
 
+  console.log("[LOADER]", {
+    slug: params.slug,
+    found: !!post,
+    status: post?.status,
+    title: post?.title,
+  });
+
   if (!post || post.status !== "published") {
     throw new Response("Not found", { status: 404 });
   }
@@ -31,7 +38,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   );
 }
 
-export function meta({ data: loaderData }: Route.MetaArgs) {
+export function meta({ loaderData }: Route.MetaArgs) {
   if (!loaderData?.post) {
     return [{ title: "Artikel tidak ditemukan" }];
   }

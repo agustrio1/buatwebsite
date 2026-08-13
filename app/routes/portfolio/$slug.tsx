@@ -27,11 +27,11 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { project };
 }
 
-export function meta({ data }: Route.MetaArgs) {
-  if (!data?.project) return [{ title: "Projek tidak ditemukan" }];
+export function meta({ loaderData }: Route.MetaArgs) {
+  if (!loaderData?.project) return [{ title: "Projek tidak ditemukan" }];
   return [
-    { title: data.project.title },
-    { name: "description", content: data.project.summary ?? "" },
+    { title: loaderData.project.title },
+    { name: "description", content: loaderData.project.summary ?? "" },
   ];
 }
 
