@@ -14,8 +14,15 @@ import {
   Star,
 } from "lucide-react";
 
-// Komponen Ikon WhatsApp Sempurna (Vektor 24x24 Anti-Distorsi)
-function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
+/* =========================================================
+   WHATSAPP ICON
+========================================================= */
+
+function WhatsAppIcon({
+  className = "w-5 h-5",
+}: {
+  className?: string;
+}) {
   return (
     <svg
       className={`shrink-0 fill-current ${className}`}
@@ -27,31 +34,46 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+/* =========================================================
+   LOADER
+========================================================= */
+
 export async function loader() {
-  const [featuredServices, featuredProjects, latestPosts, allProjectsCount] = await Promise.all([
+  const [
+    featuredServices,
+    featuredProjects,
+    latestPosts,
+    allProjectsCount,
+  ] = await Promise.all([
     db.query.services.findMany({
       orderBy: [asc(services.sortOrder)],
       with: { features: true },
       limit: 6,
     }),
+
     db.query.projects.findMany({
       where: eq(projects.isFeatured, true),
       orderBy: [desc(projects.createdAt)],
       limit: 6,
     }),
+
     db.query.posts.findMany({
       where: eq(posts.status, "published"),
       orderBy: [desc(posts.publishedAt)],
       with: { category: true },
       limit: 3,
     }),
+
     db.$count(projects),
   ]);
 
   const displayedProjects =
     featuredProjects.length > 0
       ? featuredProjects
-      : await db.query.projects.findMany({ orderBy: [desc(projects.createdAt)], limit: 3 });
+      : await db.query.projects.findMany({
+          orderBy: [desc(projects.createdAt)],
+          limit: 3,
+        });
 
   return {
     services: featuredServices,
@@ -60,6 +82,10 @@ export async function loader() {
     projectsCount: allProjectsCount,
   };
 }
+
+/* =========================================================
+   PROCESS STEPS
+========================================================= */
 
 const processSteps = [
   {
@@ -83,6 +109,10 @@ const processSteps = [
     desc: "Website online, kami dampingi Anda di masa-masa awal pemakaian setelah rilis.",
   },
 ];
+
+/* =========================================================
+   TESTIMONIALS
+========================================================= */
 
 const testimonials = [
   {
@@ -108,6 +138,10 @@ const testimonials = [
   },
 ];
 
+/* =========================================================
+   FAQ
+========================================================= */
+
 const faqs = [
   {
     q: "Berapa lama waktu pengerjaan website?",
@@ -127,453 +161,973 @@ const faqs = [
   },
 ];
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-  const { services, projects, posts, projectsCount } = loaderData;
-  const { settings } = useOutletContext<{ settings: Record<string, any> }>();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+/* =========================================================
+   PORTFOLIO MARQUEE
+========================================================= */
+
+type PortfolioProject = {
+  id: string | number;
+  title: string;
+  coverImageUrl: string | null;
+};
+
+/**
+ * Portfolio marquee untuk Hero.
+ *
+ * Row 1:
+ * bergerak dari kiri ke kanan visual
+ *
+ * Row 2:
+ * bergerak berlawanan arah
+ *
+ * Data tetap berasal dari database.
+ */
+function PortfolioMarquee({
+  projects,
+}: {
+  projects: PortfolioProject[];
+}) {
+  if (!projects.length) {
+    return null;
+  }
+
+  /*
+   * Duplicate data agar loop CSS
+   * tidak terlihat putus.
+   */
+  const row1 = [...projects, ...projects];
+
+  const reversedProjects = [...projects].reverse();
+
+  const row2 = [
+    ...reversedProjects,
+    ...reversedProjects,
+  ];
+
+  return (
+    <div className="portfolio-showcase">
+      {/* LEFT FADE */}
+      <div className="portfolio-fade portfolio-fade-left" />
+
+      {/* RIGHT FADE */}
+      <div className="portfolio-fade portfolio-fade-right" />
+
+      {/* =====================================================
+          ROW 1
+      ====================================================== */}
+
+      <div className="portfolio-marquee">
+        <div className="portfolio-track portfolio-track-left">
+          {row1.map((project, index) => (
+            <div
+              key={`portfolio-row-1-${project.id}-${index}`}
+              className="portfolio-card"
+            >
+              <div className="portfolio-card-image">
+                {project.coverImageUrl ? (
+                  <img
+                    src={project.coverImageUrl}
+                    alt={project.title}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
+                    {project.title}
+                  </div>
+                )}
+              </div>
+
+              <div className="portfolio-card-label">
+                {project.title}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* =====================================================
+          ROW 2
+      ====================================================== */}
+
+      <div className="portfolio-marquee portfolio-marquee-second">
+        <div className="portfolio-track portfolio-track-right">
+          {row2.map((project, index) => (
+            <div
+              key={`portfolio-row-2-${project.id}-${index}`}
+              className="portfolio-card"
+            >
+              <div className="portfolio-card-image">
+                {project.coverImageUrl ? (
+                  <img
+                    src={project.coverImageUrl}
+                    alt={project.title}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
+                    {project.title}
+                  </div>
+                )}
+              </div>
+
+              <div className="portfolio-card-label">
+                {project.title}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+
+export default function Home({
+  loaderData,
+}: Route.ComponentProps) {
+  const {
+    services,
+    projects,
+    posts,
+    projectsCount,
+  } = loaderData;
+
+  const { settings } =
+    useOutletContext<{
+      settings: Record<string, any>;
+    }>();
+
+  const [openFaq, setOpenFaq] =
+    useState<number | null>(null);
 
   const hero = settings.hero ?? {};
   const contact = settings.contact ?? {};
-  const templates = settings.whatsapp_templates ?? {};
-  const features = settings.features ?? {};
-  const general = settings.general ?? {};
+  const templates =
+    settings.whatsapp_templates ?? {};
+  const features =
+    settings.features ?? {};
+  const general =
+    settings.general ?? {};
 
-  const waConsult = buildWaLink(contact.whatsappNumber, templates.defaultConsultation);
+  const waConsult = buildWaLink(
+    contact.whatsappNumber,
+    templates.defaultConsultation
+  );
 
-  // JSON-LD: daftar layanan sebagai ItemList of Service
+  /* =======================================================
+     JSON-LD SERVICES
+  ======================================================== */
+
   const servicesJsonLd =
     services.length > 0
       ? {
           "@context": "https://schema.org",
           "@type": "ItemList",
-          itemListElement: services.map((s, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
-            item: {
-              "@type": "Service",
-              name: s.title,
-              description: s.summary ?? undefined,
-              provider: {
-                "@type": "Organization",
-                name: general.siteName,
+          itemListElement: services.map(
+            (s, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              item: {
+                "@type": "Service",
+                name: s.title,
+                description:
+                  s.summary ?? undefined,
+
+                provider: {
+                  "@type": "Organization",
+                  name: general.siteName,
+                },
+
+                offers:
+                  s.isPriceVisible &&
+                  s.priceAmount
+                    ? {
+                        "@type": "Offer",
+                        price: s.priceAmount,
+                        priceCurrency: "IDR",
+                      }
+                    : undefined,
               },
-              offers:
-                s.isPriceVisible && s.priceAmount
-                  ? {
-                      "@type": "Offer",
-                      price: s.priceAmount,
-                      priceCurrency: "IDR",
-                    }
-                  : undefined,
-            },
-          })),
+            })
+          ),
         }
       : null;
 
-  // JSON-LD: artikel blog terbaru sebagai BlogPosting
+  /* =======================================================
+     JSON-LD BLOG
+  ======================================================== */
+
   const blogJsonLd =
     posts.length > 0
       ? posts.map((post) => ({
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           headline: post.title,
-          description: post.summary ?? undefined,
-          image: post.coverImageUrl ?? undefined,
-          datePublished: post.publishedAt ?? undefined,
+          description:
+            post.summary ?? undefined,
+          image:
+            post.coverImageUrl ?? undefined,
+          datePublished:
+            post.publishedAt ?? undefined,
+
           author: post.author
-            ? { "@type": "Person", name: post.author.name }
+            ? {
+                "@type": "Person",
+                name: post.author.name,
+              }
             : undefined,
         }))
       : [];
 
+  /* =======================================================
+     RENDER
+  ======================================================== */
+
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen bg-white">
+
+      {/* =====================================================
+          SEO JSON-LD
+      ====================================================== */}
+
       {servicesJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesJsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html:
+              JSON.stringify(
+                servicesJsonLd
+              ),
+          }}
         />
       )}
-      {blogJsonLd.map((schema, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
-      ))}
 
-      {/* Hero */}
-      <section className="overflow-hidden">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 pt-16 md:pt-24 pb-10 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-brand-dark leading-tight">
+      {blogJsonLd.map(
+        (schema, i) => (
+          <script
+            key={i}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html:
+                JSON.stringify(schema),
+            }}
+          />
+        )
+      )}
+
+      {/* =====================================================
+          HERO
+      ====================================================== */}
+
+      <section className="relative overflow-hidden">
+
+        {/* Hero Content */}
+
+        <div className="mx-auto max-w-4xl px-4 pb-10 pt-16 text-center md:px-8 md:pb-12 md:pt-24">
+          {/* Headline */}
+
+          <h1 className="text-3xl font-bold leading-tight text-brand-dark sm:text-4xl md:text-5xl lg:text-6xl">
             {hero.headline ?? (
               <>
-                Jasa Pembuatan Website Profesional untuk{" "}
-                <span className="text-brand-500">UMKM & Bisnis</span>
+                Jasa Pembuatan Website Profesional
+                untuk{" "}
+                <span className="text-brand-500">
+                  UMKM & Bisnis
+                </span>
               </>
             )}
           </h1>
+
+          {/* Subheadline */}
+
           {hero.subheadline && (
-            <p className="text-slate-500 max-w-xl mx-auto mt-5 text-base md:text-lg">
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-500 md:text-lg">
               {hero.subheadline}
             </p>
           )}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+
+          {/* CTA */}
+
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+
             <a
-              href={hero.ctaPrimaryUrl || waConsult}
+              href={
+                hero.ctaPrimaryUrl ||
+                waConsult
+              }
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold px-7 py-3.5 rounded-full w-full sm:w-auto justify-center transition-colors shadow-lg shadow-brand-500/20"
+              className="flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600 sm:w-auto"
             >
-              <WhatsAppIcon className="w-5 h-5" />
-              <span>{hero.ctaPrimaryText ?? "Konsultasi Sekarang"}</span>
+              <WhatsAppIcon className="h-5 w-5" />
+
+              <span>
+                {hero.ctaPrimaryText ??
+                  "Konsultasi Sekarang"}
+              </span>
+
               <ArrowUpRight size={18} />
             </a>
-            {features.showPortfolioDemoLinks !== false && projects.length > 0 && (
-              <a
-                href="#projek"
-                className="flex items-center gap-1.5 text-slate-600 hover:text-brand-600 font-medium px-7 py-3.5 rounded-full w-full sm:w-auto justify-center transition-colors"
-              >
-                Lihat Project <ArrowRight size={16} />
-              </a>
-            )}
+
+            {features.showPortfolioDemoLinks !==
+              false &&
+              projects.length > 0 && (
+                <a
+                  href="#projek"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
+                >
+                  Lihat Project
+                  <ArrowRight size={16} />
+                </a>
+              )}
           </div>
+
+          {/* Project Count */}
+
           {projectsCount > 0 && (
-            <p className="text-sm text-slate-400 mt-5">
-              Dipercaya menyelesaikan <span className="font-semibold text-brand-600">{projectsCount}+ proyek</span> website
+            <p className="mt-5 text-sm text-slate-400">
+              Dipercaya menyelesaikan{" "}
+              <span className="font-semibold text-brand-600">
+                {projectsCount}+ proyek
+              </span>{" "}
+              website
             </p>
           )}
         </div>
 
+        {/* ===================================================
+            PORTFOLIO ANIMATION
+        ==================================================== */}
+
         {projects.length > 0 && (
           <div className="pb-16 md:pb-20">
-            <div className="flex gap-5 w-max px-4 mx-auto animate-marquee">
-              {[...projects, ...projects].map((p, i) => (
-                <div
-                  key={`${p.id}-${i}`}
-                  className="w-64 md:w-72 aspect-video rounded-2xl overflow-hidden border border-slate-100 bg-white shrink-0 shadow-sm"
-                >
-                  {p.coverImageUrl && (
-                    <img src={p.coverImageUrl} alt={p.title} className="w-full h-full object-cover" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <PortfolioMarquee
+              projects={
+                projects as PortfolioProject[]
+              }
+            />
           </div>
         )}
+
       </section>
 
-      {/* Proses Kerja */}
+      {/* =====================================================
+          PROSES KERJA
+      ====================================================== */}
+
       <section>
-        <div className="max-w-3xl mx-auto px-4 md:px-8 py-16 md:py-20">
-          <div className="text-center mb-14">
-            <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
+
+          <div className="mb-14 text-center">
+
+            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
               Cara Kami Bekerja
             </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Proses yang Jelas dari Awal</h2>
+
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Proses yang Jelas dari Awal
+            </h2>
+
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 space-y-10">
-            {processSteps.map((item) => (
-              <div key={item.step} className="flex gap-6 border-t border-slate-100 pt-8 first:border-0 first:pt-0">
-                <span className="text-3xl md:text-4xl font-bold text-slate-200 shrink-0 w-16">{item.step}</span>
-                <div>
-                  <h3 className="font-semibold text-brand-dark text-lg">{item.title}</h3>
-                  <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">{item.desc}</p>
+          <div className="space-y-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8">
+
+            {processSteps.map(
+              (item) => (
+                <div
+                  key={item.step}
+                  className="flex gap-6 border-t border-slate-100 pt-8 first:border-0 first:pt-0"
+                >
+
+                  <span className="w-16 shrink-0 text-3xl font-bold text-slate-200 md:text-4xl">
+                    {item.step}
+                  </span>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-brand-dark">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-500">
+                      {item.desc}
+                    </p>
+                  </div>
+
                 </div>
-              </div>
-            ))}
+              )
+            )}
+
           </div>
         </div>
       </section>
 
-      {/* Services */}
-      {features.showPricingSection !== false && services.length > 0 && (
-        <section id="layanan">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-20">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-                Harga
-              </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Paket Harga Terbaik</h2>
-              <p className="text-slate-500 mt-2">Pilih paket yang sesuai dengan kebutuhan bisnis Anda.</p>
-            </div>
+      {/* =====================================================
+          SERVICES
+      ====================================================== */}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((s) => {
-                const priceAmountText = formatPrice(s.priceAmount, s.priceUnit);
-                const waPackage = buildWaLink(
-                  contact.whatsappNumber,
-                  (templates.packageInquiry ?? "Halo, saya berminat dengan paket {packageName}").replace(
-                    "{packageName}",
-                    s.title
-                  )
-                );
+      {features.showPricingSection !==
+        false &&
+        services.length > 0 && (
+          <section id="layanan">
 
-                return (
-                  <div
-                    key={s.id}
-                    className={`relative bg-white rounded-3xl border p-7 flex flex-col ${
-                      s.isFeatured ? "border-brand-500 shadow-xl shadow-brand-500/10" : "border-slate-200"
-                    }`}
-                  >
-                    {s.badge && (
-                      <span className="absolute -top-3 left-7 bg-brand-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                        {s.badge}
-                      </span>
-                    )}
-                    <h3 className="font-semibold text-lg text-brand-dark">{s.title}</h3>
-                    {s.summary && <p className="text-sm text-slate-500 mt-1.5">{s.summary}</p>}
+            <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
 
-                    <div className="mt-5">
-                      {!s.isPriceVisible ? (
-                        <p className="text-lg font-semibold text-slate-400 italic">Hubungi kami untuk harga</p>
-                      ) : priceAmountText ? (
-                        <>
-                          {s.priceLabel && (
-                            <p className="text-sm font-medium text-slate-500 mb-1">{s.priceLabel}</p>
-                          )}
-                          <p className="text-3xl font-bold text-brand-dark">{priceAmountText}</p>
-                        </>
-                      ) : s.priceLabel ? (
-                        <p className="text-3xl font-bold text-brand-dark">{s.priceLabel}</p>
-                      ) : (
-                        <p className="text-lg font-semibold text-slate-400 italic">Hubungi kami untuk harga</p>
-                      )}
-                    </div>
+              <div className="mx-auto mb-12 max-w-2xl text-center">
 
-                    {s.features.length > 0 && (
-                      <ul className="space-y-2.5 mt-6 flex-1">
-                        {s.features.map((f) => (
-                          <li
-                            key={f.id}
-                            className={`flex items-start gap-2 text-sm ${
-                              f.isIncluded ? "text-slate-600" : "text-slate-300 line-through"
-                            }`}
-                          >
-                            <Check size={16} className={`mt-0.5 shrink-0 ${f.isIncluded ? "text-brand-500" : "text-slate-300"}`} />
-                            {f.featureText}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                  Harga
+                </span>
 
-                    <a
-                      href={waPackage}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`mt-7 flex items-center justify-center gap-2.5 font-medium px-4 py-3 rounded-full transition-colors ${
+                <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                  Paket Harga Terbaik
+                </h2>
+
+                <p className="mt-2 text-slate-500">
+                  Pilih paket yang sesuai
+                  dengan kebutuhan bisnis
+                  Anda.
+                </p>
+
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+                {services.map((s) => {
+
+                  const priceAmountText =
+                    formatPrice(
+                      s.priceAmount,
+                      s.priceUnit
+                    );
+
+                  const waPackage =
+                    buildWaLink(
+                      contact.whatsappNumber,
+                      (
+                        templates.packageInquiry ??
+                        "Halo, saya berminat dengan paket {packageName}"
+                      ).replace(
+                        "{packageName}",
+                        s.title
+                      )
+                    );
+
+                  return (
+                    <div
+                      key={s.id}
+                      className={`relative flex flex-col rounded-3xl border bg-white p-7 ${
                         s.isFeatured
-                          ? "bg-brand-500 hover:bg-brand-600 text-white"
-                          : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                          ? "border-brand-500 shadow-xl shadow-brand-500/10"
+                          : "border-slate-200"
                       }`}
                     >
-                      <WhatsAppIcon className="w-5 h-5" />
-                      <span>Pesan Sekarang</span>
-                      <ArrowRight size={16} />
-                    </a>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* Projects */}
+                      {s.badge && (
+                        <span className="absolute -top-3 left-7 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white">
+                          {s.badge}
+                        </span>
+                      )}
+
+                      <h3 className="text-lg font-semibold text-brand-dark">
+                        {s.title}
+                      </h3>
+
+                      {s.summary && (
+                        <p className="mt-1.5 text-sm text-slate-500">
+                          {s.summary}
+                        </p>
+                      )}
+
+                      <div className="mt-5">
+
+                        {!s.isPriceVisible ? (
+                          <p className="text-lg font-semibold italic text-slate-400">
+                            Hubungi kami untuk
+                            harga
+                          </p>
+                        ) : priceAmountText ? (
+                          <>
+                            {s.priceLabel && (
+                              <p className="mb-1 text-sm font-medium text-slate-500">
+                                {s.priceLabel}
+                              </p>
+                            )}
+
+                            <p className="text-3xl font-bold text-brand-dark">
+                              {priceAmountText}
+                            </p>
+                          </>
+                        ) : s.priceLabel ? (
+                          <p className="text-3xl font-bold text-brand-dark">
+                            {s.priceLabel}
+                          </p>
+                        ) : (
+                          <p className="text-lg font-semibold italic text-slate-400">
+                            Hubungi kami untuk
+                            harga
+                          </p>
+                        )}
+
+                      </div>
+
+                      {s.features.length > 0 && (
+                        <ul className="mt-6 flex-1 space-y-2.5">
+
+                          {s.features.map(
+                            (f) => (
+                              <li
+                                key={f.id}
+                                className={`flex items-start gap-2 text-sm ${
+                                  f.isIncluded
+                                    ? "text-slate-600"
+                                    : "text-slate-300 line-through"
+                                }`}
+                              >
+                                <Check
+                                  size={16}
+                                  className={`mt-0.5 shrink-0 ${
+                                    f.isIncluded
+                                      ? "text-brand-500"
+                                      : "text-slate-300"
+                                  }`}
+                                />
+
+                                {f.featureText}
+                              </li>
+                            )
+                          )}
+
+                        </ul>
+                      )}
+
+                      <a
+                        href={waPackage}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`mt-7 flex items-center justify-center gap-2.5 rounded-full px-4 py-3 font-medium transition-colors ${
+                          s.isFeatured
+                            ? "bg-brand-500 text-white hover:bg-brand-600"
+                            : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <WhatsAppIcon className="h-5 w-5" />
+
+                        <span>
+                          Pesan Sekarang
+                        </span>
+
+                        <ArrowRight size={16} />
+                      </a>
+
+                    </div>
+                  );
+                })}
+
+              </div>
+            </div>
+          </section>
+        )}
+
+      {/* =====================================================
+          PROJECTS
+      ====================================================== */}
+
       {projects.length > 0 && (
         <section id="projek">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-20">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
                 Portofolio
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Karya Terbaik Kami</h2>
+
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Karya Terbaik Kami
+              </h2>
+
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
               {projects.map((p) => (
-                <div key={p.id} className="bg-white rounded-2xl overflow-hidden border border-slate-200 group">
-                  <div className="aspect-video bg-slate-100 overflow-hidden">
+                <div
+                  key={p.id}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                >
+
+                  <div className="aspect-video overflow-hidden bg-slate-100">
+
                     {p.coverImageUrl && (
                       <img
                         src={p.coverImageUrl}
                         alt={p.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                     )}
+
                   </div>
+
                   <div className="p-5">
-                    <h3 className="font-semibold text-brand-dark">{p.title}</h3>
-                    {p.clientName && <p className="text-sm text-slate-400 mt-0.5">{p.clientName}</p>}
-                    {p.techStack && p.techStack.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {p.techStack.slice(0, 4).map((t) => (
-                          <span key={t} className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+
+                    <h3 className="font-semibold text-brand-dark">
+                      {p.title}
+                    </h3>
+
+                    {p.clientName && (
+                      <p className="mt-0.5 text-sm text-slate-400">
+                        {p.clientName}
+                      </p>
                     )}
-                    {features.showPortfolioDemoLinks !== false && p.liveDemoUrl && (
-                      <a
-                        href={p.liveDemoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-1.5 text-sm text-brand-600 hover:underline mt-4"
-                      >
-                        Lihat Demo <ExternalLink size={14} />
-                      </a>
-                    )}
+
+                    {p.techStack &&
+                      p.techStack.length >
+                        0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+
+                          {p.techStack
+                            .slice(0, 4)
+                            .map(
+                              (t) => (
+                                <span
+                                  key={t}
+                                  className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500"
+                                >
+                                  {t}
+                                </span>
+                              )
+                            )}
+
+                        </div>
+                      )}
+
+                    {features.showPortfolioDemoLinks !==
+                      false &&
+                      p.liveDemoUrl && (
+                        <a
+                          href={
+                            p.liveDemoUrl
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-4 flex items-center gap-1.5 text-sm text-brand-600 hover:underline"
+                        >
+                          Lihat Demo
+                          <ExternalLink
+                            size={14}
+                          />
+                        </a>
+                      )}
+
                   </div>
                 </div>
               ))}
+
             </div>
           </div>
         </section>
       )}
 
-      {/* Testimoni */}
+      {/* =====================================================
+          TESTIMONIALS
+      ====================================================== */}
+
       <section>
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-20">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+
+        <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+
+            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
               Testimoni
             </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Apa Kata Klien Kami</h2>
+
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Apa Kata Klien Kami
+            </h2>
+
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} size={14} className="fill-brand-500 text-brand-500" />
-                  ))}
-                  {Array.from({ length: 5 - t.rating }).map((_, i) => (
-                    <Star key={`empty-${i}`} size={14} className="text-slate-200" />
-                  ))}
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed">{t.quote}</p>
-                <div className="flex items-center gap-3 mt-5">
-                  <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 text-sm font-semibold flex items-center justify-center shrink-0">
-                    {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+
+            {testimonials.map(
+              (t) => (
+                <div
+                  key={t.name}
+                  className="rounded-2xl border border-slate-200 bg-white p-6"
+                >
+
+                  <div className="mb-4 flex gap-0.5">
+
+                    {Array.from({
+                      length: t.rating,
+                    }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        className="fill-brand-500 text-brand-500"
+                      />
+                    ))}
+
+                    {Array.from({
+                      length: 5 - t.rating,
+                    }).map((_, i) => (
+                      <Star
+                        key={`empty-${i}`}
+                        size={14}
+                        className="text-slate-200"
+                      />
+                    ))}
+
                   </div>
-                  <div>
-                    <p className="font-semibold text-brand-dark text-sm">{t.name}</p>
-                    <p className="text-xs text-slate-400">{t.role}</p>
+
+                  <p className="text-sm leading-relaxed text-slate-600">
+                    {t.quote}
+                  </p>
+
+                  <div className="mt-5 flex items-center gap-3">
+
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                      {t.name
+                        .split(" ")
+                        .map(
+                          (n) => n[0]
+                        )
+                        .join("")
+                        .slice(0, 2)}
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm font-semibold text-brand-dark">
+                        {t.name}
+                      </p>
+
+                      <p className="text-xs text-slate-400">
+                        {t.role}
+                      </p>
+
+                    </div>
+
                   </div>
+
                 </div>
-              </div>
-            ))}
+              )
+            )}
+
           </div>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* =====================================================
+          FAQ
+      ====================================================== */}
+
       <section>
-        <div className="max-w-3xl mx-auto px-4 md:px-8 py-16 md:py-20">
-          <div className="text-center mb-10">
-            <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+
+        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
+
+          <div className="mb-10 text-center">
+
+            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
               FAQ
             </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Pertanyaan yang Sering Ditanyakan</h2>
+
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Pertanyaan yang Sering Ditanyakan
+            </h2>
+
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200 divide-y divide-slate-200 px-6">
-            {faqs.map((item, i) => {
-              const isOpen = openFaq === i;
-              return (
-                <div key={item.q}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(isOpen ? null : i)}
-                    className="w-full flex items-center justify-between gap-4 text-left py-5"
+          <div className="divide-y divide-slate-200 rounded-3xl border border-slate-200 bg-white px-6">
+
+            {faqs.map(
+              (item, i) => {
+
+                const isOpen =
+                  openFaq === i;
+
+                return (
+                  <div
+                    key={item.q}
                   >
-                    <span className="font-medium text-brand-dark">{item.q}</span>
-                    <ChevronDown
-                      size={18}
-                      className={`shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <p className="pb-5 text-sm text-slate-500 leading-relaxed">{item.a}</p>
-                  )}
-                </div>
-              );
-            })}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenFaq(
+                          isOpen
+                            ? null
+                            : i
+                        )
+                      }
+                      className="flex w-full items-center justify-between gap-4 py-5 text-left"
+                    >
+
+                      <span className="font-medium text-brand-dark">
+                        {item.q}
+                      </span>
+
+                      <ChevronDown
+                        size={18}
+                        className={`shrink-0 text-slate-400 transition-transform ${
+                          isOpen
+                            ? "rotate-180"
+                            : ""
+                        }`}
+                      />
+
+                    </button>
+
+                    {isOpen && (
+                      <p className="pb-5 text-sm leading-relaxed text-slate-500">
+                        {item.a}
+                      </p>
+                    )}
+
+                  </div>
+                );
+              }
+            )}
+
           </div>
         </div>
       </section>
 
-      {/* Blog */}
-      {features.showBlogSection !== false && (
+      {/* =====================================================
+          BLOG
+      ====================================================== */}
+
+      {features.showBlogSection !==
+        false && (
         <section id="blog">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-20">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
                 Blog
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Artikel Terbaru</h2>
-              <p className="text-slate-500 mt-2">Tips dan insight seputar website dan bisnis digital.</p>
+
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Artikel Terbaru
+              </h2>
+
+              <p className="mt-2 text-slate-500">
+                Tips dan insight seputar
+                website dan bisnis digital.
+              </p>
+
             </div>
 
             {posts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                {posts.map((post) => (
-                  <Link
-                    key={post.id}
-                    to={`/blog/${post.slug}`}
-                    className="bg-white rounded-2xl overflow-hidden border border-slate-200 group"
-                  >
-                    <div className="aspect-video bg-slate-100 overflow-hidden">
-                      {post.coverImageUrl && (
-                        <img
-                          src={post.coverImageUrl}
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      )}
-                    </div>
-                    <div className="p-5">
-                      {post.category && (
-                        <span className="text-xs font-medium text-brand-600">{post.category.name}</span>
-                      )}
-                      <h3 className="font-semibold text-brand-dark mt-1.5 line-clamp-2">{post.title}</h3>
-                      {post.summary && (
-                        <p className="text-sm text-slate-500 mt-1.5 line-clamp-2">{post.summary}</p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+
+                {posts.map(
+                  (post) => (
+                    <Link
+                      key={post.id}
+                      to={`/blog/${post.slug}`}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+
+                      <div className="aspect-video overflow-hidden bg-slate-100">
+
+                        {post.coverImageUrl && (
+                          <img
+                            src={
+                              post.coverImageUrl
+                            }
+                            alt={
+                              post.title
+                            }
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        )}
+
+                      </div>
+
+                      <div className="p-5">
+
+                        {post.category && (
+                          <span className="text-xs font-medium text-brand-600">
+                            {
+                              post
+                                .category
+                                .name
+                            }
+                          </span>
+                        )}
+
+                        <h3 className="mt-1.5 line-clamp-2 font-semibold text-brand-dark">
+                          {post.title}
+                        </h3>
+
+                        {post.summary && (
+                          <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">
+                            {post.summary}
+                          </p>
+                        )}
+
+                      </div>
+
+                    </Link>
+                  )
+                )}
+
               </div>
             ) : (
-              <p className="text-center text-sm text-slate-400">Artikel akan segera hadir.</p>
+              <p className="text-center text-sm text-slate-400">
+                Artikel akan segera hadir.
+              </p>
             )}
+
           </div>
         </section>
       )}
 
-      {/* Contact CTA */}
+      {/* =====================================================
+          CONTACT CTA
+      ====================================================== */}
+
       <section>
-        <div className="max-w-3xl mx-auto px-4 md:px-8 py-16 md:py-20">
-          <div className="bg-white rounded-3xl border border-slate-200 px-6 md:px-12 py-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-brand-dark">Siap Memulai Proyek Website Anda?</h2>
-            <p className="text-slate-500 max-w-xl mx-auto mt-3">
-              Konsultasikan kebutuhan website Anda bersama tim kami, gratis tanpa komitmen.
+
+        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
+
+          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center md:px-12">
+
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Siap Memulai Proyek Website Anda?
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-xl text-slate-500">
+              Konsultasikan kebutuhan website
+              Anda bersama tim kami, gratis
+              tanpa komitmen.
             </p>
+
             <a
               href={waConsult}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium px-7 py-3.5 rounded-full mt-7 transition-colors shadow-lg shadow-brand-500/20"
+              className="mt-7 inline-flex items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-medium text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600"
             >
-              <WhatsAppIcon className="w-5 h-5" />
-              <span>Konsultasi Sekarang</span>
+              <WhatsAppIcon className="h-5 w-5" />
+
+              <span>
+                Konsultasi Sekarang
+              </span>
             </a>
+
           </div>
         </div>
       </section>
+
     </div>
   );
 }
