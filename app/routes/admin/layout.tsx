@@ -3,6 +3,7 @@ import { Outlet, Link, Form, useLoaderData, useLocation } from "react-router";
 import type { Route } from "./+types/layout";
 import { requireAdmin } from "~/lib/session.server";
 import {
+  LayoutDashboard,
   LayoutGrid,
   FolderKanban,
   FileText,
@@ -22,6 +23,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 const navItems = [
+  { label: "Dashboard", path: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Layanan", path: "/admin/services", icon: LayoutGrid },
   { label: "Projek", path: "/admin/projects", icon: FolderKanban },
   { label: "Blog", path: "/admin/posts", icon: FileText },
@@ -35,16 +37,18 @@ export default function AdminLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const activeItem = navItems.find((item) => location.pathname.startsWith(item.path));
+  const activeItem = navItems.find((item) =>
+    item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
+  );
   const navigation = useNavigation();
-const isLoading = navigation.state !== "idle";
-
-{isLoading && (
-  <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-brand-500 animate-pulse" />
-)}
+  const isLoading = navigation.state !== "idle";
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
+      {isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-brand-500 animate-pulse" />
+      )}
+
       {/* Backdrop mobile */}
       {isSidebarOpen && (
         <div
@@ -84,7 +88,9 @@ const isLoading = navigation.state !== "idle";
             Menu
           </p>
           {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
+            const isActive = item.exact
+              ? location.pathname === item.path
+              : location.pathname.startsWith(item.path);
             const Icon = item.icon;
             return (
               <Link

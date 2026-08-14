@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Save,
   CheckCircle2,
+  KeyRound,
 } from "lucide-react";
 
 export async function loader() {
@@ -126,6 +127,14 @@ export async function action({ request }: Route.ActionArgs) {
         customQuotation: String(formData.get("customQuotation") ?? ""),
       };
       break;
+      
+      case "integrations":
+      value = {
+        fonnteToken: String(formData.get("fonnteToken") ?? ""),
+        gaPropertyId: String(formData.get("gaPropertyId") ?? ""),
+        gaServiceAccountJson: String(formData.get("gaServiceAccountJson") ?? ""),
+      };
+      break;
 
     default:
       return { error: "Section tidak dikenali" };
@@ -148,6 +157,7 @@ const sections = [
   { key: "operational_hours", label: "Jam Operasional", icon: Clock },
   { key: "features", label: "Fitur", icon: ToggleLeft },
   { key: "whatsapp_templates", label: "Template WA", icon: MessageCircle },
+  { key: "integrations", label: "Integrasi", icon: KeyRound },
 ] as const;
 
 export default function SettingsIndex() {
@@ -221,6 +231,12 @@ export default function SettingsIndex() {
           {activeKey === "features" && <FeaturesForm data={settings.features} isSubmitting={isSubmitting} />}
           {activeKey === "whatsapp_templates" && (
             <WhatsappTemplatesForm data={settings.whatsapp_templates} isSubmitting={isSubmitting} />
+          )}
+          {activeKey === "whatsapp_templates" && (
+            <WhatsappTemplatesForm data={settings.whatsapp_templates} isSubmitting={isSubmitting} />
+          )}
+          {activeKey === "integrations" && (
+            <IntegrationsForm data={settings.integrations} isSubmitting={isSubmitting} />
           )}
         </div>
       </div>
@@ -518,6 +534,51 @@ function WhatsappTemplatesForm({ data, isSubmitting }: { data?: any; isSubmittin
           <textarea name="customQuotation" defaultValue={data?.customQuotation} rows={2} className={inputClass} />
         </Field>
       </Card>
+      <SubmitButton isSubmitting={isSubmitting} />
+    </Form>
+  );
+}
+
+function IntegrationsForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
+  return (
+    <Form method="post" className="space-y-4">
+      <input type="hidden" name="key" value="integrations" />
+      <Card>
+        <Field label="Fonnte API Token" hint="Dipakai untuk kirim notifikasi WhatsApp saat ada inquiry baru">
+          <input
+            name="fonnteToken"
+            type="password"
+            autoComplete="off"
+            defaultValue={data?.fonnteToken}
+            className={inputClass}
+          />
+        </Field>
+      </Card>
+
+      <Card>
+        <h3 className="font-medium text-brand-dark -mb-1">Google Analytics (GA4)</h3>
+        <Field label="Property ID" hint="Angka doang, dari GA4 Admin > Property Settings">
+          <input
+            name="gaPropertyId"
+            defaultValue={data?.gaPropertyId}
+            placeholder="123456789"
+            className={inputClass}
+          />
+        </Field>
+        <Field
+          label="Service Account JSON"
+          hint="Paste seluruh isi file JSON kredensial service account di sini"
+        >
+          <textarea
+            name="gaServiceAccountJson"
+            defaultValue={data?.gaServiceAccountJson}
+            rows={8}
+            placeholder='{"type": "service_account", "project_id": "...", ...}'
+            className={`${inputClass} font-mono text-xs`}
+          />
+        </Field>
+      </Card>
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );

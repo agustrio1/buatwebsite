@@ -1,8 +1,10 @@
 import { useOutletContext } from "react-router";
 import type { Route } from "./+types/kontak";
 import { db } from "~/db";
-import { inquiries, services } from "~/db/schema";
+import { inquiries, services, siteSettings } from "~/db/schema";
+import { eq } from "drizzle-orm";
 import { InquiryForm } from "~/components/site/inquiry-form";
+import { sendWhatsAppNotification } from "~/lib/fonnte.server";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
 export async function loader() {
@@ -20,14 +22,40 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Nama, email, dan pesan wajib diisi." };
   }
 
+  const phone = String(formData.get("phone") ?? "") || null;
+  const companyName = String(formData.get("companyName") ?? "") || null;
+  const serviceType = String(formData.get("serviceType") ?? "") || null;
+
   await db.insert(inquiries).values({
     name,
     email,
-    phone: String(formData.get("phone") ?? "") || null,
-    companyName: String(formData.get("companyName") ?? "") || null,
-    serviceType: String(formData.get("serviceType") ?? "") || null,
+    phone,
+    companyName,
+    serviceType,
     message,
   });
+
+  // Kirim notifikasi WA ke admin, gagal-pun form tetap dianggap sukses
+  const contactSetting = await db.query.siteSettings.findFirst({
+    where: eq(siteSettings.key, "contact"),
+  });
+  const adminNumber =
+    (contactSetting?.value as any)?.whatsappNumber ??
+    (contactSetting?.value as any)?.phoneOffice;
+
+  if (adminNumber) {
+    const cleanNumber = String(adminNumber).replace(/\D/g, "");
+    const waMessage =
+      `📩 Inquiry baru dari website!\n\n` +
+      `Nama: ${name}\n` +
+      `Email: ${email}\n` +
+      (phone ? `Telepon: ${phone}\n` : "") +
+      (companyName ? `Perusahaan: ${companyName}\n` : "") +
+      (serviceType ? `Layanan: ${serviceType}\n` : "") +
+      `\nPesan:\n${message}`;
+
+    await sendWhatsAppNotification(cleanNumber, waMessage);
+  }
 
   return { success: true };
 }

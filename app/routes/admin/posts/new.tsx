@@ -5,6 +5,7 @@ import { posts, categories } from "~/db/schema";
 import { imagekit } from "~/lib/imagekit-server";
 import { requireAdmin } from "~/lib/session.server";
 import { PostForm } from "~/components/admin/post-form";
+import { postSchema, flattenZodErrors } from "~/lib/validation/post";
 
 export async function loader() {
   const categoryList = await db.query.categories.findMany();
@@ -15,11 +16,24 @@ export async function action({ request }: Route.ActionArgs) {
   const { userId } = await requireAdmin(request);
   const formData = await request.formData();
 
-  const title = String(formData.get("title"));
-  const slug = String(formData.get("slug"));
-  const summary = String(formData.get("summary") ?? "") || null;
-  const categoryId = String(formData.get("categoryId") ?? "") || null;
-  const status = String(formData.get("status")) as "draft" | "published";
+  const parsed = postSchema.safeParse({
+    title: formData.get("title"),
+    slug: formData.get("slug"),
+    summary: String(formData.get("summary") ?? "") || null,
+    categoryId: String(formData.get("categoryId") ?? "") || null,
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return { errors: flattenZodErrors(parsed.error) };
+  }
+
+  const { title, slug, summary, categoryId, status } = parsed.data;
+
+  const existingSlug = await db.query.posts.findFirst({ where: (p, { eq }) => eq(p.slug, slug) });
+  if (existingSlug) {
+    return { errors: { slug: "Slug ini sudah dipakai artikel lain" } };
+  }
 
   const contentRichRaw = String(formData.get("contentRich") ?? "");
   const contentRich = contentRichRaw ? JSON.parse(contentRichRaw) : { type: "doc", content: [] };
@@ -35,7 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
       fileName: coverFile.name,
       folder: "/posts/cover",
     });
-    coverImageUrl = uploaded.url;
+    coverImageUrl = `${uploaded.url}?tr=f-webp`;
     coverImageId = uploaded.fileId;
   }
 
@@ -55,11 +69,11 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect("/admin/posts");
 }
 
-export default function NewPost({ loaderData }: Route.ComponentProps) {
+export default function NewPost({ loaderData, actionData }: Route.ComponentProps) {
   return (
     <div>
       <h1 className="text-2xl font-bold text-brand-dark mb-6">Tulis Artikel</h1>
-      <PostForm categories={loaderData.categories} />
+      <PostForm categories={loaderData.categories} errors={actionData?.errors} />
     </div>
   );
 }

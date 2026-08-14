@@ -18,10 +18,12 @@ type PostFormValues = {
 export function PostForm({
   defaultValues,
   categories,
+  errors,
 }: {
   defaultValues?: PostFormValues;
   categories: { id: string; name: string }[];
-}) {
+  errors?: Partial<Record<"title" | "slug" | "summary" | "categoryId" | "status", string>>;
+})  {
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
 
@@ -43,13 +45,23 @@ export function PostForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Judul</label>
-            <input name="title" defaultValue={defaultValues?.title} required
-              className="w-full border rounded px-3 py-2" />
+            <input
+              name="title"
+              defaultValue={defaultValues?.title}
+              required
+              className={`w-full border rounded px-3 py-2 ${errors?.title ? "border-red-400" : ""}`}
+            />
+            {errors?.title && <p className="text-xs text-red-500 mt-1">{errors.title}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Slug</label>
-            <input name="slug" defaultValue={defaultValues?.slug} required
-              className="w-full border rounded px-3 py-2" />
+            <input
+              name="slug"
+              defaultValue={defaultValues?.slug}
+              required
+              className={`w-full border rounded px-3 py-2 ${errors?.slug ? "border-red-400" : ""}`}
+            />
+            {errors?.slug && <p className="text-xs text-red-500 mt-1">{errors.slug}</p>}
           </div>
         </div>
         <div>

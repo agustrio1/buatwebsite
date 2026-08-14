@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Form, useNavigation } from "react-router";
-import { ImagePlus, Save, Trash2 } from "lucide-react";
+import { ImagePlus, Save, Trash2, Eye } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
 import type { JSONContent } from "@tiptap/react";
 
@@ -152,13 +152,26 @@ export function ProjectForm({
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded"
-      >
-        <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Proyek"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded"
+        >
+          <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Artikel"}
+        </button>
+
+        {defaultValues?.id && (
+          <a
+            href={`/admin/posts/${defaultValues.id}/preview`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 px-5 py-2.5 rounded"
+          >
+            <Eye size={16} /> Preview
+          </a>
+        )}
+      </div>
     </Form>
   );
 }

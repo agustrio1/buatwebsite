@@ -2,16 +2,27 @@ import { Link, Form, useLoaderData } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { projects } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 import { imagekit } from "~/lib/imagekit-server";
 import { Pencil, Trash2 } from "lucide-react";
+import { parsePage, getPagination } from "~/lib/pagination";
+import { Pagination } from "~/components/shared/pagination";
 
-export async function loader() {
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const page = parsePage(url.searchParams);
+
+  const [{ value: totalItems }] = await db.select({ value: count() }).from(projects);
+  const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems, 12);
+
   const data = await db.query.projects.findMany({
     orderBy: [desc(projects.createdAt)],
     with: { images: true },
+    limit,
+    offset,
   });
-  return { projects: data };
+
+  return { projects: data, currentPage, totalPages };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -37,7 +48,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ProjectsIndex() {
-  const { projects } = useLoaderData<typeof loader>();
+  const { projects, currentPage, totalPages } = useLoaderData<typeof loader>();
 
   return (
     <div>
@@ -100,6 +111,8 @@ export default function ProjectsIndex() {
           </p>
         )}
       </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} />
     </div>
   );
 }

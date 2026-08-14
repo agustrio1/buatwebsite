@@ -2,27 +2,35 @@ import { Link } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { projects } from "~/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, count } from "drizzle-orm";
 import { ExternalLink } from "lucide-react";
+import { parsePage, getPagination } from "~/lib/pagination";
+import { Pagination } from "~/components/shared/pagination";
 
 export function headers() {
   return {
-    // Cache halaman selama 60 detik (S-Maxage).
-    // Setelah 60 detik, gunakan cache lama (stale) sambil fetch data baru di background selama 10 menit.
     "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
   };
 }
 
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const page = parsePage(url.searchParams);
 
-export async function loader() {
+  const [{ value: totalItems }] = await db.select({ value: count() }).from(projects);
+  const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems);
+
   const allProjects = await db.query.projects.findMany({
     orderBy: [desc(projects.createdAt)],
+    limit,
+    offset,
   });
-  return { projects: allProjects };
+
+  return { projects: allProjects, currentPage, totalPages };
 }
 
 export default function PortfolioIndex({ loaderData }: Route.ComponentProps) {
-  const { projects } = loaderData;
+  const { projects, currentPage, totalPages } = loaderData;
 
   return (
     <div>
@@ -40,44 +48,47 @@ export default function PortfolioIndex({ loaderData }: Route.ComponentProps) {
 
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-16">
         {projects.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((p) => (
-              <Link
-                key={p.id}
-                to={`/projek/${p.slug}`}
-                className="bg-white rounded-2xl overflow-hidden border border-slate-200 group"
-              >
-                <div className="aspect-video bg-slate-100 overflow-hidden">
-                  {p.coverImageUrl && (
-                    <img
-                      src={p.coverImageUrl}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  )}
-                </div>
-                <div className="p-5">
-                  <h2 className="font-semibold text-lg text-brand-dark">{p.title}</h2>
-                  {p.clientName && <p className="text-sm text-slate-400 mt-0.5">{p.clientName}</p>}
-                  {p.summary && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{p.summary}</p>}
-                  {p.techStack && p.techStack.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-4">
-                      {p.techStack.slice(0, 4).map((t) => (
-                        <span key={t} className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {p.liveDemoUrl && (
-                    <span className="flex items-center gap-1.5 text-sm text-brand-600 mt-4">
-                      Lihat Demo <ExternalLink size={14} />
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/projek/${p.slug}`}
+                  className="bg-white rounded-2xl overflow-hidden border border-slate-200 group"
+                >
+                  <div className="aspect-video bg-slate-100 overflow-hidden">
+                    {p.coverImageUrl && (
+                      <img
+                        src={p.coverImageUrl}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h2 className="font-semibold text-lg text-brand-dark">{p.title}</h2>
+                    {p.clientName && <p className="text-sm text-slate-400 mt-0.5">{p.clientName}</p>}
+                    {p.summary && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{p.summary}</p>}
+                    {p.techStack && p.techStack.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-4">
+                        {p.techStack.slice(0, 4).map((t) => (
+                          <span key={t} className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {p.liveDemoUrl && (
+                      <span className="flex items-center gap-1.5 text-sm text-brand-600 mt-4">
+                        Lihat Demo <ExternalLink size={14} />
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <Pagination currentPage={currentPage} totalPages={totalPages} />
+          </>
         ) : (
           <p className="text-center text-slate-400 py-16">Belum ada projek yang ditampilkan.</p>
         )}

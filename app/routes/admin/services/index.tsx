@@ -2,14 +2,26 @@ import { Link, Form, useLoaderData } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { services } from "~/db/schema";
-import { asc, eq } from "drizzle-orm";
-import {Check} from "lucide-react"
-export async function loader() {
+import { asc, eq, count } from "drizzle-orm";
+import { Check } from "lucide-react";
+import { parsePage, getPagination } from "~/lib/pagination";
+import { Pagination } from "~/components/shared/pagination";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const page = parsePage(url.searchParams);
+
+  const [{ value: totalItems }] = await db.select({ value: count() }).from(services);
+  const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems, 10);
+
   const data = await db.query.services.findMany({
     orderBy: [asc(services.sortOrder)],
     with: { features: true },
+    limit,
+    offset,
   });
-  return { services: data };
+
+  return { services: data, currentPage, totalPages };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -25,7 +37,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ServicesIndex() {
-  const { services } = useLoaderData<typeof loader>();
+  const { services, currentPage, totalPages } = useLoaderData<typeof loader>();
 
   return (
     <div>
@@ -104,6 +116,8 @@ export default function ServicesIndex() {
           </tbody>
         </table>
       </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} />
     </div>
   );
 }

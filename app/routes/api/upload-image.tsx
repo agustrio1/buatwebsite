@@ -19,5 +19,9 @@ export async function action({ request }: Route.ActionArgs) {
     folder: "/content",
   });
 
-  return Response.json({ url: uploaded.url });
+  // Paksa delivery selalu WebP, terlepas dari Accept header klien,
+  // supaya URL yang disimpan ke database konsisten formatnya.
+  const webpUrl = `${uploaded.url}?tr=f-webp`;
+
+  return Response.json({ url: webpUrl, fileId: uploaded.fileId });
 }

@@ -2,16 +2,27 @@ import { Link, Form, useLoaderData } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 import { imagekit } from "~/lib/imagekit-server";
 import { Pencil, Trash2 } from "lucide-react";
+import { parsePage, getPagination } from "~/lib/pagination";
+import { Pagination } from "~/components/shared/pagination";
 
-export async function loader() {
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const page = parsePage(url.searchParams);
+
+  const [{ value: totalItems }] = await db.select({ value: count() }).from(posts);
+  const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems, 10);
+
   const data = await db.query.posts.findMany({
     orderBy: [desc(posts.createdAt)],
     with: { category: true, author: true },
+    limit,
+    offset,
   });
-  return { posts: data };
+
+  return { posts: data, currentPage, totalPages };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -28,7 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function PostsIndex() {
-  const { posts } = useLoaderData<typeof loader>();
+  const { posts, currentPage, totalPages } = useLoaderData<typeof loader>();
 
   return (
     <div>
@@ -105,6 +116,8 @@ export default function PostsIndex() {
           </tbody>
         </table>
       </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} />
     </div>
   );
 }

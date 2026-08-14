@@ -2,9 +2,10 @@ import { redirect } from "react-router";
 import type { Route } from "./+types/$id.edit";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { imagekit } from "~/lib/imagekit-server";
 import { PostForm } from "~/components/admin/post-form";
+import { postSchema, flattenZodErrors } from "~/lib/validation/post";
 import type { JSONContent } from "@tiptap/react";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -18,11 +19,26 @@ export async function loader({ params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
 
-  const title = String(formData.get("title"));
-  const slug = String(formData.get("slug"));
-  const summary = String(formData.get("summary") ?? "") || null;
-  const categoryId = String(formData.get("categoryId") ?? "") || null;
-  const status = String(formData.get("status")) as "draft" | "published";
+  const parsed = postSchema.safeParse({
+    title: formData.get("title"),
+    slug: formData.get("slug"),
+    summary: String(formData.get("summary") ?? "") || null,
+    categoryId: String(formData.get("categoryId") ?? "") || null,
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return { errors: flattenZodErrors(parsed.error) };
+  }
+
+  const { title, slug, summary, categoryId, status } = parsed.data;
+
+  const slugTaken = await db.query.posts.findFirst({
+    where: and(eq(posts.slug, slug), ne(posts.id, params.id)),
+  });
+  if (slugTaken) {
+    return { errors: { slug: "Slug ini sudah dipakai artikel lain" } };
+  }
 
   const contentRichRaw = String(formData.get("contentRich") ?? "");
   const contentRich = contentRichRaw ? JSON.parse(contentRichRaw) : { type: "doc", content: [] };
@@ -51,7 +67,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       fileName: coverFile.name,
       folder: "/posts/cover",
     });
-    updates.coverImageUrl = uploaded.url;
+    updates.coverImageUrl = `${uploaded.url}?tr=f-webp`;
     updates.coverImageId = uploaded.fileId;
   }
 
@@ -60,7 +76,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   return redirect("/admin/posts");
 }
 
-export default function EditPost({ loaderData }: Route.ComponentProps) {
+export default function EditPost({ loaderData, actionData }: Route.ComponentProps) {
   const { post, categories } = loaderData;
 
   return (
@@ -68,6 +84,7 @@ export default function EditPost({ loaderData }: Route.ComponentProps) {
       <h1 className="text-2xl font-bold text-brand-dark mb-6">Edit Artikel</h1>
       <PostForm
         categories={categories}
+        errors={actionData?.errors}
         defaultValues={{
           id: post.id,
           title: post.title,

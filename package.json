@@ -13,6 +13,7 @@
     "db:seed": "tsx app/db/seed.ts"
   },
   "dependencies": {
+    "@google-analytics/data": "^7.0.0",
     "@neondatabase/serverless": "^1.1.0",
     "@react-router/node": "^8",
     "@react-router/serve": "^8",
@@ -31,7 +32,9 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router": "^8",
-    "vite-tsconfig-paths": "^6.1.1"
+    "recharts": "^3.10.1",
+    "vite-tsconfig-paths": "^6.1.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@react-router/dev": "^8",
