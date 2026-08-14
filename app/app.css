@@ -315,8 +315,8 @@
    REDUCE MOTION
 ========================================================= */
 
-@media (prefers-reduced-motion: reduce) {
+/* @media (prefers-reduced-motion: reduce) {
   .portfolio-track {
     animation-play-state: paused !important;
   }
-}
+} */
