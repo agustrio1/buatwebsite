@@ -14,10 +14,6 @@ import {
   Star,
 } from "lucide-react";
 
-/* =========================================================
-   WHATSAPP ICON
-========================================================= */
-
 function WhatsAppIcon({
   className = "w-5 h-5",
 }: {
@@ -33,10 +29,6 @@ function WhatsAppIcon({
     </svg>
   );
 }
-
-/* =========================================================
-   LOADER
-========================================================= */
 
 export async function loader() {
   const [
@@ -83,10 +75,6 @@ export async function loader() {
   };
 }
 
-/* =========================================================
-   PROCESS STEPS
-========================================================= */
-
 const processSteps = [
   {
     step: "01",
@@ -109,10 +97,6 @@ const processSteps = [
     desc: "Website online, kami dampingi Anda di masa-masa awal pemakaian setelah rilis.",
   },
 ];
-
-/* =========================================================
-   TESTIMONIALS
-========================================================= */
 
 const testimonials = [
   {
@@ -138,10 +122,6 @@ const testimonials = [
   },
 ];
 
-/* =========================================================
-   FAQ
-========================================================= */
-
 const faqs = [
   {
     q: "Berapa lama waktu pengerjaan website?",
@@ -161,27 +141,12 @@ const faqs = [
   },
 ];
 
-/* =========================================================
-   PORTFOLIO MARQUEE
-========================================================= */
-
 type PortfolioProject = {
   id: string | number;
   title: string;
   coverImageUrl: string | null;
 };
 
-/**
- * Portfolio marquee untuk Hero.
- *
- * Row 1:
- * bergerak dari kiri ke kanan visual
- *
- * Row 2:
- * bergerak berlawanan arah
- *
- * Data tetap berasal dari database.
- */
 function PortfolioMarquee({
   projects,
 }: {
@@ -191,10 +156,6 @@ function PortfolioMarquee({
     return null;
   }
 
-  /*
-   * Duplicate data agar loop CSS
-   * tidak terlihat putus.
-   */
   const row1 = [...projects, ...projects];
 
   const reversedProjects = [...projects].reverse();
@@ -206,15 +167,8 @@ function PortfolioMarquee({
 
   return (
     <div className="portfolio-showcase">
-      {/* LEFT FADE */}
       <div className="portfolio-fade portfolio-fade-left" />
-
-      {/* RIGHT FADE */}
       <div className="portfolio-fade portfolio-fade-right" />
-
-      {/* =====================================================
-          ROW 1
-      ====================================================== */}
 
       <div className="portfolio-marquee">
         <div className="portfolio-track portfolio-track-left">
@@ -244,10 +198,6 @@ function PortfolioMarquee({
           ))}
         </div>
       </div>
-
-      {/* =====================================================
-          ROW 2
-      ====================================================== */}
 
       <div className="portfolio-marquee portfolio-marquee-second">
         <div className="portfolio-track portfolio-track-right">
@@ -281,10 +231,6 @@ function PortfolioMarquee({
   );
 }
 
-/* =========================================================
-   HOME
-========================================================= */
-
 export default function Home({
   loaderData,
 }: Route.ComponentProps) {
@@ -316,10 +262,6 @@ export default function Home({
     contact.whatsappNumber,
     templates.defaultConsultation
   );
-
-  /* =======================================================
-     JSON-LD SERVICES
-  ======================================================== */
 
   const servicesJsonLd =
     services.length > 0
@@ -356,10 +298,6 @@ export default function Home({
         }
       : null;
 
-  /* =======================================================
-     JSON-LD BLOG
-  ======================================================== */
-
   const blogJsonLd =
     posts.length > 0
       ? posts.map((post) => ({
@@ -382,16 +320,8 @@ export default function Home({
         }))
       : [];
 
-  /* =======================================================
-     RENDER
-  ======================================================== */
-
   return (
     <div className="min-h-screen bg-white">
-
-      {/* =====================================================
-          SEO JSON-LD
-      ====================================================== */}
 
       {servicesJsonLd && (
         <script
@@ -418,105 +348,88 @@ export default function Home({
         )
       )}
 
-      {/* =====================================================
-          HERO
-      ====================================================== */}
-
       <section className="relative overflow-hidden">
 
-        {/* Hero Content */}
+        <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 md:px-8 md:pb-12 md:pt-24 lg:grid lg:grid-cols-2 lg:items-center lg:gap-12 lg:pb-20">
 
-        <div className="mx-auto max-w-4xl px-4 pb-10 pt-16 text-center md:px-8 md:pb-12 md:pt-24">
-          {/* Headline */}
+          <div className="text-center lg:text-left">
 
-          <h1 className="text-3xl font-bold leading-tight text-brand-dark sm:text-4xl md:text-5xl lg:text-6xl">
-            {hero.headline ?? (
-              <>
-                Jasa Pembuatan Website Profesional
-                untuk{" "}
-                <span className="text-brand-500">
-                  UMKM & Bisnis
-                </span>
-              </>
-            )}
-          </h1>
-
-          {/* Subheadline */}
-
-          {hero.subheadline && (
-            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-500 md:text-lg">
-              {hero.subheadline}
-            </p>
-          )}
-
-          {/* CTA */}
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-
-            <a
-              href={
-                hero.ctaPrimaryUrl ||
-                waConsult
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600 sm:w-auto"
-            >
-              <WhatsAppIcon className="h-5 w-5" />
-
-              <span>
-                {hero.ctaPrimaryText ??
-                  "Konsultasi Sekarang"}
-              </span>
-
-              <ArrowUpRight size={18} />
-            </a>
-
-            {features.showPortfolioDemoLinks !==
-              false &&
-              projects.length > 0 && (
-                <a
-                  href="#projek"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
-                >
-                  Lihat Project
-                  <ArrowRight size={16} />
-                </a>
+            <h1 className="text-3xl font-bold leading-tight text-brand-dark sm:text-4xl md:text-5xl lg:text-6xl">
+              {hero.headline ?? (
+                <>
+                  Jasa Pembuatan Website Profesional
+                  untuk{" "}
+                  <span className="text-brand-500">
+                    UMKM & Bisnis
+                  </span>
+                </>
               )}
+            </h1>
+
+            {hero.subheadline && (
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-500 md:text-lg lg:mx-0">
+                {hero.subheadline}
+              </p>
+            )}
+
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+
+              <a
+                href={
+                  hero.ctaPrimaryUrl ||
+                  waConsult
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600 sm:w-auto"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+
+                <span>
+                  {hero.ctaPrimaryText ??
+                    "Konsultasi Sekarang"}
+                </span>
+
+                <ArrowUpRight size={18} />
+              </a>
+
+              {features.showPortfolioDemoLinks !==
+                false &&
+                projects.length > 0 && (
+                  <a
+                    href="#projek"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
+                  >
+                    Lihat Project
+                    <ArrowRight size={16} />
+                  </a>
+                )}
+            </div>
+
+            {projectsCount > 0 && (
+              <p className="mt-5 text-sm text-slate-400">
+                Dipercaya menyelesaikan{" "}
+                <span className="font-semibold text-brand-600">
+                  {projectsCount}+ proyek
+                </span>{" "}
+                website
+              </p>
+            )}
           </div>
 
-          {/* Project Count */}
-
-          {projectsCount > 0 && (
-            <p className="mt-5 text-sm text-slate-400">
-              Dipercaya menyelesaikan{" "}
-              <span className="font-semibold text-brand-600">
-                {projectsCount}+ proyek
-              </span>{" "}
-              website
-            </p>
+          {projects.length > 0 && (
+            <div className="mt-12 lg:mt-0">
+              <PortfolioMarquee
+                projects={
+                  projects as PortfolioProject[]
+                }
+              />
+            </div>
           )}
+
         </div>
 
-        {/* ===================================================
-            PORTFOLIO ANIMATION
-        ==================================================== */}
-
-        {projects.length > 0 && (
-          <div className="pb-16 md:pb-20">
-            <PortfolioMarquee
-              projects={
-                projects as PortfolioProject[]
-              }
-            />
-          </div>
-        )}
-
       </section>
-
-      {/* =====================================================
-          PROSES KERJA
-      ====================================================== */}
 
       <section>
         <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
@@ -563,10 +476,6 @@ export default function Home({
           </div>
         </div>
       </section>
-
-      {/* =====================================================
-          SERVICES
-      ====================================================== */}
 
       {features.showPricingSection !==
         false &&
@@ -731,10 +640,6 @@ export default function Home({
           </section>
         )}
 
-      {/* =====================================================
-          PROJECTS
-      ====================================================== */}
-
       {projects.length > 0 && (
         <section id="projek">
 
@@ -832,10 +737,6 @@ export default function Home({
         </section>
       )}
 
-      {/* =====================================================
-          TESTIMONIALS
-      ====================================================== */}
-
       <section>
 
         <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
@@ -923,10 +824,6 @@ export default function Home({
         </div>
       </section>
 
-      {/* =====================================================
-          FAQ
-      ====================================================== */}
-
       <section>
 
         <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
@@ -997,10 +894,6 @@ export default function Home({
           </div>
         </div>
       </section>
-
-      {/* =====================================================
-          BLOG
-      ====================================================== */}
 
       {features.showBlogSection !==
         false && (
@@ -1090,10 +983,6 @@ export default function Home({
           </div>
         </section>
       )}
-
-      {/* =====================================================
-          CONTACT CTA
-      ====================================================== */}
 
       <section>
 
