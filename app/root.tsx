@@ -9,6 +9,13 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+export function meta() {
+  return [
+    { title: "Website" },
+    { name: "description", content: "Jasa pembuatan website profesional." },
+  ];
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">

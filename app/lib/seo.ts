@@ -7,7 +7,7 @@ export async function getSiteUrl() {
     where: eq(siteSettings.key, "general"),
   });
   const general = (row?.value as any) ?? {};
-  const url = general.siteUrl || "https://example.com";
+  const url = general.siteUrl || "https://jadikanweb.id";
   return url.replace(/\/$/, ""); // buang trailing slash biar konsisten
 }
 
