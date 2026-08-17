@@ -35,7 +35,7 @@ export default function SiteLayout() {
     seoData.metaDescription ||
     generalData.siteTagline ||
     "Jasa Pembuatan Website Profesional & Layanan Digital.";
-  const siteUrl = generalData.siteUrl || "";
+  const siteUrl = generalData.siteUrl || "https://jadikanweb.id";
 
   const rawPhone = contactData.whatsappNumber || contactData.phoneOffice || "";
   const cleanPhone = String(rawPhone).replace(/\D/g, "");

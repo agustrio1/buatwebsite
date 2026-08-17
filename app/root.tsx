@@ -7,12 +7,39 @@ import {
   ScrollRestoration,
 } from "react-router";
 import type { Route } from "./+types/root";
+import { db } from "~/db";
 import "./app.css";
 
-export function meta() {
+export async function loader() {
+  const rows = await db.query.siteSettings.findMany();
+  const settings: Record<string, any> = {};
+
+  for (const row of rows) {
+    try {
+      settings[row.key] =
+        typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+    } catch {
+      settings[row.key] = row.value;
+    }
+  }
+
+  return { settings };
+}
+
+export function meta({ loaderData }: Route.MetaArgs) {
+  const settings = loaderData?.settings ?? {};
+  const seo = settings.seo ?? {};
+  const general = settings.general ?? {};
+
   return [
-    { title: "Website" },
-    { name: "description", content: "Jasa pembuatan website profesional." },
+    { title: seo.metaTitle || general.siteName || "Website" },
+    {
+      name: "description",
+      content:
+        seo.metaDescription ||
+        general.siteTagline ||
+        "Jasa pembuatan website profesional.",
+    },
   ];
 }
 

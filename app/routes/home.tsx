@@ -61,7 +61,7 @@ export async function loader() {
   };
 }
 
-export function meta({ matches }: Route.MetaArgs) {
+/* export function meta({ matches }: Route.MetaArgs) {
   const layoutMatch = matches.find((m) => m.id === "routes/site-layout") as
     | { loaderData?: { settings: Record<string, any> } }
     | undefined;
@@ -76,7 +76,7 @@ export function meta({ matches }: Route.MetaArgs) {
       content: seo.metaDescription || general.siteTagline || "",
     },
   ];
-}
+} */
 
 const processSteps = [
   {
