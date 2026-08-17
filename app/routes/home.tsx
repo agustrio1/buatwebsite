@@ -318,7 +318,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   href="#projek"
                   className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
                 >
-                  Lihat Project
+                  Lihat Portofio
                   <ArrowRight size={16} />
                 </a>
               )}
@@ -326,8 +326,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
             {projectsCount > 0 && (
               <p className="mt-5 text-sm text-slate-400">
-                Dipercaya menyelesaikan{" "}
-                <span className="font-semibold text-brand-600">{projectsCount}+ proyek</span> website
+                Berbagai solusi digital telah kami bangun untuk kebutuhan bisnis.
               </p>
             )}
           </div>
