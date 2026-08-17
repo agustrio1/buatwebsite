@@ -28,15 +28,14 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
 }
 
 export async function loader() {
-  const [featuredServices, featuredProjects, latestPosts, allProjectsCount] = await Promise.all([
+  const [allProjects, featuredServices, latestPosts, allProjectsCount] = await Promise.all([
+    db.query.projects.findMany({
+      orderBy: [desc(projects.isFeatured), desc(projects.createdAt)],
+      limit: 6,
+    }),
     db.query.services.findMany({
       orderBy: [asc(services.sortOrder)],
       with: { features: true },
-      limit: 6,
-    }),
-    db.query.projects.findMany({
-      where: eq(projects.isFeatured, true),
-      orderBy: [desc(projects.createdAt)],
       limit: 6,
     }),
     db.query.posts.findMany({
@@ -48,35 +47,13 @@ export async function loader() {
     db.$count(projects),
   ]);
 
-  const displayedProjects =
-    featuredProjects.length > 0
-      ? featuredProjects
-      : await db.query.projects.findMany({ orderBy: [desc(projects.createdAt)], limit: 3 });
-
   return {
     services: featuredServices,
-    projects: displayedProjects,
+    projects: allProjects,
     posts: latestPosts,
     projectsCount: allProjectsCount,
   };
 }
-
-/* export function meta({ matches }: Route.MetaArgs) {
-  const layoutMatch = matches.find((m) => m.id === "routes/site-layout") as
-    | { loaderData?: { settings: Record<string, any> } }
-    | undefined;
-  const settings = layoutMatch?.loaderData?.settings ?? {};
-  const seo = settings.seo ?? {};
-  const general = settings.general ?? {};
-
-  return [
-    { title: seo.metaTitle || general.siteName || "Beranda" },
-    {
-      name: "description",
-      content: seo.metaDescription || general.siteTagline || "",
-    },
-  ];
-} */
 
 const processSteps = [
   {
