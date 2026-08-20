@@ -7,6 +7,12 @@ import { InquiryForm } from "~/components/site/inquiry-form";
 import { sendWhatsAppNotification } from "~/lib/fonnte.server";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
+export function headers() {
+  return {
+    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+  };
+}
+
 export async function loader() {
   const allServices = await db.query.services.findMany();
   return { services: allServices };

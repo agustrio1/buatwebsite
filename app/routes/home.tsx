@@ -27,6 +27,12 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+export function headers() {
+  return {
+    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+  };
+}
+
 export async function loader() {
   const [allProjects, featuredServices, latestPosts, allProjectsCount] = await Promise.all([
     db.query.projects.findMany({
@@ -148,7 +154,8 @@ function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
                   <img
                     src={resizeImage(project.coverImageUrl, 400)}
                     alt={project.title}
-                    loading="lazy"
+                    loading={index < 2 ? "eager" : "lazy"}
+                    fetchPriority={index < 2 ? "high" : "auto"}
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
@@ -466,8 +473,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p) => (
-                <div
+                <Link
                   key={p.id}
+                  to={`/projek/${p.slug}`}
                   className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
                 >
                   <div className="aspect-video overflow-hidden bg-slate-100">
@@ -499,18 +507,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     )}
 
                     {features.showPortfolioDemoLinks !== false && p.liveDemoUrl && (
-                      <a
-                        href={p.liveDemoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-4 flex items-center gap-1.5 text-sm text-brand-600 hover:underline"
-                      >
+                      <span className="mt-4 flex items-center gap-1.5 text-sm text-brand-600">
                         Lihat Demo
                         <ExternalLink size={14} />
-                      </a>
+                      </span>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

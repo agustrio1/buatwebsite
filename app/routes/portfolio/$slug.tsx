@@ -1,17 +1,16 @@
-import { Link } from "react-router";
+import { Link, data as createResponse } from "react-router";
 import { useEffect, useState } from "react";
 import type { Route } from "./+types/$slug";
 import { db } from "~/db";
 import { projects, projectImages } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ArrowLeft, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { RichTextView } from "~/components/site/rich-text-view";
+import { richTextToHtml } from "~/components/site/rich-text-view";
+import { resizeImage } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 
-export function headers() {
-  return {
-    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
-  };
+export function headers({ loaderHeaders }: Route.HeadersArgs) {
+  return loaderHeaders;
 }
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -22,7 +21,16 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   if (!project) throw new Response("Not found", { status: 404 });
 
-  return { project };
+  const contentHtml = richTextToHtml(project.descriptionRich as JSONContent | null);
+
+  return createResponse(
+    { project, contentHtml },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    }
+  );
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -102,7 +110,7 @@ function GalleryLightbox({
             className="aspect-square rounded-xl overflow-hidden bg-slate-100 group cursor-zoom-in"
           >
             <img
-              src={img.imageUrl}
+              src={resizeImage(img.imageUrl, 400)}
               alt={img.altText ?? title}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -174,7 +182,7 @@ function GalleryLightbox({
 }
 
 export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
-  const { project } = loaderData;
+  const { project, contentHtml } = loaderData;
 
   return (
     <article className="max-w-4xl mx-auto px-4 md:px-8 py-10 md:py-16">
@@ -218,7 +226,13 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
 
       {project.coverImageUrl && (
         <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 mt-8">
-          <img src={project.coverImageUrl} alt={project.title} className="w-full h-full object-cover" />
+          <img
+            src={resizeImage(project.coverImageUrl, 1024)}
+            alt={project.title}
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover"
+          />
         </div>
       )}
 
@@ -228,9 +242,12 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
         </p>
       )}
 
-      <div className="mt-8">
-        <RichTextView content={project.descriptionRich as JSONContent | null} />
-      </div>
+      {contentHtml && (
+        <div
+          className="prose prose-sm sm:prose-base max-w-none mt-8"
+          dangerouslySetInnerHTML={{ __html: contentHtml }}
+        />
+      )}
 
       {project.images.length > 0 && (
         <div className="mt-10">

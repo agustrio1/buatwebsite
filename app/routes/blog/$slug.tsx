@@ -4,7 +4,8 @@ import { db } from "~/db";
 import { posts } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { ArrowLeft, User, Calendar } from "lucide-react";
-import { RichTextView } from "~/components/site/rich-text-view";
+import { richTextToHtml } from "~/components/site/rich-text-view";
+import { resizeImage } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
@@ -17,22 +18,17 @@ export async function loader({ params }: Route.LoaderArgs) {
     with: { category: true, author: true },
   });
 
-  console.log("[LOADER]", {
-    slug: params.slug,
-    found: !!post,
-    status: post?.status,
-    title: post?.title,
-  });
-
   if (!post || post.status !== "published") {
     throw new Response("Not found", { status: 404 });
   }
 
+  const contentHtml = richTextToHtml(post.contentRich as JSONContent | null);
+
   return createResponse(
-    { post },
+    { post, contentHtml },
     {
       headers: {
-        "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+        "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
       },
     }
   );
@@ -49,7 +45,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export default function BlogDetail({ loaderData }: Route.ComponentProps) {
-  const { post } = loaderData;
+  const { post, contentHtml } = loaderData;
 
   const formattedDate = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString("id-ID", {
@@ -93,7 +89,13 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
 
       {post.coverImageUrl && (
         <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 mt-8">
-          <img src={post.coverImageUrl} alt={post.title} className="w-full h-full object-cover" />
+          <img
+            src={resizeImage(post.coverImageUrl, 1024)}
+            alt={post.title}
+            loading="eager"
+            fetchPriority="high"
+            className="w-full h-full object-cover"
+          />
         </div>
       )}
 
@@ -103,9 +105,12 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
         </p>
       )}
 
-      <div className="mt-8">
-        <RichTextView content={post.contentRich as JSONContent | null} />
-      </div>
+      {contentHtml && (
+        <div
+          className="prose prose-sm sm:prose-base max-w-none mt-8"
+          dangerouslySetInnerHTML={{ __html: contentHtml }}
+        />
+      )}
     </article>
   );
 }
