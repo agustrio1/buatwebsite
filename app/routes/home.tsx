@@ -5,7 +5,7 @@ import { db } from "~/db";
 import { services, projects, posts } from "~/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 import { formatPrice, buildWaLink } from "~/lib/format";
-import { resizeImage } from "~/lib/imagekit-url";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import {
   Check,
   ArrowRight,
@@ -153,6 +153,8 @@ function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
                 {project.coverImageUrl ? (
                   <img
                     src={resizeImage(project.coverImageUrl, 400)}
+                    srcSet={buildSrcSet(project.coverImageUrl, 400)}
+                    sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
                     alt={project.title}
                     loading={index < 2 ? "eager" : "lazy"}
                     fetchPriority={index < 2 ? "high" : "auto"}
@@ -177,6 +179,8 @@ function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
                 {project.coverImageUrl ? (
                   <img
                     src={resizeImage(project.coverImageUrl, 400)}
+                    srcSet={buildSrcSet(project.coverImageUrl, 400)}
+                    sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
                     alt={project.title}
                     loading="lazy"
                   />
@@ -482,6 +486,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     {p.coverImageUrl && (
                       <img
                         src={resizeImage(p.coverImageUrl, 640)}
+                        srcSet={buildSrcSet(p.coverImageUrl, 640)}
+                        sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                         alt={p.title}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -622,6 +628,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                       {post.coverImageUrl && (
                         <img
                           src={resizeImage(post.coverImageUrl, 640)}
+                          srcSet={buildSrcSet(post.coverImageUrl, 640)}
+                          sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                           alt={post.title}
                           loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

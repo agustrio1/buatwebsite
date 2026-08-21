@@ -6,7 +6,7 @@ import { desc, eq, count } from "drizzle-orm";
 import { User } from "lucide-react";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
-import { resizeImage } from "~/lib/imagekit-url";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 
 export function headers() {
   return {
@@ -67,11 +67,13 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
                   <div className="aspect-video bg-slate-100 overflow-hidden">
                     {post.coverImageUrl && (
                       <img
-                      src={resizeImage(post.coverImageUrl, 640)}
-                      alt={post.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                        src={resizeImage(post.coverImageUrl, 640)}
+                        srcSet={buildSrcSet(post.coverImageUrl, 640)}
+                        sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                        alt={post.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     )}
                   </div>
                   <div className="p-5">

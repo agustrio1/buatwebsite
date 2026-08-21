@@ -5,7 +5,7 @@ import { posts } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { ArrowLeft, User, Calendar } from "lucide-react";
 import { richTextToHtml } from "~/components/site/rich-text-view";
-import { resizeImage } from "~/lib/imagekit-url";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
@@ -91,6 +91,8 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
         <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 mt-8">
           <img
             src={resizeImage(post.coverImageUrl, 1024)}
+            srcSet={buildSrcSet(post.coverImageUrl, 1024)}
+            sizes="(max-width: 767px) 100vw, 768px"
             alt={post.title}
             loading="eager"
             fetchPriority="high"

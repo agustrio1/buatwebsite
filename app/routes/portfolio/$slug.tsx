@@ -6,7 +6,7 @@ import { projects, projectImages } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ArrowLeft, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { richTextToHtml } from "~/components/site/rich-text-view";
-import { resizeImage } from "~/lib/imagekit-url";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
@@ -111,6 +111,8 @@ function GalleryLightbox({
           >
             <img
               src={resizeImage(img.imageUrl, 400)}
+              srcSet={buildSrcSet(img.imageUrl, 400)}
+              sizes="(max-width: 639px) 50vw, 33vw"
               alt={img.altText ?? title}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -150,7 +152,7 @@ function GalleryLightbox({
           )}
 
           <img
-            src={images[openIndex].imageUrl}
+            src={resizeImage(images[openIndex].imageUrl, 1200)}
             alt={images[openIndex].altText ?? title}
             onClick={(e) => e.stopPropagation()}
             className="max-h-[85vh] max-w-full object-contain rounded-lg select-none"
@@ -228,6 +230,8 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
         <div className="aspect-video rounded-2xl overflow-hidden bg-slate-100 mt-8">
           <img
             src={resizeImage(project.coverImageUrl, 1024)}
+            srcSet={buildSrcSet(project.coverImageUrl, 1024)}
+            sizes="(max-width: 767px) 100vw, 896px"
             alt={project.title}
             loading="eager"
             fetchPriority="high"
