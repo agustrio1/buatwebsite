@@ -4,6 +4,13 @@ import { db } from "~/db";
 import { SiteHeader } from "~/components/site/header";
 import { SiteFooter } from "~/components/site/footer";
 
+export function links() {
+  return [
+    { rel: "preconnect", href: "https://www.googletagmanager.com" },
+    { rel: "dns-prefetch", href: "https://www.googletagmanager.com" },
+  ];
+}
+
 export async function loader() {
   const rows = await db.query.siteSettings.findMany();
   const settings: Record<string, any> = {};
