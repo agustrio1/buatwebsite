@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 
 export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +25,16 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           {general.logoUrl ? (
-            <img src={general.logoUrl} alt={general.siteName} className="h-8 w-auto" />
+            <img
+              src={resizeImage(general.logoUrl, 220)}
+              srcSet={buildSrcSet(general.logoUrl, 220)}
+              sizes="215px"
+              width={215}
+              height={56}
+              alt={general.siteName}
+              className="h-8 w-auto"
+              fetchPriority="high"
+            />
           ) : (
             <span className="font-bold text-lg text-brand-dark truncate">
               {general.siteName ?? "Website"}

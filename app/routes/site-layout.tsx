@@ -68,7 +68,15 @@ export default function SiteLayout() {
     if (!gtmId && !gaId) return;
     if (document.getElementById("gtm-script") || document.getElementById("ga-script")) return;
 
+    let loaded = false;
+
     function loadTracking() {
+      if (loaded) return;
+      loaded = true;
+
+      events.forEach((ev) => window.removeEventListener(ev, loadTracking));
+      clearTimeout(fallbackTimer);
+
       if (gtmId) {
         const script = document.createElement("script");
         script.id = "gtm-script";
@@ -97,11 +105,15 @@ export default function SiteLayout() {
       }
     }
 
-    if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(loadTracking, { timeout: 3000 });
-    } else {
-      setTimeout(loadTracking, 1500);
-    }
+    // load begitu ada interaksi pertama, atau fallback 5s kalau user idle
+    const events: (keyof WindowEventMap)[] = ["scroll", "mousemove", "touchstart", "keydown", "click"];
+    events.forEach((ev) => window.addEventListener(ev, loadTracking, { once: true, passive: true }));
+    const fallbackTimer = setTimeout(loadTracking, 5000);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, loadTracking));
+      clearTimeout(fallbackTimer);
+    };
   }, [gtmId, gaId]);
 
   return (
