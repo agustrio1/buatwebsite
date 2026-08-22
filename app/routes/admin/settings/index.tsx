@@ -34,6 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
       value = {
         siteName: String(formData.get("siteName") ?? ""),
         siteTagline: String(formData.get("siteTagline") ?? ""),
+        siteUrl: String(formData.get("siteUrl") ?? "").replace(/\/$/, ""),
         companyLegalName: String(formData.get("companyLegalName") ?? ""),
         logoUrl: String(formData.get("logoUrl") ?? ""),
         logoDarkUrl: String(formData.get("logoDarkUrl") ?? ""),
@@ -288,6 +289,17 @@ function GeneralForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
         </div>
         <Field label="Tagline">
           <input name="siteTagline" defaultValue={data?.siteTagline} className={inputClass} />
+        </Field>
+        <Field
+          label="URL Situs"
+          hint="Domain utama tanpa slash di akhir, contoh: https://jadikanweb.id — dipakai untuk canonical URL dan data terstruktur SEO"
+        >
+          <input
+            name="siteUrl"
+            defaultValue={data?.siteUrl}
+            placeholder="https://jadikanweb.id"
+            className={inputClass}
+          />
         </Field>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="Logo URL">
