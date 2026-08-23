@@ -18,11 +18,12 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
   CartesianGrid,
 } from "recharts";
 
@@ -209,8 +210,8 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
               <p className="text-sm font-medium text-slate-600 mb-3">Trend Visitor & Page Views</p>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <BarChart data={analytics.trend} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis
                       dataKey="date"
                       tickFormatter={formatDate}
@@ -219,24 +220,37 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                       tickLine={false}
                     />
                     <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                    <Tooltip labelFormatter={(v) => formatDate(String(v))} />
-                    <Line
-                      type="monotone"
+                    <Tooltip
+                      labelFormatter={(v) => formatDate(String(v))}
+                      cursor={{ fill: "#f8fafc" }}
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "none",
+                        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 12 }}
+                      formatter={(value) => (
+                        <span className="text-slate-600">{value}</span>
+                      )}
+                    />
+                    <Bar
                       dataKey="users"
                       name="Visitor"
-                      stroke="#f97316"
-                      strokeWidth={2}
-                      dot={false}
+                      fill="#f97316"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={18}
                     />
-                    <Line
-                      type="monotone"
+                    <Bar
                       dataKey="pageViews"
                       name="Page Views"
-                      stroke="#94a3b8"
-                      strokeWidth={2}
-                      dot={false}
+                      fill="#cbd5e1"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={18}
                     />
-                  </LineChart>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>

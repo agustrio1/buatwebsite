@@ -10,6 +10,11 @@
   --color-brand-dark: #0f172a;
 }
 
+.recharts-wrapper svg:focus,
+.recharts-surface:focus {
+  outline: none;
+}
+
 /* =========================================================
    PORTFOLIO HERO SHOWCASE
 ========================================================= */

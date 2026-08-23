@@ -67,7 +67,18 @@ const navigasiLinks = [
   { label: "Kontak", to: "/#kontak" },
 ];
 
-export function SiteFooter({ settings }: { settings: Record<string, any> }) {
+type FooterCity = {
+  name: string;
+  slug: string;
+};
+
+export function SiteFooter({
+  settings,
+  cities = [],
+}: {
+  settings: Record<string, any>;
+  cities?: FooterCity[];
+}) {
   const general = settings.general ?? {};
   const contact = settings.contact ?? {};
   const socials = settings.socials ?? {};
@@ -76,9 +87,12 @@ export function SiteFooter({ settings }: { settings: Record<string, any> }) {
     ([key, url]) => url && socialIcons[key]
   ) as [string, string][];
 
+  const visibleCities = cities.slice(0, 8);
+  const hasMoreCities = cities.length > visibleCities.length;
+
   return (
     <footer id="kontak" className="bg-white text-slate-600 border-t border-slate-200 mt-16">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div>
           <h3 className="text-slate-900 font-semibold mb-3">{general.siteName ?? "Website"}</h3>
           <p className="text-sm leading-relaxed text-slate-500">{general.siteTagline}</p>
@@ -123,6 +137,28 @@ export function SiteFooter({ settings }: { settings: Record<string, any> }) {
             ))}
           </div>
         </div>
+
+        {visibleCities.length > 0 && (
+          <div>
+            <h3 className="text-slate-900 font-semibold mb-3">Jasa Website</h3>
+            <div className="flex flex-col gap-2 text-sm">
+              {visibleCities.map((city) => (
+                <Link
+                  key={city.slug}
+                  to={`/jasa-pembuatan-website/${city.slug}`}
+                  className="hover:text-brand-600 transition-colors"
+                >
+                  {city.name}
+                </Link>
+              ))}
+              {hasMoreCities && (
+                <Link to="/layanan" className="text-brand-600 hover:underline text-xs mt-1">
+                  Lihat kota lainnya
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-5">
           <div>

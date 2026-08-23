@@ -8,6 +8,7 @@ export async function loader() {
   <sitemap><loc>${siteUrl}/sitemap-1.xml</loc></sitemap>
   <sitemap><loc>${siteUrl}/sitemap-2.xml</loc></sitemap>
   <sitemap><loc>${siteUrl}/sitemap-3.xml</loc></sitemap>
+  <sitemap><loc>${siteUrl}/sitemap-4.xml</loc></sitemap>
 </sitemapindex>`;
 
   return new Response(xml, {

@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   LogOut,
+  MapPin,
   ChevronRight,
 } from "lucide-react";
 import { useNavigation } from "react-router";
@@ -25,6 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 const navItems = [
   { label: "Dashboard", path: "/admin", icon: LayoutDashboard, exact: true },
   { label: "Layanan", path: "/admin/services", icon: LayoutGrid },
+  { label: "Kota", path: "/admin/cities", icon: MapPin },
   { label: "Projek", path: "/admin/projects", icon: FolderKanban },
   { label: "Blog", path: "/admin/posts", icon: FileText },
   { label: "Inquiries", path: "/admin/inquiries", icon: Inbox },

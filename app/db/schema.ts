@@ -127,6 +127,22 @@ export const inquiries = pgTable('inquiries', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// 9. Cities Table (untuk landing page per kota)
+export const cities = pgTable('cities', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(), // "Jakarta"
+  slug: varchar('slug', { length: 100 }).notNull().unique(), // "jakarta"
+  province: varchar('province', { length: 100 }),
+  intro: text('intro'), // paragraf pembuka khas kota ini
+  localContext: text('local_context'), // paragraf tambahan konteks bisnis lokal
+  faqs: jsonb('faqs'), // array [{question, answer}], khusus kota ini
+  metaTitle: varchar('meta_title', { length: 255 }),
+  metaDescription: text('meta_description'),
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 //  'siteSettings'
 export const siteSettings = pgTable('site_settings', {
   id: uuid('id').defaultRandom().primaryKey(),

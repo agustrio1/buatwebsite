@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { InquiryForm } from "~/components/site/inquiry-form";
 import { sendWhatsAppNotification } from "~/lib/fonnte.server";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { inquiryRateLimiter, checkRateLimit, getClientIp } from "~/lib/rate-limit.server";
 
 export function headers() {
   return {
@@ -19,6 +20,12 @@ export async function loader() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const ip = getClientIp(request);
+  const limitError = await checkRateLimit(inquiryRateLimiter, ip);
+  if (limitError) {
+    return { error: limitError };
+  }
+
   const formData = await request.formData();
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();

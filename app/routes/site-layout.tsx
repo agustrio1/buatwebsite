@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, useLoaderData, useNavigation } from "react-router";
 import { db } from "~/db";
+import { cities } from "~/db/schema";
+import { eq, asc } from "drizzle-orm";
 import { SiteHeader } from "~/components/site/header";
 import { SiteFooter } from "~/components/site/footer";
 
@@ -24,11 +26,17 @@ export async function loader() {
     }
   }
 
-  return { settings };
+  const activeCities = await db.query.cities.findMany({
+    where: eq(cities.isActive, true),
+    orderBy: [asc(cities.sortOrder), asc(cities.name)],
+    columns: { name: true, slug: true },
+  });
+
+  return { settings, cities: activeCities };
 }
 
 export default function SiteLayout() {
-  const { settings } = useLoaderData<typeof loader>();
+  const { settings, cities } = useLoaderData<typeof loader>();
 
   const gtmId = settings.seo?.googleTagManagerId;
   const gaId = settings.seo?.googleAnalyticsId;
@@ -105,7 +113,6 @@ export default function SiteLayout() {
       }
     }
 
-    // load begitu ada interaksi pertama, atau fallback 5s kalau user idle
     const events: (keyof WindowEventMap)[] = ["scroll", "mousemove", "touchstart", "keydown", "click"];
     events.forEach((ev) => window.addEventListener(ev, loadTracking, { once: true, passive: true }));
     const fallbackTimer = setTimeout(loadTracking, 5000);
@@ -133,7 +140,7 @@ export default function SiteLayout() {
         <Outlet context={{ settings }} />
       </main>
 
-      <SiteFooter settings={settings} />
+      <SiteFooter settings={settings} cities={cities} />
 
       {cleanPhone ? (
         <a

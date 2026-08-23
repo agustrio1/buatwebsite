@@ -240,7 +240,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           })),
         }
       : null;
-
+      
   const blogJsonLd =
     posts.length > 0
       ? posts.map((post) => ({
@@ -253,6 +253,19 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
         }))
       : [];
+      
+    const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -262,6 +275,11 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesJsonLd) }}
         />
       )}
+      
+       <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
 
       {blogJsonLd.map((schema, i) => (
         <script
