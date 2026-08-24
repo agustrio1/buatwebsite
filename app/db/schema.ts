@@ -130,17 +130,43 @@ export const inquiries = pgTable('inquiries', {
 // 9. Cities Table (untuk landing page per kota)
 export const cities = pgTable('cities', {
   id: uuid('id').defaultRandom().primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(), // "Jakarta"
-  slug: varchar('slug', { length: 100 }).notNull().unique(), // "jakarta"
+
+  // 1. Informasi Kota
+  name: varchar('name', { length: 100 }).notNull(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
   province: varchar('province', { length: 100 }),
-  intro: text('intro'), // paragraf pembuka khas kota ini
-  localContext: text('local_context'), // paragraf tambahan konteks bisnis lokal
-  faqs: jsonb('faqs'), // array [{question, answer}], khusus kota ini
+
+  // 2. Konten Utama
+  h1: varchar('h1', { length: 255 }),
+  intro: text('intro'),
+  localContext: text('local_context'),
+
+  // 3. Kebutuhan Bisnis
+  localChallenges: text('local_challenges'),
+  whyWebsiteNeeded: text('why_website_needed'),
+  businessTypes: jsonb('business_types'), // array string
+
+  // 4. Layanan & Keunggulan
+  relevantServices: jsonb('relevant_services'), // array string (manual, bukan relasi)
+  advantages: jsonb('advantages'), // array string
+
+  // 5. Area Layanan
+  serviceAreas: jsonb('service_areas'), // array string
+
+  // 6. FAQ Kota
+  faqs: jsonb('faqs'), // array [{question, answer}]
+
+  // 7. SEO & CTA
   metaTitle: varchar('meta_title', { length: 255 }),
   metaDescription: text('meta_description'),
+  ctaTitle: varchar('cta_title', { length: 255 }),
+  ctaDescription: text('cta_description'),
+  ctaWhatsappNumber: varchar('cta_whatsapp_number', { length: 50 }),
+
   isActive: boolean('is_active').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 //  'siteSettings'

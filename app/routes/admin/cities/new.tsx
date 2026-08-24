@@ -6,27 +6,37 @@ import { requireAdmin } from "~/lib/session.server";
 import { citySchema, flattenZodErrors } from "~/lib/validation/city";
 import { CityForm } from "~/components/admin/city-form";
 
+function parseJsonArray(raw: FormDataEntryValue | null) {
+  try {
+    return JSON.parse(String(raw ?? "[]"));
+  } catch {
+    return [];
+  }
+}
+
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
   const formData = await request.formData();
-
-  const faqsRaw = String(formData.get("faqs") ?? "[]");
-  let faqs;
-  try {
-    faqs = JSON.parse(faqsRaw);
-  } catch {
-    faqs = [];
-  }
 
   const parsed = citySchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
     province: String(formData.get("province") ?? "") || null,
+    h1: String(formData.get("h1") ?? "") || null,
     intro: String(formData.get("intro") ?? "") || null,
     localContext: String(formData.get("localContext") ?? "") || null,
-    faqs,
+    localChallenges: String(formData.get("localChallenges") ?? "") || null,
+    whyWebsiteNeeded: String(formData.get("whyWebsiteNeeded") ?? "") || null,
+    businessTypes: parseJsonArray(formData.get("businessTypes")),
+    relevantServices: parseJsonArray(formData.get("relevantServices")),
+    advantages: parseJsonArray(formData.get("advantages")),
+    serviceAreas: parseJsonArray(formData.get("serviceAreas")),
+    faqs: parseJsonArray(formData.get("faqs")),
     metaTitle: String(formData.get("metaTitle") ?? "") || null,
     metaDescription: String(formData.get("metaDescription") ?? "") || null,
+    ctaTitle: String(formData.get("ctaTitle") ?? "") || null,
+    ctaDescription: String(formData.get("ctaDescription") ?? "") || null,
+    ctaWhatsappNumber: String(formData.get("ctaWhatsappNumber") ?? "") || null,
     isActive: formData.get("isActive") === "on",
   });
 
