@@ -1,7 +1,15 @@
 import type { Config } from "@react-router/dev/config";
 
 export default {
-  // Config options...
-  // Server-side render by default, to enable SPA mode set this to `false`
+  // Server-side render tetap aktif untuk semua halaman dinamis (blog, kota, projek, layanan, admin, dll)
   ssr: true,
+
+  // Hanya halaman statis yang tidak bergantung database yang di-prerender
+  prerender: [
+    "/",
+    "/legal/syarat-ketentuan",
+    "/legal/kebijakan-privasi",
+    "/robots.txt",
+    "/llms.txt",
+  ],
 } satisfies Config;

@@ -106,6 +106,7 @@ export function SiteFooter({
                     href={url}
                     target="_blank"
                     rel="noreferrer"
+                    aria-label={`Kunjungi ${key.charAt(0).toUpperCase() + key.slice(1)} kami`}
                     className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-brand-500 hover:text-white transition-colors border border-slate-200/60"
                   >
                     <Icon width={16} height={16} />
