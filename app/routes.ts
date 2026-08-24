@@ -23,7 +23,7 @@ route("sitemap-index.xml", "routes/sitemap-index.tsx"),
 route("sitemap-1.xml", "routes/sitemap-1.tsx"),
 route("sitemap-2.xml", "routes/sitemap-2.tsx"),
 route("sitemap-3.xml", "routes/sitemap-3.tsx"),
-route("sitemap-4.xml", "routes/sitemap-4.xml.tsx"),
+route("sitemap-4.xml", "routes/sitemap-4.tsx"),
 route("llms.txt", "routes/llms.tsx"),
 
   layout("routes/admin/layout.tsx", [
