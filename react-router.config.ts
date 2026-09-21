@@ -6,7 +6,6 @@ export default {
 
   // Hanya halaman statis yang tidak bergantung database yang di-prerender
   prerender: [
-    "/",
     "/legal/syarat-ketentuan",
     "/legal/kebijakan-privasi",
     "/robots.txt",
