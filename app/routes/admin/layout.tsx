@@ -102,7 +102,7 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
       {isLoading ? (
-        <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-brand-500 animate-pulse" />
+        <div className="fixed top-0 left-0 right-0 z-60 h-0.5 bg-brand-500 animate-pulse" />
       ) : null}
 
       {isSidebarOpen ? (

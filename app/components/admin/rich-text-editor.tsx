@@ -3,6 +3,10 @@ import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import {
   Bold,
   Italic,
@@ -18,9 +22,61 @@ import {
   Undo,
   Redo,
   Loader2,
+  TableIcon,
+  Trash2,
+  Rows3,
+  Columns3,
 } from "lucide-react";
 
 const emptyDoc: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
+
+const tableCss = `
+.tiptap-table-wrapper table {
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  width: 100% !important;
+  margin: 1.25rem 0 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+.tiptap-table-wrapper td,
+.tiptap-table-wrapper th {
+  border: 1px solid #cbd5e1 !important;
+  padding: 8px 12px !important;
+  vertical-align: top !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  min-width: 1em !important;
+}
+.tiptap-table-wrapper th {
+  background-color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  color: #1e293b !important;
+}
+.tiptap-table-wrapper tr:nth-child(even) td {
+  background-color: #f8fafc !important;
+}
+.tiptap-table-wrapper .selectedCell {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+.tiptap-table-wrapper .column-resize-handle {
+  position: absolute !important;
+  right: -2px !important;
+  top: 0 !important;
+  bottom: -2px !important;
+  width: 4px !important;
+  background-color: #3b82f6 !important;
+  pointer-events: none !important;
+}
+.tiptap-table-wrapper .resize-cursor {
+  cursor: col-resize !important;
+}
+.tiptap-table-wrapper p {
+  margin: 0 !important;
+}
+`;
 
 export function RichTextEditor({
   name,
@@ -44,13 +100,19 @@ export function RichTextEditor({
       Image.configure({
         HTMLAttributes: { class: "rounded-lg max-w-full" },
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: defaultValue ?? emptyDoc,
     immediatelyRender: false,
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[200px] px-3 py-2.5 focus:outline-none",
+          "prose prose-sm sm:prose-base max-w-none min-h-[200px] px-3 py-2.5 focus:outline-none tiptap-table-wrapper",
       },
     },
     onUpdate: ({ editor }) => setContent(editor.getJSON()),
@@ -61,12 +123,17 @@ export function RichTextEditor({
     const previousUrl = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt("Masukkan URL tautan:", previousUrl ?? "");
 
-    if (url === null) return; // cancel
+    if (url === null) return;
     if (url === "") {
       editor.chain().focus().extendMarkRange("link").unsetLink().run();
       return;
     }
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }
+
+  function insertTable() {
+    if (!editor) return;
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }
 
   async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -94,11 +161,15 @@ export function RichTextEditor({
   }
 
   if (!editor) {
-    return <div className="border rounded-lg min-h-[248px] bg-slate-50 animate-pulse" />;
+    return <div className="border rounded-lg min-h-62 bg-slate-50 animate-pulse" />;
   }
+
+  const isInTable = editor.isActive("table");
 
   return (
     <div className="border rounded-lg overflow-hidden">
+      <style>{tableCss}</style>
+
       <div className="flex flex-wrap items-center gap-1 border-b bg-slate-50 px-2 py-1.5">
         <ToolbarButton active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold size={16} />
@@ -157,6 +228,32 @@ export function RichTextEditor({
           onChange={handleImageSelect}
           className="hidden"
         />
+
+        <div className="w-px h-5 bg-slate-200 mx-1" />
+
+        <ToolbarButton active={isInTable} onClick={insertTable}>
+          <TableIcon size={16} />
+        </ToolbarButton>
+
+        {isInTable && (
+          <>
+            <ToolbarButton onClick={() => editor.chain().focus().addRowAfter().run()}>
+              <Rows3 size={16} />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().addColumnAfter().run()}>
+              <Columns3 size={16} />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().deleteRow().run()}>
+              <Rows3 size={16} className="opacity-50" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().deleteColumn().run()}>
+              <Columns3 size={16} className="opacity-50" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().deleteTable().run()}>
+              <Trash2 size={16} className="text-rose-500" />
+            </ToolbarButton>
+          </>
+        )}
 
         <div className="w-px h-5 bg-slate-200 mx-1" />
 
