@@ -11,4 +11,10 @@ export default {
     "/robots.txt",
     "/llms.txt",
   ],
+
+   routeDiscovery: {
+    mode: "lazy",
+    manifestPath: "/__manifest",
+  },
+  
 } satisfies Config;
