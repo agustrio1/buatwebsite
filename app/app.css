@@ -15,6 +15,11 @@
   outline: none;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 /* =========================================================
    PORTFOLIO HERO SHOWCASE
 ========================================================= */
@@ -333,22 +338,48 @@
   border-radius: 8px !important;
   overflow: hidden !important;
 }
+.tiptap-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 1.25rem 0;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  overscroll-behavior-x: contain;
+}
+
+.tiptap-table-wrapper table {
+  border-collapse: collapse !important;
+  width: max-content !important;
+  min-width: 100%;
+  margin: 0 !important;
+}
+
+.tiptap-table-scroll table {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
 .tiptap-table-wrapper td,
 .tiptap-table-wrapper th {
   border: 1px solid #cbd5e1 !important;
   padding: 8px 12px !important;
   vertical-align: top !important;
   box-sizing: border-box !important;
+  white-space: normal;
 }
+
 .tiptap-table-wrapper th {
   background-color: #f1f5f9 !important;
   font-weight: 600 !important;
   text-align: left !important;
   color: #1e293b !important;
 }
+
 .tiptap-table-wrapper tr:nth-child(even) td {
   background-color: #f8fafc !important;
 }
+
 .tiptap-table-wrapper p {
   margin: 0 !important;
 }

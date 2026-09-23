@@ -18,9 +18,18 @@ const extensions = [
   TableCell,
 ];
 
+function wrapTablesForScroll(html: string): string {
+  return html.replace(
+    /<table([^>]*)>([\s\S]*?)<\/table>/gi,
+    (_match, attrs: string, inner: string) =>
+      `<div class="tiptap-table-scroll"><table${attrs}>${inner}</table></div>`
+  );
+}
+
 export function richTextToHtml(content: JSONContent | null): string {
   if (!content) return "";
-  return generateHTML(content, extensions);
+  const rawHtml = generateHTML(content, extensions);
+  return wrapTablesForScroll(rawHtml);
 }
 
 export function RichTextView({ content }: { content: JSONContent | null }) {
