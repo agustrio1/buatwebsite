@@ -51,7 +51,7 @@ export async function action({ request }: Route.ActionArgs) {
       fileName: coverFile.name,
       folder: "/posts/cover",
     });
-    coverImageUrl = `${uploaded.url}?tr=f-webp`;
+    coverImageUrl = uploaded.url;
     coverImageId = uploaded.fileId;
   }
 

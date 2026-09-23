@@ -2,12 +2,20 @@ import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import type { JSONContent } from "@tiptap/react";
 
 const extensions = [
   StarterKit,
   Link.configure({ HTMLAttributes: { class: "text-brand-600 underline underline-offset-2" } }),
   Image.configure({ HTMLAttributes: { class: "rounded-xl max-w-full" } }),
+  Table.configure({ HTMLAttributes: { class: "tiptap-table-wrapper" } }),
+  TableRow,
+  TableHeader,
+  TableCell,
 ];
 
 export function richTextToHtml(content: JSONContent | null): string {
@@ -24,7 +32,7 @@ export function RichTextView({ content }: { content: JSONContent | null }) {
 
   return (
     <div
-      className="prose prose-sm sm:prose-base max-w-none"
+      className="prose prose-sm sm:prose-base max-w-none tiptap-table-wrapper"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

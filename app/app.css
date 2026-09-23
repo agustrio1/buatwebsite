@@ -324,48 +324,31 @@
 
 /* Table */
 
-/* Tiptap Table Styles */
-.tiptap-table {
+.tiptap-table-wrapper table {
   border-collapse: collapse !important;
-  table-layout: fixed;
-  width: 100%;
-  margin: 1rem 0;
+  table-layout: fixed !important;
+  width: 100% !important;
+  margin: 1.25rem 0 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }
-
-.tiptap-table td,
-.tiptap-table th {
-  border: 1px solid #94a3b8 !important;
-  padding: 6px 10px;
-  vertical-align: top;
-  box-sizing: border-box;
-  position: relative;
-  min-width: 1em;
+.tiptap-table-wrapper td,
+.tiptap-table-wrapper th {
+  border: 1px solid #cbd5e1 !important;
+  padding: 8px 12px !important;
+  vertical-align: top !important;
+  box-sizing: border-box !important;
 }
-
-.tiptap-table th {
+.tiptap-table-wrapper th {
   background-color: #f1f5f9 !important;
-  font-weight: 600;
-  text-align: left;
+  font-weight: 600 !important;
+  text-align: left !important;
+  color: #1e293b !important;
 }
-
-.tiptap-table .selectedCell {
-  background-color: rgba(59, 130, 246, 0.15) !important;
+.tiptap-table-wrapper tr:nth-child(even) td {
+  background-color: #f8fafc !important;
 }
-
-.tiptap-table .column-resize-handle {
-  position: absolute;
-  right: -2px;
-  top: 0;
-  bottom: -2px;
-  width: 4px;
-  background-color: #3b82f6;
-  pointer-events: none;
-}
-
-.tiptap-table .resize-cursor {
-  cursor: col-resize;
-}
-
-.tiptap-table p {
-  margin: 0;
+.tiptap-table-wrapper p {
+  margin: 0 !important;
 }

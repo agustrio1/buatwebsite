@@ -69,7 +69,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       fileName: coverFile.name,
       folder: "/posts/cover",
     });
-    updates.coverImageUrl = `${uploaded.url}?tr=f-webp`;
+    updates.coverImageUrl = uploaded.url;
     updates.coverImageId = uploaded.fileId;
   }
 
@@ -118,7 +118,7 @@ export default function EditPost({ loaderData, actionData }: Route.ComponentProp
             title: post.title,
             slug: post.slug,
             summary: post.summary,
-            contentRich: (post.contentRich ?? null) as JSONContent | null,
+            contentRich: post.contentRich as JSONContent | null,
             categoryId: post.categoryId,
             status: post.status,
             coverImageUrl: post.coverImageUrl,
