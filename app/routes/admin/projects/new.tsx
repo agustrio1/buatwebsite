@@ -2,7 +2,7 @@ import { redirect } from "react-router";
 import type { Route } from "./+types/new";
 import { db } from "~/db";
 import { projects, projectImages } from "~/db/schema";
-import { imagekit } from "~/lib/imagekit-server";
+import { uploadToR2 } from "~/lib/r2-server";
 import { ProjectForm } from "~/components/admin/project-form";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -28,13 +28,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (coverFile && coverFile.size > 0) {
     const buffer = Buffer.from(await coverFile.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: coverFile.name,
-      folder: "/projects/cover",
-    });
+    const uploaded = await uploadToR2(buffer, coverFile.name, "projects/cover", coverFile.type);
     coverImageUrl = uploaded.url;
-    coverImageId = uploaded.fileId;
+    coverImageId = uploaded.key;
   }
 
   const [project] = await db
@@ -57,15 +53,11 @@ export async function action({ request }: Route.ActionArgs) {
   for (const [index, file] of galleryFiles.entries()) {
     if (!file || file.size === 0) continue;
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: file.name,
-      folder: "/projects/gallery",
-    });
+    const uploaded = await uploadToR2(buffer, file.name, "projects/gallery", file.type);
     await db.insert(projectImages).values({
       projectId: project.id,
       imageUrl: uploaded.url,
-      imageId: uploaded.fileId,
+      imageId: uploaded.key,
       sortOrder: index,
     });
   }

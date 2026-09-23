@@ -3,7 +3,7 @@ import type { Route } from "./+types/$id.edit";
 import { db } from "~/db";
 import { projects, projectImages } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { imagekit } from "~/lib/imagekit-server";
+import { uploadToR2, deleteFromR2 } from "~/lib/r2-server";
 import { ProjectForm } from "~/components/admin/project-form";
 import type { JSONContent } from "@tiptap/react";
 
@@ -28,7 +28,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       where: eq(projectImages.imageId, imageId),
     });
     if (image) {
-      await imagekit.deleteFile(imageId).catch(() => null);
+      await deleteFromR2(imageId);
       await db.delete(projectImages).where(eq(projectImages.id, image.id));
     }
     return null;
@@ -62,17 +62,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (coverFile && coverFile.size > 0) {
     const existing = await db.query.projects.findFirst({ where: eq(projects.id, params.id) });
-    if (existing?.coverImageId) {
-      await imagekit.deleteFile(existing.coverImageId).catch(() => null);
-    }
+    await deleteFromR2(existing?.coverImageId);
     const buffer = Buffer.from(await coverFile.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: coverFile.name,
-      folder: "/projects/cover",
-    });
+    const uploaded = await uploadToR2(buffer, coverFile.name, "projects/cover", coverFile.type);
     updates.coverImageUrl = uploaded.url;
-    updates.coverImageId = uploaded.fileId;
+    updates.coverImageId = uploaded.key;
   }
 
   await db.update(projects).set(updates).where(eq(projects.id, params.id));
@@ -86,15 +80,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   for (const [index, file] of galleryFiles.entries()) {
     if (!file || file.size === 0) continue;
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: file.name,
-      folder: "/projects/gallery",
-    });
+    const uploaded = await uploadToR2(buffer, file.name, "projects/gallery", file.type);
     await db.insert(projectImages).values({
       projectId: params.id,
       imageUrl: uploaded.url,
-      imageId: uploaded.fileId,
+      imageId: uploaded.key,
       sortOrder: startOrder + index,
     });
   }

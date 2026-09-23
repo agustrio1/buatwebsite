@@ -5,7 +5,7 @@ import type { Route } from "./+types/$id.edit";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
 import { eq, and, ne } from "drizzle-orm";
-import { imagekit } from "~/lib/imagekit-server";
+import { uploadToR2, deleteFromR2 } from "~/lib/r2-server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
 import type { JSONContent } from "@tiptap/react";
@@ -60,17 +60,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const coverFile = formData.get("coverImage") as File | null;
   if (coverFile && coverFile.size > 0) {
-    if (existing?.coverImageId) {
-      await imagekit.deleteFile(existing.coverImageId).catch(() => null);
-    }
+    await deleteFromR2(existing?.coverImageId);
     const buffer = Buffer.from(await coverFile.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: coverFile.name,
-      folder: "/posts/cover",
-    });
+    const uploaded = await uploadToR2(buffer, coverFile.name, "posts/cover", coverFile.type);
     updates.coverImageUrl = uploaded.url;
-    updates.coverImageId = uploaded.fileId;
+    updates.coverImageId = uploaded.key;
   }
 
   await db.update(posts).set(updates).where(eq(posts.id, params.id));

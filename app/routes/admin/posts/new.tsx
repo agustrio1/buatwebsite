@@ -4,7 +4,7 @@ import { ArrowLeft, Eye } from "lucide-react";
 import type { Route } from "./+types/new";
 import { db } from "~/db";
 import { posts, categories } from "~/db/schema";
-import { imagekit } from "~/lib/imagekit-server";
+import { uploadToR2 } from "~/lib/r2-server";
 import { requireAdmin } from "~/lib/session.server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
@@ -46,13 +46,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (coverFile && coverFile.size > 0) {
     const buffer = Buffer.from(await coverFile.arrayBuffer());
-    const uploaded = await imagekit.upload({
-      file: buffer,
-      fileName: coverFile.name,
-      folder: "/posts/cover",
-    });
+    const uploaded = await uploadToR2(buffer, coverFile.name, "posts/cover", coverFile.type);
     coverImageUrl = uploaded.url;
-    coverImageId = uploaded.fileId;
+    coverImageId = uploaded.key;
   }
 
   await db.insert(posts).values({

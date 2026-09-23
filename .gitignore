@@ -1,6 +1,8 @@
 .DS_Store
 .env
+.env.prod
 /node_modules/
+/flat-unit-a6a3/
 
 # React Router
 /.react-router/

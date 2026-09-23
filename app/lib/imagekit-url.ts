@@ -1,16 +1,14 @@
+const WORKER_BASE_URL = "cdn.enterprisejadikanweb.biz.id";
+
 export function resizeImage(url: string | null | undefined, width: number) {
   if (!url) return url;
-  if (!url.includes("ik.imagekit.io")) return url;
 
-  // Buang query string lama (termasuk tr= yang mungkin sudah nempel dari data lama)
   const baseUrl = url.split("?")[0];
-
-  return `${baseUrl}?tr=w-${width},q-80,f-webp`;
+  return `${baseUrl}?width=${width}&quality=80&format=webp`;
 }
 
 export function buildSrcSet(url: string | null | undefined, baseWidth: number) {
   if (!url) return undefined;
-  if (!url.includes("ik.imagekit.io")) return undefined;
 
   const widths = [baseWidth, Math.round(baseWidth * 1.5), baseWidth * 2];
 
