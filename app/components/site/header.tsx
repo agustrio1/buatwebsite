@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router";
 import { Menu, X } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
@@ -13,9 +13,28 @@ function WhatsAppIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function lockBodyScroll(scrollY: number) {
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${scrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+
+function unlockBodyScroll(restoreScrollY: number) {
+  document.body.style.removeProperty("position");
+  document.body.style.removeProperty("top");
+  document.body.style.removeProperty("left");
+  document.body.style.removeProperty("right");
+  document.body.style.removeProperty("width");
+  window.scrollTo(0, restoreScrollY);
+}
+
 export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
+  const scrollYRef = useRef(0);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -24,12 +43,34 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Failsafe: kalau route berubah atau komponen unmount saat menu masih terbuka, paksa unlock.
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
     return () => {
-      document.body.style.overflow = "";
+      unlockBodyScroll(scrollYRef.current);
     };
-  }, [isOpen]);
+  }, [location.pathname, location.hash]);
+
+  useEffect(() => {
+    unlockBodyScroll(0);
+  }, []);
+
+  function toggleMenu() {
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        scrollYRef.current = window.scrollY;
+        lockBodyScroll(scrollYRef.current);
+      } else {
+        unlockBodyScroll(scrollYRef.current);
+      }
+      return next;
+    });
+  }
+
+  function closeMenu() {
+    setIsOpen(false);
+    unlockBodyScroll(scrollYRef.current);
+  }
 
   const general = settings.general ?? {};
   const contact = settings.contact ?? {};
@@ -51,17 +92,21 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   return (
     <header className={isScrolled ? "sticky top-0 z-40 transition-all duration-300 bg-white/80 backdrop-blur-lg shadow-sm border-b border-slate-100" : "sticky top-0 z-40 transition-all duration-300 bg-white/60 backdrop-blur-md border-b border-transparent"}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-17.5 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 min-w-0 shrink-0">
+        <Link to="/" className="group flex items-center gap-2 min-w-0 shrink-0 transition-transform duration-200 hover:scale-[1.03]">
           {logoSrc ? (
-            <img src={logoSrc} srcSet={logoSrcSet} sizes="215px" width={215} height={56} alt={general.siteName} className="h-8 w-auto" fetchPriority="high" />
+            <img src={logoSrc} srcSet={logoSrcSet} sizes="215px" width={215} height={56} alt={general.siteName} className="h-8 w-auto transition-opacity duration-200 group-hover:opacity-80" fetchPriority="high" />
           ) : (
-            <span className="font-bold text-lg text-brand-dark truncate">{general.siteName ?? "Website"}</span>
+            <span className="font-bold text-lg text-brand-dark truncate transition-colors duration-200 group-hover:text-brand-600">{general.siteName ?? "Website"}</span>
           )}
         </Link>
 
         <nav className="hidden md:flex items-center gap-1 bg-slate-50/80 rounded-full px-1.5 py-1.5 border border-slate-100">
           {navItems.map((item) => (
-            <Link key={item.to} to={item.to} className="px-4 py-2 rounded-full text-sm font-medium text-slate-600 hover:text-brand-600 hover:bg-white hover:shadow-sm transition-all duration-200">
+            <Link
+              key={item.to}
+              to={item.to}
+              className="relative px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition-all duration-200 hover:text-brand-600 hover:bg-white hover:shadow-sm active:scale-95"
+            >
               {item.label}
             </Link>
           ))}
@@ -69,26 +114,37 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
 
         <div className="flex items-center gap-2 shrink-0">
           {features.enableDirectWhatsAppInquiry !== false ? (
-            <a href={waLink} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+            <a href={waLink} target="_blank" rel="noreferrer" className="hidden sm:flex items-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95">
               <WhatsAppIcon size={17} />
               Konsultasi
             </a>
           ) : null}
-          <button type="button" onClick={() => setIsOpen(!isOpen)} className="md:hidden relative w-10 h-10 flex items-center justify-center text-slate-700 hover:bg-slate-100 rounded-full transition-colors" aria-label="Menu" aria-expanded={isOpen}>
+          <button
+            type="button"
+            onClick={toggleMenu}
+            className="md:hidden relative w-10 h-10 flex items-center justify-center text-slate-700 hover:text-brand-600 hover:bg-slate-100 rounded-full transition-all duration-200 active:scale-90"
+            aria-label="Menu"
+            aria-expanded={isOpen}
+          >
             {isOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
       {isOpen ? (
-        <nav className="md:hidden border-t border-slate-100 bg-white px-4 py-3 space-y-1">
+        <nav className="md:hidden absolute top-full left-0 right-0 border-t border-slate-100 bg-white px-4 py-3 space-y-1 shadow-lg max-h-[calc(100vh-4rem)] overflow-y-auto">
           {navItems.map((item) => (
-            <Link key={item.to} to={item.to} onClick={() => setIsOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-brand-600 transition-all duration-200">
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={closeMenu}
+              className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 hover:text-brand-600 hover:pl-5 active:scale-[0.98]"
+            >
               {item.label}
             </Link>
           ))}
           {features.enableDirectWhatsAppInquiry !== false ? (
-            <a href={waLink} target="_blank" rel="noreferrer" onClick={() => setIsOpen(false)} className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-sm font-semibold px-4 py-3 rounded-xl mt-3 shadow-sm">
+            <a href={waLink} target="_blank" rel="noreferrer" onClick={closeMenu} className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-sm font-semibold px-4 py-3 rounded-xl mt-3 shadow-sm transition-all duration-200 active:scale-95">
               <WhatsAppIcon size={18} />
               Konsultasi via WhatsApp
             </a>
