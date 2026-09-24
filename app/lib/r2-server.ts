@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
+import sharp from "sharp";
 
 const r2 = new S3Client({
   region: "auto",
@@ -11,11 +12,13 @@ const r2 = new S3Client({
 });
 
 const BUCKET = process.env.R2_BUCKET_NAME!;
-const PUBLIC_URL = process.env.R2_PUBLIC_URL!; // https://image-cdn.pribadiagus321.workers.dev
+const PUBLIC_URL = process.env.R2_PUBLIC_URL!;
 
-function buildSafeFileName(originalName: string) {
+function buildSafeFileName(originalName: string, forcedExt?: string) {
   const dotIndex = originalName.lastIndexOf(".");
-  const ext = dotIndex !== -1 ? originalName.slice(dotIndex + 1).toLowerCase() : "bin";
+  const originalExt = dotIndex !== -1 ? originalName.slice(dotIndex + 1).toLowerCase() : "bin";
+  const ext = forcedExt ?? originalExt;
+
   const base = originalName
     .slice(0, dotIndex !== -1 ? dotIndex : undefined)
     .toLowerCase()
@@ -26,22 +29,45 @@ function buildSafeFileName(originalName: string) {
   return `${base || "file"}-${suffix}.${ext}`;
 }
 
+// Tipe yang TIDAK dikonversi ke WebP (SVG nggak perlu, GIF animasi bisa rusak)
+const SKIP_CONVERSION_TYPES = ["image/svg+xml", "image/gif"];
+
 export async function uploadToR2(
   buffer: Buffer,
   fileName: string,
   folder: string,
   contentType: string
 ) {
-  const safeName = buildSafeFileName(fileName);
   const cleanFolder = folder.replace(/^\/+|\/+$/g, "");
+
+  let finalBuffer = buffer;
+  let finalContentType = contentType;
+  let forcedExt: string | undefined;
+
+  const shouldConvert = !SKIP_CONVERSION_TYPES.includes(contentType);
+
+  if (shouldConvert) {
+    try {
+      finalBuffer = await sharp(buffer)
+        .webp({ quality: 82 })
+        .toBuffer();
+      finalContentType = "image/webp";
+      forcedExt = "webp";
+    } catch (err) {
+      // Kalau sharp gagal proses (misal file bukan gambar valid), fallback ke file asli
+      console.error("Sharp conversion failed, using original file:", err);
+    }
+  }
+
+  const safeName = buildSafeFileName(fileName, forcedExt);
   const key = `${cleanFolder}/${safeName}`;
 
   await r2.send(
     new PutObjectCommand({
       Bucket: BUCKET,
       Key: key,
-      Body: buffer,
-      ContentType: contentType,
+      Body: finalBuffer,
+      ContentType: finalContentType,
     })
   );
 
@@ -56,6 +82,6 @@ export async function deleteFromR2(key: string | null | undefined) {
   try {
     await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
   } catch {
-    // biarkan gagal senyap, sama seperti perilaku imagekit.deleteFile sebelumnya
+    // biarkan gagal senyap
   }
 }

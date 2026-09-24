@@ -1,6 +1,6 @@
 import type { Route } from "./+types/upload-image";
 import { requireAdmin } from "~/lib/session.server";
-import { imagekit } from "~/lib/imagekit-server";
+import { uploadToR2 } from "~/lib/r2-server";
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
@@ -13,15 +13,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const uploaded = await imagekit.upload({
-    file: buffer,
-    fileName: file.name,
-    folder: "/content",
-  });
+  const uploaded = await uploadToR2(buffer, file.name, "content", file.type);
 
-  // Paksa delivery selalu WebP, terlepas dari Accept header klien,
-  // supaya URL yang disimpan ke database konsisten formatnya.
-  const webpUrl = `${uploaded.url}?tr=f-webp`;
-
-  return Response.json({ url: webpUrl, fileId: uploaded.fileId });
+  return Response.json({ url: uploaded.url, fileId: uploaded.key });
 }

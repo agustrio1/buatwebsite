@@ -3,6 +3,7 @@ import { Form, useLoaderData, useSearchParams, useActionData, useNavigation } fr
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { siteSettings } from "~/db/schema";
+import { ImageUploadField } from "~/components/admin/image-upload-field";
 import {
   Building2,
   Search,
@@ -128,8 +129,8 @@ export async function action({ request }: Route.ActionArgs) {
         customQuotation: String(formData.get("customQuotation") ?? ""),
       };
       break;
-      
-      case "integrations":
+
+    case "integrations":
       value = {
         fonnteToken: String(formData.get("fonnteToken") ?? ""),
         gaPropertyId: String(formData.get("gaPropertyId") ?? ""),
@@ -144,7 +145,7 @@ export async function action({ request }: Route.ActionArgs) {
   await db
     .insert(siteSettings)
     .values({ key, value })
-    .onConflictDoUpdate({ target: siteSettings.key, set: { value, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
 
   return { success: true, key };
 }
@@ -176,27 +177,27 @@ export default function SettingsIndex() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-brand-dark">Pengaturan</h1>
-        <p className="text-sm text-slate-400 mt-1">Konfigurasi umum website kamu.</p>
+    <div className="max-w-5xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-brand-dark">Pengaturan</h1>
+        <p className="text-sm text-slate-400 mt-1.5">Konfigurasi umum website kamu.</p>
       </div>
 
       {actionData?.success && (
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="flex items-center gap-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl px-4 py-3 mb-5 text-sm font-medium">
           <CheckCircle2 size={16} /> Pengaturan berhasil disimpan.
         </div>
       )}
       {actionData?.error && (
-        <div className="bg-red-50 text-red-600 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm">
+        <div className="bg-rose-50 text-rose-600 border border-rose-200 rounded-xl px-4 py-3 mb-5 text-sm font-medium">
           {actionData.error}
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Tab nav */}
-        <div className="md:w-56 shrink-0">
-          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+        <div className="md:w-60 shrink-0">
+          <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0 -mx-1 px-1 md:mx-0 md:px-0">
             {sections.map((s) => {
               const Icon = s.icon;
               const isActive = s.key === activeKey;
@@ -205,13 +206,13 @@ export default function SettingsIndex() {
                   key={s.key}
                   type="button"
                   onClick={() => switchTab(s.key)}
-                  className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 md:shrink text-left transition-colors ${
+                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap shrink-0 md:shrink text-left transition-all duration-150 ${
                     isActive
-                      ? "bg-brand-500 text-white"
-                      : "bg-white text-slate-500 hover:bg-slate-100"
+                      ? "bg-brand-500 text-white shadow-sm shadow-brand-500/20"
+                      : "text-slate-500 hover:bg-white hover:text-slate-700"
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} className={isActive ? "text-white" : "text-slate-400"} />
                   {s.label}
                 </button>
               );
@@ -221,6 +222,10 @@ export default function SettingsIndex() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
+          <div className="mb-5 hidden md:block">
+            <h2 className="text-lg font-semibold text-brand-dark">{activeSection.label}</h2>
+          </div>
+
           {activeKey === "general" && <GeneralForm data={settings.general} isSubmitting={isSubmitting} />}
           {activeKey === "seo" && <SeoForm data={settings.seo} isSubmitting={isSubmitting} />}
           {activeKey === "contact" && <ContactForm data={settings.contact} isSubmitting={isSubmitting} />}
@@ -230,9 +235,6 @@ export default function SettingsIndex() {
             <OperationalHoursForm data={settings.operational_hours} isSubmitting={isSubmitting} />
           )}
           {activeKey === "features" && <FeaturesForm data={settings.features} isSubmitting={isSubmitting} />}
-          {activeKey === "whatsapp_templates" && (
-            <WhatsappTemplatesForm data={settings.whatsapp_templates} isSubmitting={isSubmitting} />
-          )}
           {activeKey === "whatsapp_templates" && (
             <WhatsappTemplatesForm data={settings.whatsapp_templates} isSubmitting={isSubmitting} />
           )}
@@ -246,15 +248,28 @@ export default function SettingsIndex() {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">{children}</div>;
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-7 space-y-5">
+      {children}
+    </div>
+  );
+}
+
+function CardHeader({ title, description }: { title: string; description?: string }) {
+  return (
+    <div className="pb-1">
+      <h3 className="text-sm font-semibold text-brand-dark">{title}</h3>
+      {description && <p className="text-xs text-slate-400 mt-0.5">{description}</p>}
+    </div>
+  );
 }
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+      <label className="block text-sm font-medium mb-1.5 text-slate-700">{label}</label>
       {children}
-      {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-slate-400 mt-1.5">{hint}</p>}
     </div>
   );
 }
@@ -264,21 +279,24 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     <button
       type="submit"
       disabled={isSubmitting}
-      className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded"
+      className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium shadow-sm shadow-brand-500/20 transition-colors"
     >
-      <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan"}
+      <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
     </button>
   );
 }
 
-const inputClass = "w-full border rounded px-3 py-2 text-sm";
-const checkboxRow = "flex items-center gap-2 text-sm";
+const inputClass =
+  "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-colors";
+const checkboxRow = "flex items-center gap-2.5 text-sm text-slate-600";
+const checkboxClass = "w-4 h-4 accent-brand-500 rounded";
 
 function GeneralForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="general" />
       <Card>
+        <CardHeader title="Identitas Situs" description="Nama dan informasi dasar website kamu" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nama Situs">
             <input name="siteName" defaultValue={data?.siteName} className={inputClass} />
@@ -301,25 +319,24 @@ function GeneralForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
             className={inputClass}
           />
         </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Field label="Logo URL">
-            <input name="logoUrl" defaultValue={data?.logoUrl} className={inputClass} />
-          </Field>
-          <Field label="Logo Dark URL">
-            <input name="logoDarkUrl" defaultValue={data?.logoDarkUrl} className={inputClass} />
-          </Field>
-          <Field label="Favicon URL">
-            <input name="faviconUrl" defaultValue={data?.faviconUrl} className={inputClass} />
-          </Field>
-        </div>
         <Field label="Copyright Text">
           <input name="copyrightText" defaultValue={data?.copyrightText} className={inputClass} />
         </Field>
         <label className={checkboxRow}>
-          <input type="checkbox" name="maintenanceMode" value="true" defaultChecked={data?.maintenanceMode} />
+          <input type="checkbox" name="maintenanceMode" value="true" defaultChecked={data?.maintenanceMode} className={checkboxClass} />
           Aktifkan Mode Maintenance
         </label>
       </Card>
+
+      <Card>
+        <CardHeader title="Logo & Favicon" description="Upload gambar langsung, tidak perlu tempel URL manual" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <ImageUploadField name="logoUrl" label="Logo" defaultValue={data?.logoUrl} aspect="aspect-[4/3]" />
+          <ImageUploadField name="logoDarkUrl" label="Logo (Dark Mode)" defaultValue={data?.logoDarkUrl} aspect="aspect-[4/3]" />
+          <ImageUploadField name="faviconUrl" label="Favicon" defaultValue={data?.faviconUrl} aspect="aspect-square" />
+        </div>
+      </Card>
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );
@@ -327,9 +344,10 @@ function GeneralForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
 
 function SeoForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="seo" />
       <Card>
+        <CardHeader title="Meta Tags" />
         <Field label="Meta Title">
           <input name="metaTitle" defaultValue={data?.metaTitle} className={inputClass} />
         </Field>
@@ -339,14 +357,18 @@ function SeoForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) 
         <Field label="Keywords" hint="Pisahkan dengan koma">
           <input name="keywords" defaultValue={data?.keywords?.join(", ")} className={inputClass} />
         </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="OG Image URL">
-            <input name="ogImageUrl" defaultValue={data?.ogImageUrl} className={inputClass} />
-          </Field>
-          <Field label="Twitter Handle">
-            <input name="twitterHandle" defaultValue={data?.twitterHandle} className={inputClass} />
-          </Field>
-        </div>
+        <Field label="Twitter Handle">
+          <input name="twitterHandle" defaultValue={data?.twitterHandle} className={inputClass} />
+        </Field>
+      </Card>
+
+      <Card>
+        <CardHeader title="Open Graph Image" description="Gambar yang muncul saat link dibagikan ke sosial media" />
+        <ImageUploadField name="ogImageUrl" label="OG Image" defaultValue={data?.ogImageUrl} aspect="aspect-video" />
+      </Card>
+
+      <Card>
+        <CardHeader title="Analytics & Verification" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Google Analytics ID">
             <input name="googleAnalyticsId" defaultValue={data?.googleAnalyticsId} className={inputClass} />
@@ -359,10 +381,11 @@ function SeoForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) 
           <input name="googleSearchConsoleCode" defaultValue={data?.googleSearchConsoleCode} className={inputClass} />
         </Field>
         <label className={checkboxRow}>
-          <input type="checkbox" name="robotsIndex" value="true" defaultChecked={data?.robotsIndex} />
+          <input type="checkbox" name="robotsIndex" value="true" defaultChecked={data?.robotsIndex} className={checkboxClass} />
           Izinkan mesin pencari mengindeks situs
         </label>
       </Card>
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );
@@ -370,9 +393,10 @@ function SeoForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) 
 
 function ContactForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="contact" />
       <Card>
+        <CardHeader title="Informasi Kontak" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Email Utama">
             <input name="emailPrimary" type="email" defaultValue={data?.emailPrimary} className={inputClass} />
@@ -387,6 +411,10 @@ function ContactForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
             <input name="phoneOffice" defaultValue={data?.phoneOffice} className={inputClass} />
           </Field>
         </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Alamat & Lokasi" />
         <Field label="Alamat">
           <textarea name="address" defaultValue={data?.address} rows={2} className={inputClass} />
         </Field>
@@ -410,6 +438,7 @@ function ContactForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
           </Field>
         </div>
       </Card>
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );
@@ -418,9 +447,10 @@ function ContactForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
 function SocialsForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   const fields = ["instagram", "linkedin", "github", "youtube", "facebook", "tiktok"] as const;
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="socials" />
       <Card>
+        <CardHeader title="Tautan Sosial Media" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {fields.map((f) => (
             <Field key={f} label={f.charAt(0).toUpperCase() + f.slice(1)}>
@@ -436,9 +466,10 @@ function SocialsForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean
 
 function HeroForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="hero" />
       <Card>
+        <CardHeader title="Konten Hero Section" />
         <Field label="Badge Text">
           <input name="badgeText" defaultValue={data?.badgeText} className={inputClass} />
         </Field>
@@ -448,6 +479,10 @@ function HeroForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean })
         <Field label="Subheadline">
           <textarea name="subheadline" defaultValue={data?.subheadline} rows={2} className={inputClass} />
         </Field>
+      </Card>
+
+      <Card>
+        <CardHeader title="Call to Action" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="CTA Utama - Teks">
             <input name="ctaPrimaryText" defaultValue={data?.ctaPrimaryText} className={inputClass} />
@@ -463,6 +498,7 @@ function HeroForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean })
           </Field>
         </div>
       </Card>
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );
@@ -470,9 +506,10 @@ function HeroForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean })
 
 function OperationalHoursForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="operational_hours" />
       <Card>
+        <CardHeader title="Jam Operasional" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Hari Kerja">
             <input name="workDays" defaultValue={data?.workDays} className={inputClass} />
@@ -488,7 +525,7 @@ function OperationalHoursForm({ data, isSubmitting }: { data?: any; isSubmitting
           <input name="closedDays" defaultValue={data?.closedDays?.join(", ")} className={inputClass} />
         </Field>
         <label className={checkboxRow}>
-          <input type="checkbox" name="isSupport24_7" value="true" defaultChecked={data?.isSupport24_7} />
+          <input type="checkbox" name="isSupport24_7" value="true" defaultChecked={data?.isSupport24_7} className={checkboxClass} />
           Support tersedia 24/7
         </label>
       </Card>
@@ -508,19 +545,20 @@ function FeaturesForm({ data, isSubmitting }: { data?: any; isSubmitting: boolea
   ] as const;
 
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="features" />
       <Card>
-        <div className="space-y-3">
+        <CardHeader title="Fitur Website" />
+        <div className="space-y-1">
           {toggles.map((t) => (
-            <label key={t.name} className="flex items-center justify-between py-2 border-b last:border-0">
+            <label key={t.name} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
               <span className="text-sm text-slate-700">{t.label}</span>
               <input
                 type="checkbox"
                 name={t.name}
                 value="true"
                 defaultChecked={data?.[t.name]}
-                className="w-4 h-4 accent-brand-500"
+                className="w-4 h-4 accent-brand-500 rounded"
               />
             </label>
           ))}
@@ -533,9 +571,10 @@ function FeaturesForm({ data, isSubmitting }: { data?: any; isSubmitting: boolea
 
 function WhatsappTemplatesForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="whatsapp_templates" />
       <Card>
+        <CardHeader title="Template Pesan WhatsApp" />
         <Field label="Template Konsultasi Default">
           <textarea name="defaultConsultation" defaultValue={data?.defaultConsultation} rows={2} className={inputClass} />
         </Field>
@@ -553,9 +592,10 @@ function WhatsappTemplatesForm({ data, isSubmitting }: { data?: any; isSubmittin
 
 function IntegrationsForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-5">
       <input type="hidden" name="key" value="integrations" />
       <Card>
+        <CardHeader title="Notifikasi WhatsApp" />
         <Field label="Fonnte API Token" hint="Dipakai untuk kirim notifikasi WhatsApp saat ada inquiry baru">
           <input
             name="fonnteToken"
@@ -568,7 +608,7 @@ function IntegrationsForm({ data, isSubmitting }: { data?: any; isSubmitting: bo
       </Card>
 
       <Card>
-        <h3 className="font-medium text-brand-dark -mb-1">Google Analytics (GA4)</h3>
+        <CardHeader title="Google Analytics (GA4)" />
         <Field label="Property ID" hint="Angka doang, dari GA4 Admin > Property Settings">
           <input
             name="gaPropertyId"
