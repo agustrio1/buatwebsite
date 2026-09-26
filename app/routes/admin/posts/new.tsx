@@ -8,6 +8,7 @@ import { uploadToR2 } from "~/lib/r2-server";
 import { requireAdmin } from "~/lib/session.server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
+import { logActivity } from "~/lib/activity-log.server";
 
 export async function loader() {
   const categoryList = await db.query.categories.findMany();
@@ -51,18 +52,26 @@ export async function action({ request }: Route.ActionArgs) {
     coverImageId = uploaded.key;
   }
 
-  await db.insert(posts).values({
-    authorId: userId,
-    categoryId,
-    title,
-    slug,
-    summary,
-    contentRich,
-    status,
-    publishedAt: status === "published" ? new Date() : null,
-    coverImageUrl,
-    coverImageId,
-  });
+  const [inserted] = await db.insert(posts).values({
+  authorId: userId,
+  categoryId,
+  title,
+  slug,
+  summary,
+  contentRich,
+  status,
+  publishedAt: status === "published" ? new Date() : null,
+  coverImageUrl,
+  coverImageId,
+}).returning();
+
+await logActivity({
+  userId,
+  action: "create",
+  entityType: "post",
+  entityId: inserted.id,
+  entityLabel: title,
+});
 
   return redirect("/admin/posts");
 }

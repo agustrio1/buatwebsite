@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, Link, Form, useLoaderData, useLocation, useNavigation } from "react-router";
 import type { Route } from "./+types/layout";
 import { requireAdmin } from "~/lib/session.server";
@@ -12,13 +12,14 @@ import {
   Inbox,
   Users,
   Settings,
-  Menu,
+  PanelLeft,
   X,
   LogOut,
   MapPin,
+  ChevronsUpDown,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+  ArrowRightLeft,
+  History,
 } from "lucide-react";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -63,7 +64,9 @@ const navGroups: NavGroup[] = [
     label: "Kelola",
     items: [
       { label: "Inquiries", path: "/admin/inquiries", icon: Inbox },
+      { label: "Redirects", path: "/admin/redirects", icon: ArrowRightLeft },
       { label: "Users", path: "/admin/users", icon: Users },
+      { label: "Activity Log", path: "/admin/activity-log", icon: History },
       { label: "Pengaturan", path: "/admin/settings", icon: Settings },
     ],
   },
@@ -81,6 +84,8 @@ export default function AdminLayout() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("admin_sidebar_collapsed");
@@ -93,14 +98,24 @@ export default function AdminLayout() {
 
   useEffect(() => {
     setIsSidebarOpen(false);
+    setIsUserMenuOpen(false);
   }, [location.pathname]);
 
-  const activeItem = navGroups.flatMap((g) => g.items).find((item) => isItemActive(item, location.pathname));
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
-  const sidebarWidthClass = isCollapsed ? "md:w-20" : "md:w-72";
+  const activeItem = navGroups.flatMap((g) => g.items).find((item) => isItemActive(item, location.pathname));
+  const sidebarWidthClass = isCollapsed ? "md:w-14" : "md:w-64";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 font-sans">
+    <div className="h-screen overflow-hidden bg-slate-50 flex text-slate-900 font-sans text-sm">
       {isLoading ? (
         <div className="fixed top-0 left-0 right-0 z-60 h-0.5 bg-brand-500 animate-pulse" />
       ) : null}
@@ -108,49 +123,52 @@ export default function AdminLayout() {
       {isSidebarOpen ? (
         <div
           onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-slate-900/40 z-40 md:hidden"
         />
       ) : null}
 
+      {/* Sidebar */}
       <aside
         className={
-          "fixed md:static inset-y-0 left-0 z-50 w-72 " +
+          "fixed md:static inset-y-0 left-0 z-50 h-full w-64 " +
           sidebarWidthClass +
-          " bg-brand-dark text-slate-300 flex flex-col transition-all duration-200 ease-in-out " +
+          " bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-200 ease-in-out " +
           (isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0")
         }
       >
-        <div className="flex items-center gap-3 px-5 py-6 border-b border-white/5">
-          <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center shrink-0 overflow-hidden">
+        {/* Header */}
+        <div className="h-14 flex items-center gap-2 px-3 border-b border-slate-200 shrink-0">
+          <div className="w-7 h-7 rounded-md bg-brand-500 flex items-center justify-center shrink-0 overflow-hidden">
             {brandIconUrl ? (
               <img src={brandIconUrl} alt={siteName} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white font-bold text-sm">{siteName.slice(0, 1).toUpperCase()}</span>
+              <span className="text-white font-bold text-xs">{siteName.slice(0, 1).toUpperCase()}</span>
             )}
           </div>
           {isCollapsed ? null : (
             <div className="min-w-0">
-              <p className="text-white font-semibold text-sm truncate">{siteName}</p>
-              <p className="text-xs text-slate-500 truncate">Admin Panel</p>
+              <p className="font-semibold text-sm truncate leading-tight">{siteName}</p>
+              <p className="text-xs text-slate-400 truncate leading-tight">Admin Panel</p>
             </div>
           )}
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden ml-auto p-1.5 text-slate-400 hover:text-white rounded-lg"
+            className="md:hidden ml-auto p-1.5 text-slate-400 hover:text-slate-700 rounded-md transition-colors"
             aria-label="Tutup menu"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-3 space-y-4">
           {navGroups.map((group) => (
             <div key={group.label}>
               {isCollapsed ? (
-                <div className="h-px bg-white/5 mx-2 mb-2" />
+                <div className="h-px bg-slate-100 mx-2 mb-2" />
               ) : (
-                <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                <p className="px-2 pb-1.5 text-[11px] font-medium text-slate-400 tracking-wide">
                   {group.label}
                 </p>
               )}
@@ -164,23 +182,15 @@ export default function AdminLayout() {
                       to={item.path}
                       title={isCollapsed ? item.label : undefined}
                       className={
-                        "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 " +
+                        "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors " +
                         (isCollapsed ? "justify-center " : "") +
                         (isActive
-                          ? "bg-white/10 text-white"
-                          : "text-slate-400 hover:text-slate-100 hover:bg-white/5")
+                          ? "bg-slate-100 text-slate-900 font-medium"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")
                       }
                     >
-                      {isActive ? (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-brand-500" />
-                      ) : null}
-                      <Icon size={18} className={isActive ? "text-brand-400" : "text-slate-500 group-hover:text-slate-300"} />
-                      {isCollapsed ? null : (
-                        <span className="flex-1 truncate">{item.label}</span>
-                      )}
-                      {isActive && !isCollapsed ? (
-                        <ChevronRight size={15} className="text-slate-500" />
-                      ) : null}
+                      <Icon size={16} className={isActive ? "text-brand-600" : "text-slate-400"} strokeWidth={2} />
+                      {isCollapsed ? null : <span className="flex-1 truncate">{item.label}</span>}
                     </Link>
                   );
                 })}
@@ -189,77 +199,78 @@ export default function AdminLayout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-white/5">
+        {/* Footer: user menu */}
+        <div className="p-2 border-t border-slate-200 shrink-0 relative" ref={userMenuRef}>
+          {isUserMenuOpen ? (
+            <div className="absolute bottom-full left-2 right-2 mb-1 bg-white border border-slate-200 rounded-lg shadow-md py-1 overflow-hidden">
+              <div className="px-3 py-2 border-b border-slate-100">
+                <p className="text-sm font-medium text-slate-800 capitalize truncate">{role}</p>
+                <p className="text-xs text-slate-400">Sedang login</p>
+              </div>
+              <Form method="post" action="/logout">
+                <button
+                  type="submit"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                >
+                  <LogOut size={15} />
+                  Logout
+                </button>
+              </Form>
+            </div>
+          ) : null}
+
           <button
             type="button"
-            onClick={() => setIsCollapsed((prev) => !prev)}
-            className="hidden md:flex w-full items-center gap-2 px-3 py-2 mb-1 text-xs font-medium text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-lg transition-colors"
+            onClick={() => setIsUserMenuOpen((prev) => !prev)}
+            className={
+              "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-slate-50 transition-colors " +
+              (isCollapsed ? "justify-center" : "")
+            }
           >
-            {isCollapsed ? <ChevronsRight size={16} /> : <ChevronsLeft size={16} />}
-            {isCollapsed ? null : <span>Ciutkan menu</span>}
-          </button>
-
-          <div className={"flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 mb-1 " + (isCollapsed ? "justify-center" : "")}>
-            <div className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center text-xs font-semibold uppercase shrink-0 ring-1 ring-brand-500/30">
+            <div className="w-7 h-7 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">
               {role.slice(0, 2)}
             </div>
             {isCollapsed ? null : (
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-200 capitalize truncate">{role}</p>
-                <p className="text-xs text-slate-500">Sedang login</p>
-              </div>
+              <>
+                <div className="min-w-0 text-left flex-1">
+                  <p className="text-sm font-medium text-slate-800 capitalize truncate leading-tight">{role}</p>
+                  <p className="text-xs text-slate-400 truncate leading-tight">Admin</p>
+                </div>
+                <ChevronsUpDown size={14} className="text-slate-400 shrink-0" />
+              </>
             )}
-          </div>
-
-          <Form method="post" action="/logout">
-            <button
-              type="submit"
-              title={isCollapsed ? "Logout" : undefined}
-              className={
-                "w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-colors " +
-                (isCollapsed ? "justify-center" : "")
-              }
-            >
-              <LogOut size={18} />
-              {isCollapsed ? null : "Logout"}
-            </button>
-          </Form>
+          </button>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 md:px-8 py-3.5 flex items-center gap-3">
+      {/* Main area */}
+      <div className="flex-1 min-w-0 flex flex-col h-full">
+        <header className="h-14 shrink-0 bg-white border-b border-slate-200 px-4 flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg"
-            aria-label="Buka menu"
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setIsSidebarOpen(true);
+              } else {
+                setIsCollapsed((prev) => !prev);
+              }
+            }}
+            className="p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-md transition-colors"
+            aria-label="Toggle sidebar"
           >
-            <Menu size={22} />
+            <PanelLeft size={18} />
           </button>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <span>Admin</span>
-              <ChevronRight size={12} />
-              <span className="text-slate-500">{activeItem?.label ?? "Dashboard"}</span>
-            </div>
-            <h1 className="text-base font-semibold text-brand-dark truncate">
-              {activeItem?.label ?? "Dashboard"}
-            </h1>
-          </div>
+          <div className="h-4 w-px bg-slate-200" />
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 rounded-full border border-slate-200 bg-white">
-              <div className="w-7 h-7 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center text-xs font-semibold uppercase">
-                {role.slice(0, 2)}
-              </div>
-              <span className="text-sm font-medium text-slate-600 capitalize pr-1">{role}</span>
-            </div>
+          <div className="flex items-center gap-1.5 text-sm min-w-0">
+            <span className="text-slate-400">Admin</span>
+            <ChevronRight size={13} className="text-slate-300 shrink-0" />
+            <span className="font-medium text-slate-800 truncate">{activeItem?.label ?? "Dashboard"}</span>
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <Outlet context={{ role, userId }} />
           </div>

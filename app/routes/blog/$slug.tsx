@@ -8,6 +8,7 @@ import { ArrowLeft, User, Calendar, List } from "lucide-react";
 import { richTextToHtml } from "~/components/site/rich-text-view";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
+import { checkRedirect } from "~/lib/redirects.server";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
@@ -54,6 +55,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   });
 
   if (!post || post.status !== "published") {
+    const url = new URL(request.url);
+    await checkRedirect(url.pathname);
     throw new Response("Not found", { status: 404 });
   }
 

@@ -4,6 +4,7 @@ import { db } from "~/db";
 import { categories } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { Trash2, Plus } from "lucide-react";
+import { logActivity } from "~/lib/activity-log.server";
 
 export async function loader() {
   const data = await db.query.categories.findMany({ orderBy: [asc(categories.name)] });
@@ -18,12 +19,27 @@ export async function action({ request }: Route.ActionArgs) {
     const name = String(formData.get("name") ?? "").trim();
     if (!name) return { error: "Nama kategori wajib diisi" };
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    await db.insert(categories).values({ name, slug });
+    const [inserted] = await db.insert(categories).values({ name, slug }).returning();
+
+    await logActivity({
+      action: "create",
+      entityType: "category",
+      entityId: inserted.id,
+      entityLabel: name,
+    });
   }
 
   if (intent === "delete") {
     const id = String(formData.get("id"));
+    const cat = await db.query.categories.findFirst({ where: eq(categories.id, id) });
     await db.delete(categories).where(eq(categories.id, id));
+
+    await logActivity({
+      action: "delete",
+      entityType: "category",
+      entityId: id,
+      entityLabel: cat?.name,
+    });
   }
 
   return null;

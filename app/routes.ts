@@ -25,6 +25,7 @@ route("sitemap-2.xml", "routes/sitemap-2.tsx"),
 route("sitemap-3.xml", "routes/sitemap-3.tsx"),
 route("sitemap-4.xml", "routes/sitemap-4.tsx"),
 route("llms.txt", "routes/llms.tsx"),
+route("rss.xml", "routes/rss[.]xml.tsx"),
 
   layout("routes/admin/layout.tsx", [
     route("admin", "routes/admin/index.tsx"), // <-- diganti dari index()
@@ -40,12 +41,14 @@ route("llms.txt", "routes/llms.tsx"),
     route("admin/posts/:id/edit", "routes/admin/posts/$id.edit.tsx"),
     route("admin/posts/:id/preview", "routes/admin/posts/$id.preview.tsx"),
     route("admin/inquiries", "routes/admin/inquiries/index.tsx"),
+    route("admin/redirects", "routes/admin/redirects/index.tsx"),
     route("admin/users", "routes/admin/users/index.tsx"),
     route("admin/users/new", "routes/admin/users/new.tsx"),
     route("admin/users/:id/edit", "routes/admin/users/$id.edit.tsx"),
     route("admin/cities", "routes/admin/cities/index.tsx"),
 route("admin/cities/new", "routes/admin/cities/new.tsx"),
 route("admin/cities/:id/edit", "routes/admin/cities/$id.edit.tsx"),
+    route("admin/activity-log", "routes/admin/activity-log/index.tsx"),
     route("admin/settings", "routes/admin/settings/index.tsx"),
   ]),
 ] satisfies RouteConfig;

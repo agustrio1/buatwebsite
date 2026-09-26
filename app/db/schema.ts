@@ -210,3 +210,23 @@ export const postsRelations = relations(posts, ({ one }) => ({
     references: [categories.id],
   }),
 }));
+
+export const redirects = pgTable('redirects', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  fromPath: varchar('from_path', { length: 500 }).notNull().unique(),
+  toPath: varchar('to_path', { length: 500 }).notNull(),
+  statusCode: integer('status_code').default(301).notNull(), // 301 permanent, 302 temporary
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const activityLogs = pgTable('activity_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  userName: varchar('user_name', { length: 255 }), // snapshot nama, biar tetap kebaca walau user dihapus
+  action: varchar('action', { length: 50 }).notNull(), // create, update, delete
+  entityType: varchar('entity_type', { length: 50 }).notNull(), // post, project, inquiry, category, redirect, settings
+  entityId: varchar('entity_id', { length: 255 }), // id row terkait, string biar fleksibel (uuid atau key lain)
+  entityLabel: varchar('entity_label', { length: 255 }), // judul/nama yang manusiawi, misal judul artikel
+  metadata: jsonb('metadata'), // detail tambahan opsional (misal field apa yang berubah)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

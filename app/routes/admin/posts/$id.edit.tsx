@@ -9,6 +9,7 @@ import { uploadToR2, deleteFromR2 } from "~/lib/r2-server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
 import type { JSONContent } from "@tiptap/react";
+import { logActivity } from "~/lib/activity-log.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const post = await db.query.posts.findFirst({ where: eq(posts.id, params.id) });
@@ -68,6 +69,13 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   await db.update(posts).set(updates).where(eq(posts.id, params.id));
+
+  await logActivity({
+  action: "update",
+  entityType: "post",
+  entityId: params.id,
+  entityLabel: title,
+});
 
   return redirect("/admin/posts");
 }
