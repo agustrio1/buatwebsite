@@ -5,6 +5,10 @@ export function parsePage(searchParams: URLSearchParams) {
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
+export function getOffset(page: number, pageSize = DEFAULT_PAGE_SIZE) {
+  return (page - 1) * pageSize;
+}
+
 export function getPagination(page: number, totalItems: number, pageSize = DEFAULT_PAGE_SIZE) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -16,3 +20,5 @@ export function getPagination(page: number, totalItems: number, pageSize = DEFAU
     totalItems,
   };
 }
+
+export { DEFAULT_PAGE_SIZE };
