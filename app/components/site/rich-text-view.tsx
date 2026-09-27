@@ -1,35 +1,26 @@
 import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import { ResizableImage } from "~/lib/tiptap-extensions/resizable-image";
 import type { JSONContent } from "@tiptap/react";
 
 const extensions = [
   StarterKit,
   Link.configure({ HTMLAttributes: { class: "text-brand-600 underline underline-offset-2" } }),
-  Image.configure({ HTMLAttributes: { class: "rounded-xl max-w-full" } }),
+  ResizableImage.configure({ HTMLAttributes: { class: "rounded-xl" } }),
   Table.configure({ HTMLAttributes: { class: "tiptap-table-wrapper" } }),
   TableRow,
   TableHeader,
   TableCell,
 ];
 
-function wrapTablesForScroll(html: string): string {
-  return html.replace(
-    /<table([^>]*)>([\s\S]*?)<\/table>/gi,
-    (_match, attrs: string, inner: string) =>
-      `<div class="tiptap-table-scroll"><table${attrs}>${inner}</table></div>`
-  );
-}
-
 export function richTextToHtml(content: JSONContent | null): string {
   if (!content) return "";
-  const rawHtml = generateHTML(content, extensions);
-  return wrapTablesForScroll(rawHtml);
+  return generateHTML(content, extensions);
 }
 
 export function RichTextView({ content }: { content: JSONContent | null }) {

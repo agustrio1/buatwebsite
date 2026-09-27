@@ -2,11 +2,11 @@ import { useRef, useState } from "react";
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import { ResizableImage } from "~/lib/tiptap-extensions/resizable-image";
 import {
   Bold,
   Italic,
@@ -28,10 +28,10 @@ import {
   Columns3,
 } from "lucide-react";
 
-const emptyDoc: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
+const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
-const tableCss = `
-.tiptap-table-wrapper table {
+const EDITOR_CONTENT_CSS = `
+.tiptap-content table {
   border-collapse: collapse !important;
   table-layout: fixed !important;
   width: 100% !important;
@@ -40,8 +40,8 @@ const tableCss = `
   border-radius: 8px !important;
   overflow: hidden !important;
 }
-.tiptap-table-wrapper td,
-.tiptap-table-wrapper th {
+.tiptap-content td,
+.tiptap-content th {
   border: 1px solid #cbd5e1 !important;
   padding: 8px 12px !important;
   vertical-align: top !important;
@@ -49,19 +49,19 @@ const tableCss = `
   position: relative !important;
   min-width: 1em !important;
 }
-.tiptap-table-wrapper th {
+.tiptap-content th {
   background-color: #f1f5f9 !important;
   font-weight: 600 !important;
   text-align: left !important;
   color: #1e293b !important;
 }
-.tiptap-table-wrapper tr:nth-child(even) td {
+.tiptap-content tr:nth-child(even) td {
   background-color: #f8fafc !important;
 }
-.tiptap-table-wrapper .selectedCell {
+.tiptap-content .selectedCell {
   background-color: rgba(59, 130, 246, 0.15) !important;
 }
-.tiptap-table-wrapper .column-resize-handle {
+.tiptap-content .column-resize-handle {
   position: absolute !important;
   right: -2px !important;
   top: 0 !important;
@@ -70,11 +70,16 @@ const tableCss = `
   background-color: #3b82f6 !important;
   pointer-events: none !important;
 }
-.tiptap-table-wrapper .resize-cursor {
+.tiptap-content .resize-cursor {
   cursor: col-resize !important;
 }
-.tiptap-table-wrapper p {
+.tiptap-content p {
   margin: 0 !important;
+}
+.tiptap-content::after {
+  content: "";
+  display: table;
+  clear: both;
 }
 `;
 
@@ -85,7 +90,7 @@ export function RichTextEditor({
   name: string;
   defaultValue?: JSONContent | null;
 }) {
-  const [content, setContent] = useState<JSONContent>(defaultValue ?? emptyDoc);
+  const [content, setContent] = useState<JSONContent>(defaultValue ?? EMPTY_DOC);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,22 +102,19 @@ export function RichTextEditor({
         autolink: true,
         HTMLAttributes: { class: "text-brand-600 underline underline-offset-2" },
       }),
-      Image.configure({
-        HTMLAttributes: { class: "rounded-lg max-w-full" },
+      ResizableImage.configure({
+        HTMLAttributes: { class: "rounded-lg" },
       }),
-      Table.configure({
-        resizable: true,
-      }),
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,
     ],
-    content: defaultValue ?? emptyDoc,
+    content: defaultValue ?? EMPTY_DOC,
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[200px] px-3 py-2.5 focus:outline-none tiptap-table-wrapper",
+        class: "tiptap-content prose prose-sm sm:prose-base max-w-none min-h-[200px] px-3 py-2.5 focus:outline-none",
       },
     },
     onUpdate: ({ editor }) => setContent(editor.getJSON()),
@@ -136,16 +138,16 @@ export function RichTextEditor({
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }
 
-  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleImageSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
     if (!file || !editor) return;
 
     setIsUploading(true);
     try {
-      const fd = new FormData();
-      fd.set("file", file);
-      const res = await fetch("/api/upload-image", { method: "POST", body: fd });
-      const data = await res.json();
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await response.json();
 
       if (data.url) {
         editor.chain().focus().setImage({ src: data.url }).run();
@@ -156,7 +158,7 @@ export function RichTextEditor({
       alert("Upload gambar gagal");
     } finally {
       setIsUploading(false);
-      e.target.value = "";
+      event.target.value = "";
     }
   }
 
@@ -168,7 +170,7 @@ export function RichTextEditor({
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <style>{tableCss}</style>
+      <style>{EDITOR_CONTENT_CSS}</style>
 
       <div className="flex flex-wrap items-center gap-1 border-b bg-slate-50 px-2 py-1.5">
         <ToolbarButton active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
@@ -181,7 +183,7 @@ export function RichTextEditor({
           <Strikethrough size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <Divider />
 
         <ToolbarButton
           active={editor.isActive("heading", { level: 2 })}
@@ -196,7 +198,7 @@ export function RichTextEditor({
           <Heading3 size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <Divider />
 
         <ToolbarButton active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <List size={16} />
@@ -208,7 +210,7 @@ export function RichTextEditor({
           <Quote size={16} />
         </ToolbarButton>
 
-        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <Divider />
 
         <ToolbarButton active={editor.isActive("link")} onClick={setLink}>
           <LinkIcon size={16} />
@@ -221,15 +223,9 @@ export function RichTextEditor({
         <ToolbarButton onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
           {isUploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
         </ToolbarButton>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageSelect}
-          className="hidden"
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
-        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <Divider />
 
         <ToolbarButton active={isInTable} onClick={insertTable}>
           <TableIcon size={16} />
@@ -255,7 +251,7 @@ export function RichTextEditor({
           </>
         )}
 
-        <div className="w-px h-5 bg-slate-200 mx-1" />
+        <Divider />
 
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()}>
           <Undo size={16} />
@@ -270,6 +266,10 @@ export function RichTextEditor({
       <input type="hidden" name={name} value={JSON.stringify(content)} />
     </div>
   );
+}
+
+function Divider() {
+  return <div className="w-px h-5 bg-slate-200 mx-1" />;
 }
 
 function ToolbarButton({

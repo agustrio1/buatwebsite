@@ -79,11 +79,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     : [];
 
   const settingsRows = await db.query.siteSettings.findMany();
-  const settingsMap = Object.fromEntries(
-    settingsRows.map((s) => [s.key, s.value])
-  );
-  const siteName = (settingsMap["site_name"] as string) ?? "Nama Situs";
-  const siteLogo = (settingsMap["site_logo_url"] as string | undefined) ?? undefined;
+  const settingsMap = Object.fromEntries(settingsRows.map((s) => [s.key, s.value]));
+  const general = (settingsMap["general"] as Record<string, any>) ?? {};
+
+  const siteName: string = general.siteName ?? "Nama Situs";
+  const siteLogo: string | undefined = general.logoUrl ?? undefined;
 
   const url = new URL(request.url);
   const canonicalUrl = `${url.origin}/blog/${post.slug}`;

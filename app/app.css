@@ -384,3 +384,19 @@ html, body {
 .tiptap-table-wrapper p {
   margin: 0 !important;
 }
+
+@media (max-width: 640px) {
+  .tiptap-table-wrapper img[data-align="left"],
+  .tiptap-table-wrapper img[data-align="right"] {
+    float: none !important;
+    margin: 1rem auto !important;
+    width: 100% !important;
+    display: block !important;
+  }
+}
+
+.tiptap-table-wrapper::after {
+  content: "";
+  display: table;
+  clear: both;
+}
