@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Star,
 } from "lucide-react";
+ import { PortfolioMarquee, type PortfolioProject } from "~/components/site/portfolio-marquee";
 
 function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -126,78 +127,6 @@ const faqs = [
     a: "Bisa. Kami sediakan panduan pemakaian, dan website dibuat agar mudah diubah tanpa harus paham coding.",
   },
 ];
-
-type PortfolioProject = {
-  id: string | number;
-  title: string;
-  coverImageUrl: string | null;
-};
-
-function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
-  if (!projects.length) return null;
-
-  const row1 = [...projects, ...projects];
-  const reversedProjects = [...projects].reverse();
-  const row2 = [...reversedProjects, ...reversedProjects];
-
-  return (
-    <div className="portfolio-showcase">
-      <div className="portfolio-fade portfolio-fade-left" />
-      <div className="portfolio-fade portfolio-fade-right" />
-
-      <div className="portfolio-marquee">
-        <div className="portfolio-track portfolio-track-left">
-          {row1.map((project, index) => (
-            <div key={`portfolio-row-1-${project.id}-${index}`} className="portfolio-card">
-              <div className="portfolio-card-image">
-                {project.coverImageUrl ? (
-                  <img
-                    src={resizeImage(project.coverImageUrl, 400) ?? undefined}
-                    srcSet={buildSrcSet(project.coverImageUrl, 400) ?? undefined}
-                    sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
-                    alt={project.title}
-                    loading={index < 2 ? "eager" : "lazy"}
-                    fetchPriority={index < 2 ? "high" : "auto"}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
-                    {project.title}
-                  </div>
-                )}
-              </div>
-              <div className="portfolio-card-label">{project.title}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="portfolio-marquee portfolio-marquee-second">
-        <div className="portfolio-track portfolio-track-right">
-          {row2.map((project, index) => (
-            <div key={`portfolio-row-2-${project.id}-${index}`} className="portfolio-card">
-              <div className="portfolio-card-image">
-                {project.coverImageUrl ? (
-                  <img
-                    src={resizeImage(project.coverImageUrl, 400) ?? undefined}
-                    srcSet={buildSrcSet(project.coverImageUrl, 400) ?? undefined}
-                    sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
-                    alt={project.title}
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
-                    {project.title}
-                  </div>
-                )}
-              </div>
-              <div className="portfolio-card-label">{project.title}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { services, projects, posts, projectsCount } = loaderData;
