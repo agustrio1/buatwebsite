@@ -152,8 +152,8 @@ function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
               <div className="portfolio-card-image">
                 {project.coverImageUrl ? (
                   <img
-                    src={resizeImage(project.coverImageUrl, 400)}
-                    srcSet={buildSrcSet(project.coverImageUrl, 400)}
+                    src={resizeImage(project.coverImageUrl, 400) ?? undefined}
+                    srcSet={buildSrcSet(project.coverImageUrl, 400) ?? undefined}
                     sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
                     alt={project.title}
                     loading={index < 2 ? "eager" : "lazy"}
@@ -178,8 +178,8 @@ function PortfolioMarquee({ projects }: { projects: PortfolioProject[] }) {
               <div className="portfolio-card-image">
                 {project.coverImageUrl ? (
                   <img
-                    src={resizeImage(project.coverImageUrl, 400)}
-                    srcSet={buildSrcSet(project.coverImageUrl, 400)}
+                    src={resizeImage(project.coverImageUrl, 400) ?? undefined}
+                    srcSet={buildSrcSet(project.coverImageUrl, 400) ?? undefined}
                     sizes="(max-width: 767px) 270px, (max-width: 1279px) 360px, 390px"
                     alt={project.title}
                     loading="lazy"
@@ -240,7 +240,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           })),
         }
       : null;
-      
+
+  // Query posts di loader tidak memuat relasi `author`, jadi author
+  // memakai Organization (nama situs) sebagai fallback yang valid untuk schema.org.
   const blogJsonLd =
     posts.length > 0
       ? posts.map((post) => ({
@@ -250,11 +252,13 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           description: post.summary ?? undefined,
           image: post.coverImageUrl ?? undefined,
           datePublished: post.publishedAt ?? undefined,
-          author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
+          author: general.siteName
+            ? { "@type": "Organization", name: general.siteName }
+            : undefined,
         }))
       : [];
-      
-    const faqJsonLd = {
+
+  const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: faqs.map((item) => ({
@@ -275,8 +279,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesJsonLd) }}
         />
       )}
-      
-       <script
+
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
@@ -498,13 +502,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={p.id}
                   to={`/projek/${p.slug}`}
+                  prefetch="intent"
                   className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
                 >
                   <div className="aspect-video overflow-hidden bg-slate-100">
                     {p.coverImageUrl && (
                       <img
-                        src={resizeImage(p.coverImageUrl, 640)}
-                        srcSet={buildSrcSet(p.coverImageUrl, 640)}
+                        src={resizeImage(p.coverImageUrl, 640) ?? undefined}
+                        srcSet={buildSrcSet(p.coverImageUrl, 640) ?? undefined}
                         sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                         alt={p.title}
                         loading="lazy"
@@ -640,13 +645,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   <Link
                     key={post.id}
                     to={`/blog/${post.slug}`}
+                    prefetch="intent"
                     className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
                   >
                     <div className="aspect-video overflow-hidden bg-slate-100">
                       {post.coverImageUrl && (
                         <img
-                          src={resizeImage(post.coverImageUrl, 640)}
-                          srcSet={buildSrcSet(post.coverImageUrl, 640)}
+                          src={resizeImage(post.coverImageUrl, 640) ?? undefined}
+                          srcSet={buildSrcSet(post.coverImageUrl, 640) ?? undefined}
                           sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
                           alt={post.title}
                           loading="lazy"
