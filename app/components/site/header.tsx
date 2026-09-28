@@ -43,7 +43,6 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Failsafe: kalau route berubah atau komponen unmount saat menu masih terbuka, paksa unlock.
   useEffect(() => {
     return () => {
       unlockBodyScroll(scrollYRef.current);
@@ -92,7 +91,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   return (
     <header className={isScrolled ? "sticky top-0 z-40 transition-all duration-300 bg-white/80 backdrop-blur-lg shadow-sm border-b border-slate-100" : "sticky top-0 z-40 transition-all duration-300 bg-white/60 backdrop-blur-md border-b border-transparent"}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-17.5 flex items-center justify-between">
-        <Link to="/" className="group flex items-center gap-2 min-w-0 shrink-0 transition-transform duration-200 hover:scale-[1.03]">
+        <Link to="/" prefetch="intent" className="group flex items-center gap-2 min-w-0 shrink-0 transition-transform duration-200 hover:scale-[1.03]">
           {logoSrc ? (
             <img src={logoSrc} srcSet={logoSrcSet} sizes="215px" width={215} height={56} alt={general.siteName} className="h-8 w-auto transition-opacity duration-200 group-hover:opacity-80" fetchPriority="high" />
           ) : (
@@ -105,6 +104,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
             <Link
               key={item.to}
               to={item.to}
+              prefetch="intent"
               className="relative px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition-all duration-200 hover:text-brand-600 hover:bg-white hover:shadow-sm active:scale-95"
             >
               {item.label}
@@ -137,6 +137,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
             <Link
               key={item.to}
               to={item.to}
+              prefetch="intent"
               onClick={closeMenu}
               className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 hover:text-brand-600 hover:pl-5 active:scale-[0.98]"
             >

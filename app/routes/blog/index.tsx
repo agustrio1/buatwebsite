@@ -4,13 +4,13 @@ import { db } from "~/db";
 import { posts } from "~/db/schema";
 import { desc, eq, count } from "drizzle-orm";
 import { User } from "lucide-react";
-import { parsePage, getPagination, getOffset, DEFAULT_PAGE_SIZE } from "~/lib/pagination";
+import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 
 export function headers() {
   return {
-    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+    "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
   };
 }
 
@@ -18,34 +18,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const page = parsePage(url.searchParams);
 
-  // Tembak count() dan findMany() BERSAMAAN.
-  // findMany() pakai offset "tebakan" dari page asli (belum di-clamp ke totalPages),
-  // karena di kasus normal (page valid) ini sudah pasti benar.
-  const [[{ value: totalItems }], postsGuess] = await Promise.all([
-    db.select({ value: count() }).from(posts).where(eq(posts.status, "published")),
-    db.query.posts.findMany({
-      where: eq(posts.status, "published"),
-      orderBy: [desc(posts.publishedAt)],
-      with: { category: true, author: true },
-      limit: DEFAULT_PAGE_SIZE,
-      offset: getOffset(page),
-    }),
-  ]);
+  const [{ value: totalItems }] = await db
+    .select({ value: count() })
+    .from(posts)
+    .where(eq(posts.status, "published"));
 
   const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems);
 
-  // Cuma terjadi di kasus langka: page yang diminta di luar rentang (misal ?page=999).
-  // Di sini baru query ulang dengan offset yang sudah di-clamp.
-  const allPosts =
-    currentPage === page
-      ? postsGuess
-      : await db.query.posts.findMany({
-          where: eq(posts.status, "published"),
-          orderBy: [desc(posts.publishedAt)],
-          with: { category: true, author: true },
-          limit,
-          offset,
-        });
+  const allPosts = await db.query.posts.findMany({
+    where: eq(posts.status, "published"),
+    orderBy: [desc(posts.publishedAt)],
+    with: { category: true, author: true },
+    limit,
+    offset,
+  });
 
   return { posts: allPosts, currentPage, totalPages };
 }
@@ -76,6 +62,7 @@ export default function BlogIndex({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={post.id}
                   to={`/blog/${post.slug}`}
+                  prefetch="intent"
                   className="bg-white rounded-2xl overflow-hidden border border-slate-200 group"
                 >
                   <div className="aspect-video bg-slate-100 overflow-hidden">

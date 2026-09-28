@@ -29,7 +29,7 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 export function headers() {
   return {
-    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+    "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
   };
 }
 

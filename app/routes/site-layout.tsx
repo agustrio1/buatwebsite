@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+﻿import { useEffect } from "react";
 import { Outlet, useLoaderData, useNavigation } from "react-router";
 import { db } from "~/db";
 import { cities } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { SiteHeader } from "~/components/site/header";
 import { SiteFooter } from "~/components/site/footer";
+import { getPublicSettings } from "~/lib/settings.server";
 
 export function links() {
   return [
@@ -14,23 +15,14 @@ export function links() {
 }
 
 export async function loader() {
-  const rows = await db.query.siteSettings.findMany();
-  const settings: Record<string, any> = {};
-
-  for (const row of rows) {
-    try {
-      settings[row.key] =
-        typeof row.value === "string" ? JSON.parse(row.value) : row.value;
-    } catch {
-      settings[row.key] = row.value;
-    }
-  }
-
-  const activeCities = await db.query.cities.findMany({
-    where: eq(cities.isActive, true),
-    orderBy: [asc(cities.sortOrder), asc(cities.name)],
-    columns: { name: true, slug: true },
-  });
+  const [settings, activeCities] = await Promise.all([
+    getPublicSettings(),
+    db.query.cities.findMany({
+      where: eq(cities.isActive, true),
+      orderBy: [asc(cities.sortOrder), asc(cities.name)],
+      columns: { name: true, slug: true },
+    }),
+  ]);
 
   return { settings, cities: activeCities };
 }
@@ -126,7 +118,7 @@ export default function SiteLayout() {
   return (
     <div className="min-h-screen flex flex-col relative">
       {isLoading && (
-        <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-brand-500 animate-pulse" />
+        <div className="fixed top-0 left-0 right-0 z-60 h-0.5 bg-brand-500 animate-pulse" />
       )}
 
       <script
@@ -143,8 +135,8 @@ export default function SiteLayout() {
       <SiteFooter settings={settings} cities={cities} />
 
       {cleanPhone ? (
-        <a
-          href={whatsappUrl}
+        
+         <a href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 rounded-full shadow-lg transition-all"

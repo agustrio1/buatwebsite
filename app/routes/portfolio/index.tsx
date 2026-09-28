@@ -10,7 +10,7 @@ import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 
 export function headers() {
   return {
-    "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
+    "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
   };
 }
 

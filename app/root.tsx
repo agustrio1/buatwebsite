@@ -8,22 +8,11 @@ import {
   useRouteLoaderData,
 } from "react-router";
 import type { Route } from "./+types/root";
-import { db } from "~/db";
+import { getPublicSettings } from "~/lib/settings.server";
 import "./app.css";
 
 export async function loader() {
-  const rows = await db.query.siteSettings.findMany();
-  const settings: Record<string, any> = {};
-
-  for (const row of rows) {
-    try {
-      settings[row.key] =
-        typeof row.value === "string" ? JSON.parse(row.value) : row.value;
-    } catch {
-      settings[row.key] = row.value;
-    }
-  }
-
+  const settings = await getPublicSettings();
   return { settings };
 }
 
@@ -225,8 +214,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <p className="text-brand-500 font-bold text-6xl">{status}</p>
         <h1 className="text-2xl font-bold text-brand-dark mt-4">{message}</h1>
         <p className="text-slate-500 mt-2 leading-relaxed">{details}</p>
-        <a
-          href="/"
+        
+        <a href="/"
           className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3 rounded-full mt-6 transition-colors"
         >
           Kembali ke Beranda

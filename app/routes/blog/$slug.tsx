@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link, data as createResponse } from "react-router";
 import type { Route } from "./+types/$slug";
 import { db } from "~/db";
-import { posts, siteSettings } from "~/db/schema";
+import { posts } from "~/db/schema";
 import { eq, and, ne, desc } from "drizzle-orm";
 import { ArrowLeft, User, Calendar, List } from "lucide-react";
 import { richTextToHtml } from "~/components/site/rich-text-view";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 import { checkRedirect } from "~/lib/redirects.server";
+import { getPublicSettings } from "~/lib/settings.server";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
@@ -49,13 +50,17 @@ function addHeadingIdsAndToc(html: string): { html: string; toc: TocItem[] } {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const post = await db.query.posts.findFirst({
-    where: eq(posts.slug, params.slug),
-    with: { category: true, author: true },
-  });
+  const url = new URL(request.url);
+
+  const [post, settings] = await Promise.all([
+    db.query.posts.findFirst({
+      where: eq(posts.slug, params.slug),
+      with: { category: true, author: true },
+    }),
+    getPublicSettings(),
+  ]);
 
   if (!post || post.status !== "published") {
-    const url = new URL(request.url);
     await checkRedirect(url.pathname);
     throw new Response("Not found", { status: 404 });
   }
@@ -78,14 +83,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       })
     : [];
 
-  const settingsRows = await db.query.siteSettings.findMany();
-  const settingsMap = Object.fromEntries(settingsRows.map((s) => [s.key, s.value]));
-  const general = (settingsMap["general"] as Record<string, any>) ?? {};
-
+  const general = (settings.general as Record<string, any>) ?? {};
   const siteName: string = general.siteName ?? "Nama Situs";
   const siteLogo: string | undefined = general.logoUrl ?? undefined;
 
-  const url = new URL(request.url);
   const canonicalUrl = `${url.origin}/blog/${post.slug}`;
 
   return createResponse(
@@ -218,7 +219,7 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Link to="/blog" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors mb-8">
+      <Link to="/blog" prefetch="intent" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors mb-8">
         <ArrowLeft size={16} /> Kembali ke Blog
       </Link>
 
@@ -317,6 +318,7 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={related.id}
                   to={`/blog/${related.slug}`}
+                  prefetch="intent"
                   className="group flex flex-col rounded-xl overflow-hidden border border-slate-200 hover:shadow-md transition-shadow"
                 >
                   {relatedSrc && (
