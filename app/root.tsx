@@ -176,6 +176,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link rel="preconnect" href="https://cdn.enterprisejadikanweb.biz.id" crossOrigin="anonymous" />
         <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
         <StructuredData />
       </head>
