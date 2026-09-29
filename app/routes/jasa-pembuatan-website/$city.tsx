@@ -1,36 +1,63 @@
 import { Link, useOutletContext } from "react-router";
 import type { Route } from "./+types/$city";
 import { db } from "~/db";
-import { cities } from "~/db/schema";
-import { and, eq } from "drizzle-orm";
+import { cities, services } from "~/db/schema";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { useState } from "react";
-import { Check, MessageCircle, ChevronDown, MapPin } from "lucide-react";
+import { Check, MessageCircle, ChevronDown, MapPin, Calculator } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
+import { mergeMeta } from "~/lib/meta";
+import { normalizeCalculatorConfig } from "~/lib/price-calculator";
+import { BriefForm } from "~/components/site/brief-form";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const city = await db.query.cities.findFirst({
-    where: and(eq(cities.slug, params.city), eq(cities.isActive, true)),
-  });
-  if (!city) throw new Response("Not found", { status: 404 });
-  return { city };
+export function headers() {
+  return {
+    "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+  };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export async function loader({ params }: Route.LoaderArgs) {
+  const [city, allServices, otherCities] = await Promise.all([
+    db.query.cities.findFirst({
+      where: and(eq(cities.slug, params.city), eq(cities.isActive, true)),
+    }),
+    db.query.services.findMany({
+      orderBy: [asc(services.sortOrder)],
+      columns: { id: true, title: true },
+    }),
+    db.query.cities.findMany({
+      where: and(eq(cities.isActive, true), ne(cities.slug, params.city)),
+      orderBy: [asc(cities.sortOrder), asc(cities.name)],
+      columns: { name: true, slug: true },
+      limit: 8,
+    }),
+  ]);
+
+  if (!city) throw new Response("Not found", { status: 404 });
+  return { city, services: allServices, otherCities };
+}
+
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.city) return [{ title: "Halaman tidak ditemukan" }];
   const { city } = loaderData;
-  return [
-    { title: city.metaTitle || `Jasa Pembuatan Website ${city.name} Profesional` },
-    {
-      name: "description",
-      content:
-        city.metaDescription ||
-        `Jasa pembuatan website profesional untuk bisnis di ${city.name}. Cepat, modern, dan terjangkau.`,
-    },
-  ];
+
+  const title = city.metaTitle || `Jasa Pembuatan Website ${city.name} Profesional`;
+  const description =
+    city.metaDescription ||
+    `Jasa pembuatan website profesional untuk bisnis di ${city.name}. Cepat, modern, dan terjangkau.`;
+
+  return mergeMeta(matches as any[], [
+    { title },
+    { name: "description", content: description },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+  ]);
 }
 
 export default function CityServicePage({ loaderData }: Route.ComponentProps) {
-  const { city } = loaderData;
+  const { city, services: serviceOptions, otherCities } = loaderData;
   const { settings } = useOutletContext<{ settings: Record<string, any> }>();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -40,8 +67,13 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
   const serviceAreas = (city.serviceAreas as string[] | null) ?? [];
   const faqs = (city.faqs as { question: string; answer: string }[] | null) ?? [];
 
+  const general = settings.general ?? {};
   const contact = settings.contact ?? {};
   const templates = settings.whatsapp_templates ?? {};
+  const briefForm = settings.brief_form ?? {};
+
+  const calculator = normalizeCalculatorConfig(settings.price_calculator);
+  const showCalculator = calculator.enabled && calculator.baseItems.length > 0;
 
   const waNumber = city.ctaWhatsappNumber || contact.whatsappNumber;
   const waLink = buildWaLink(
@@ -52,16 +84,47 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
     )
   );
 
+  const siteUrl = String(general.siteUrl || "").replace(/\/$/, "");
+  const pageUrl = siteUrl ? `${siteUrl}/jasa-pembuatan-website/${city.slug}` : undefined;
+
+  const cityPlace = {
+    "@type": "City",
+    name: city.name,
+    ...(city.province
+      ? { containedInPlace: { "@type": "AdministrativeArea", name: city.province } }
+      : {}),
+  };
+
   const serviceJsonLd = {
     "@context": "https://schema.org",
     "@type": "Service",
+    name: city.h1 || `Jasa Pembuatan Website di ${city.name}`,
     serviceType: "Jasa Pembuatan Website",
+    url: pageUrl,
     areaServed:
       serviceAreas.length > 0
-        ? serviceAreas.map((area) => ({ "@type": "Place", name: area }))
-        : { "@type": "City", name: city.name },
-    provider: { "@type": "Organization", name: settings.general?.siteName },
+        ? [cityPlace, ...serviceAreas.map((area) => ({ "@type": "Place", name: area }))]
+        : cityPlace,
+    provider: siteUrl
+      ? { "@id": `${siteUrl}/#organization` }
+      : { "@type": "Organization", name: general.siteName },
   };
+
+  const breadcrumbJsonLd = siteUrl
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: `Jasa Pembuatan Website ${city.name}`,
+            item: pageUrl,
+          },
+        ],
+      }
+    : null;
 
   const faqJsonLd =
     faqs.length > 0
@@ -82,6 +145,12 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
       />
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+      )}
       {faqJsonLd && (
         <script
           type="application/ld+json"
@@ -216,22 +285,59 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-10 text-center mt-12">
-        <h2 className="text-xl md:text-2xl font-bold text-brand-dark">
-          {city.ctaTitle || `Siap Bangun Website Bisnis Anda di ${city.name}?`}
-        </h2>
-        <p className="text-slate-500 mt-3 max-w-md mx-auto leading-relaxed">
-          {city.ctaDescription || "Konsultasikan kebutuhan website Anda, gratis tanpa komitmen."}
-        </p>
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3.5 rounded-full mt-6 transition-colors shadow-lg shadow-brand-500/20"
-        >
-          <MessageCircle size={18} /> Konsultasi untuk {city.name}
-        </a>
+      <div id="brief" className="rounded-3xl border border-slate-200 bg-white px-6 py-10 mt-12">
+        <div className="text-center">
+          <h2 className="text-xl md:text-2xl font-bold text-brand-dark">
+            {city.ctaTitle || `Siap Bangun Website Bisnis Anda di ${city.name}?`}
+          </h2>
+          <p className="text-slate-500 mt-3 max-w-md mx-auto leading-relaxed">
+            {city.ctaDescription || "Konsultasikan kebutuhan website Anda, gratis tanpa komitmen."}
+          </p>
+        </div>
+
+        <div className="max-w-xl mx-auto mt-8">
+          <BriefForm services={serviceOptions} budgetOptions={briefForm.budgetOptions} />
+        </div>
+
+        <div className="text-center mt-6">
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2.5 text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors"
+          >
+            <MessageCircle size={18} /> Atau konsultasi langsung untuk {city.name} via WhatsApp
+          </a>
+        </div>
       </div>
+
+      {showCalculator && (
+        <p className="text-sm text-center mt-6">
+          <Link
+            to="/kalkulator"
+            className="inline-flex items-center gap-1.5 text-brand-600 hover:underline"
+          >
+            <Calculator size={15} /> Hitung estimasi biaya website Anda
+          </Link>
+        </p>
+      )}
+
+      {otherCities.length > 0 && (
+        <div className="mt-10 border-t border-slate-100 pt-8">
+          <h2 className="font-semibold text-brand-dark text-sm mb-3">Layanan Kami di Kota Lain</h2>
+          <div className="flex flex-wrap gap-2">
+            {otherCities.map((c) => (
+              <Link
+                key={c.slug}
+                to={`/jasa-pembuatan-website/${c.slug}`}
+                className="text-xs text-slate-600 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 px-3 py-1.5 rounded-full transition-colors"
+              >
+                Jasa Website {c.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="text-sm text-slate-400 mt-6 text-center">
         Lihat juga{" "}

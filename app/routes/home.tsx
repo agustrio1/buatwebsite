@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Star,
 } from "lucide-react";
- import { PortfolioMarquee, type PortfolioProject } from "~/components/site/portfolio-marquee";
+import { PortfolioMarquee, type PortfolioProject } from "~/components/site/portfolio-marquee";
+import { BriefForm } from "~/components/site/brief-form";
 
 function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -138,6 +139,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const templates = settings.whatsapp_templates ?? {};
   const features = settings.features ?? {};
   const general = settings.general ?? {};
+  const briefForm = settings.brief_form ?? {};
 
   const waConsult = buildWaLink(contact.whatsappNumber, templates.defaultConsultation);
 
@@ -613,24 +615,33 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </section>
       )}
 
-      <section>
-        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
-          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center md:px-12">
-            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
-              Siap Memulai Proyek Website Anda?
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-slate-500">
-              Konsultasikan kebutuhan website Anda bersama tim kami, gratis tanpa komitmen.
-            </p>
-            <a
-              href={waConsult}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-7 inline-flex items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-medium text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600"
-            >
-              <WhatsAppIcon className="h-5 w-5" />
-              <span>Konsultasi Sekarang</span>
-            </a>
+      <section id="brief">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-20">
+          <div className="grid grid-cols-1 items-start gap-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-10 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Siap Memulai Proyek Website Anda?
+              </h2>
+              <p className="mt-3 max-w-md leading-relaxed text-slate-500">
+                Ceritakan kebutuhan Anda secara singkat. Kami balas lewat WhatsApp, gratis tanpa
+                komitmen.
+              </p>
+              <a
+                href={waConsult}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center gap-2.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                <span>Atau langsung chat via WhatsApp</span>
+                <ArrowRight size={16} />
+              </a>
+            </div>
+
+            <BriefForm
+              services={services}
+              budgetOptions={briefForm.budgetOptions}
+            />
           </div>
         </div>
       </section>

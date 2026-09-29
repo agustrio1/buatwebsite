@@ -1,8 +1,9 @@
 import { Link, useLoaderData } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
-import { services, projects, posts, inquiries } from "~/db/schema";
-import { eq, count, desc } from "drizzle-orm";
+import { services, projects, posts, inquiries, waClicks } from "~/db/schema";
+import { eq, count, desc, gte } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { getAnalyticsSummary } from "~/lib/analytics.server";
 import {
   LayoutGrid,
@@ -15,6 +16,7 @@ import {
   Eye,
   BarChart3,
   Settings,
+  MessageCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -27,26 +29,71 @@ import {
   CartesianGrid,
 } from "recharts";
 
+type RankRow = { name: string | null; total: number };
+
+const RANGE_DAYS = 30;
+
+async function getWaStats(since: Date) {
+  try {
+    const where = gte(waClicks.createdAt, since);
+
+    const top = (column: AnyPgColumn) =>
+      db
+        .select({ name: column, total: count() })
+        .from(waClicks)
+        .where(where)
+        .groupBy(column)
+        .orderBy(desc(count()))
+        .limit(5);
+
+    const [[{ value: total }], byPage, byLabel, byMessage, bySource] = await Promise.all([
+      db.select({ value: count() }).from(waClicks).where(where),
+      top(waClicks.page),
+      top(waClicks.label),
+      top(waClicks.waText),
+      top(waClicks.source),
+    ]);
+
+    return {
+      total,
+      byPage: byPage as RankRow[],
+      byLabel: byLabel as RankRow[],
+      byMessage: byMessage as RankRow[],
+      bySource: bySource as RankRow[],
+    };
+  } catch (err) {
+    // Misalnya tabel wa_clicks belum di-push. Dashboard jangan ikut error.
+    console.error("[dashboard] gagal ambil statistik klik WA:", err);
+    return null;
+  }
+}
+
 export async function loader() {
+  const since = new Date(Date.now() - RANGE_DAYS * 24 * 60 * 60 * 1000);
+
   const [
     [{ value: servicesCount }],
     [{ value: projectsCount }],
     [{ value: postsCount }],
     [{ value: publishedPostsCount }],
     [{ value: newInquiriesCount }],
+    [{ value: recentInquiriesCount }],
     recentInquiries,
     analytics,
+    waStats,
   ] = await Promise.all([
     db.select({ value: count() }).from(services),
     db.select({ value: count() }).from(projects),
     db.select({ value: count() }).from(posts),
     db.select({ value: count() }).from(posts).where(eq(posts.status, "published")),
     db.select({ value: count() }).from(inquiries).where(eq(inquiries.status, "new")),
+    db.select({ value: count() }).from(inquiries).where(gte(inquiries.createdAt, since)),
     db.query.inquiries.findMany({
       orderBy: [desc(inquiries.createdAt)],
       limit: 5,
     }),
     getAnalyticsSummary(30),
+    getWaStats(since),
   ]);
 
   return {
@@ -55,8 +102,10 @@ export async function loader() {
     postsCount,
     publishedPostsCount,
     newInquiriesCount,
+    recentInquiriesCount,
     recentInquiries,
     analytics,
+    waStats,
   };
 }
 
@@ -78,6 +127,52 @@ function formatDate(raw: string) {
   return `${day}/${month}`;
 }
 
+function RankList({
+  title,
+  rows,
+  fallback,
+}: {
+  title: string;
+  rows: RankRow[];
+  fallback: string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.total));
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="px-5 py-4 border-b">
+        <p className="text-sm font-medium text-slate-600">{title}</p>
+      </div>
+      <div className="divide-y">
+        {rows.map((row, i) => {
+          const name = row.name && row.name.trim() ? row.name : fallback;
+          return (
+            <div key={`${name}-${i}`} className="px-5 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-600 truncate" title={name}>
+                  {name}
+                </span>
+                <span className="text-sm font-medium text-brand-dark shrink-0">
+                  {row.total.toLocaleString("id-ID")}
+                </span>
+              </div>
+              <div className="h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                <div
+                  className="h-full bg-brand-500 rounded-full"
+                  style={{ width: `${(row.total / max) * 100}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        {rows.length === 0 && (
+          <p className="text-sm text-slate-400 italic px-5 py-6 text-center">Belum ada data.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
   const {
     servicesCount,
@@ -85,8 +180,10 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
     postsCount,
     publishedPostsCount,
     newInquiriesCount,
+    recentInquiriesCount,
     recentInquiries,
     analytics,
+    waStats,
   } = loaderData;
 
   const stats = [
@@ -306,6 +403,55 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
         )}
       </div>
 
+      {/* Klik WhatsApp */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-brand-dark flex items-center gap-2">
+            <MessageCircle size={18} /> Klik WhatsApp (30 hari terakhir)
+          </h2>
+        </div>
+
+        {!waStats ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-slate-400 text-sm">
+              Data klik WhatsApp belum tersedia. Pastikan tabel wa_clicks sudah dibuat (db:push).
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <MessageCircle size={14} /> Klik WhatsApp
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {waStats.total.toLocaleString("id-ID")}
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <Inbox size={14} /> Inquiry via Form
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {recentInquiriesCount.toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <RankList title="Klik per Halaman" rows={waStats.byPage} fallback="(tanpa halaman)" />
+              <RankList title="Klik per Tombol" rows={waStats.byLabel} fallback="(tanpa teks)" />
+              <RankList
+                title="Klik per Pesan / Paket"
+                rows={waStats.byMessage}
+                fallback="(tanpa pesan)"
+              />
+              <RankList title="Klik per Sumber" rows={waStats.bySource} fallback="(tidak diketahui)" />
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Recent inquiries */}
       <div className="bg-white rounded-lg shadow">
         <div className="flex items-center justify-between px-5 py-4 border-b">
@@ -327,7 +473,7 @@ export default function AdminDashboard({ loaderData }: Route.ComponentProps) {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-brand-dark truncate">{inq.name}</p>
-                  <p className="text-xs text-slate-400 truncate">{inq.email}</p>
+                  <p className="text-xs text-slate-400 truncate">{inq.email ?? inq.phone ?? "-"}</p>
                 </div>
               </div>
               <span

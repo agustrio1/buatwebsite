@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { servicePages } from "~/data/service-pages";
+import { normalizeCalculatorConfig } from "~/lib/price-calculator";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -59,14 +60,6 @@ const socialIcons: Record<string, (props: React.SVGProps<SVGSVGElement>) => Reac
   tiktok: TiktokIcon,
 };
 
-const navigasiLinks = [
-  { label: "Beranda", to: "/" },
-  { label: "Portofolio", to: "/projek" },
-  { label: "Blog", to: "/blog" },
-  { label: "Harga", to: "/#layanan" },
-  { label: "Kontak", to: "/#kontak" },
-];
-
 type FooterCity = {
   name: string;
   slug: string;
@@ -82,6 +75,18 @@ export function SiteFooter({
   const general = settings.general ?? {};
   const contact = settings.contact ?? {};
   const socials = settings.socials ?? {};
+
+  const calculator = normalizeCalculatorConfig(settings.price_calculator);
+  const showCalculator = calculator.enabled && calculator.baseItems.length > 0;
+
+  const navigasiLinks = [
+    { label: "Beranda", to: "/" },
+    { label: "Portofolio", to: "/projek" },
+    { label: "Blog", to: "/blog" },
+    { label: "Harga", to: "/#layanan" },
+    ...(showCalculator ? [{ label: "Kalkulator Harga", to: "/kalkulator" }] : []),
+    { label: "Kontak", to: "/#kontak" },
+  ];
 
   const socialEntries = Object.entries(socials).filter(
     ([key, url]) => url && socialIcons[key]

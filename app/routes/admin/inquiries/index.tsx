@@ -4,7 +4,7 @@ import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { inquiries } from "~/db/schema";
 import { eq, desc, and, or, ilike, inArray } from "drizzle-orm";
-import { Trash2, Mail, Phone, Search, X } from "lucide-react";
+import { Trash2, Mail, Phone, Search, X, MessageCircle } from "lucide-react";
 import { logActivity } from "~/lib/activity-log.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -14,7 +14,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const conditions = [];
   if (q) {
-    conditions.push(or(ilike(inquiries.name, `%${q}%`), ilike(inquiries.email, `%${q}%`)));
+    conditions.push(
+      or(
+        ilike(inquiries.name, `%${q}%`),
+        ilike(inquiries.email, `%${q}%`),
+        ilike(inquiries.phone, `%${q}%`)
+      )
+    );
   }
   if (statusFilter === "new" || statusFilter === "contacted" || statusFilter === "closed") {
     conditions.push(eq(inquiries.status, statusFilter));
@@ -104,6 +110,14 @@ const statusStyle: Record<string, string> = {
   closed: "bg-slate-100 text-slate-500",
 };
 
+// Nomor Indonesia: 08xx / 8xx / +62 / 62 -> link wa.me
+function waHref(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = "62" + digits.slice(1);
+  else if (digits.startsWith("8")) digits = "62" + digits;
+  return `https://wa.me/${digits}`;
+}
+
 export default function InquiriesIndex() {
   const { inquiries, q, statusFilter } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
@@ -135,7 +149,7 @@ export default function InquiriesIndex() {
 
       <Form method="get" className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-50">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Cari nama/email</label>
+          <label className="block text-xs font-medium text-slate-500 mb-1">Cari nama/email/nomor</label>
           <div className="relative">
             <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -228,9 +242,11 @@ export default function InquiriesIndex() {
                   </div>
                   {inq.companyName && <p className="text-sm text-slate-400">{inq.companyName}</p>}
                   <div className="flex flex-wrap gap-3 text-sm text-slate-500 mt-1">
-                    <span className="flex items-center gap-1">
-                      <Mail size={14} /> {inq.email}
-                    </span>
+                    {inq.email && (
+                      <span className="flex items-center gap-1">
+                        <Mail size={14} /> {inq.email}
+                      </span>
+                    )}
                     {inq.phone && (
                       <span className="flex items-center gap-1">
                         <Phone size={14} /> {inq.phone}
@@ -238,10 +254,34 @@ export default function InquiriesIndex() {
                     )}
                   </div>
                   {inq.serviceType && <p className="text-xs text-brand-600 mt-1">Layanan: {inq.serviceType}</p>}
+                  {(inq.budget || inq.source) && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {inq.budget && (
+                        <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
+                          Budget: {inq.budget}
+                        </span>
+                      )}
+                      {inq.source && (
+                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
+                          Sumber: {inq.source}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{inq.message}</p>
                 </div>
 
                 <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
+                  {inq.phone && (
+                    <a
+                      href={waHref(inq.phone)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded px-2.5 py-1.5"
+                    >
+                      <MessageCircle size={14} /> Chat WA
+                    </a>
+                  )}
                   <Form method="post">
                     <input type="hidden" name="intent" value="update-status" />
                     <input type="hidden" name="id" value={inq.id} />

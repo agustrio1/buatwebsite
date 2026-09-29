@@ -34,13 +34,13 @@ export const services = pgTable('services', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   summary: text('summary'),
   descriptionRich: jsonb('description_rich'), // Format JSON dari TipTap / Lexical / Quill
-  
+
   // Fitur Fleksibilitas Harga
   isPriceVisible: boolean('is_price_visible').default(true).notNull(),
   priceAmount: decimal('price_amount', { precision: 12, scale: 2 }), // Angka murni jika ada
   priceLabel: varchar('price_label', { length: 100 }), // Contoh: "Mulai dari", "Nego", atau "Custom"
   priceUnit: varchar('price_unit', { length: 50 }), // Contoh: "/projek", "/bulan"
-  
+
   badge: varchar('badge', { length: 50 }), // Contoh: "Paling Populer", "Best Value"
   isFeatured: boolean('is_featured').default(false).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
@@ -67,11 +67,11 @@ export const projects = pgTable('projects', {
   descriptionRich: jsonb('description_rich'), // Format Rich Text Editor
   liveDemoUrl: varchar('live_demo_url', { length: 500 }),
   techStack: varchar('tech_stack', { length: 100 }).array(), // Array: ['React', 'Tailwind', 'Laravel']
-  
+
   // ImageKit Integration
   coverImageUrl: varchar('cover_image_url', { length: 500 }),
   coverImageId: varchar('cover_image_id', { length: 255 }), // fileId dari ImageKit untuk delete/update
-  
+
   isFeatured: boolean('is_featured').default(false).notNull(),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -103,11 +103,11 @@ export const posts = pgTable('posts', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   summary: text('summary'),
   contentRich: jsonb('content_rich').notNull(), // Simpan output TipTap / Lexical / HTML
-  
+
   // ImageKit Integration
   coverImageUrl: varchar('cover_image_url', { length: 500 }),
   coverImageId: varchar('cover_image_id', { length: 255 }),
-  
+
   status: postStatusEnum('status').default('draft').notNull(),
   publishedAt: timestamp('published_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -118,11 +118,13 @@ export const posts = pgTable('posts', {
 export const inquiries = pgTable('inquiries', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),
   companyName: varchar('company_name', { length: 255 }),
   serviceType: varchar('service_type', { length: 255 }), // Menautkan nama layanan yang dipilih
   message: text('message').notNull(),
+  budget: varchar('budget', { length: 100 }), // Kisaran budget dari brief form
+  source: varchar('source', { length: 255 }), // utm_source / referrer / direct
   status: inquiryStatusEnum('status').default('new').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -176,7 +178,6 @@ export const siteSettings = pgTable('site_settings', {
   value: jsonb('value'),
 });
 
-
 // Relations Setup
 export const servicesRelations = relations(services, ({ many }) => ({
   features: many(serviceFeatures),
@@ -228,5 +229,15 @@ export const activityLogs = pgTable('activity_logs', {
   entityId: varchar('entity_id', { length: 255 }), // id row terkait, string biar fleksibel (uuid atau key lain)
   entityLabel: varchar('entity_label', { length: 255 }), // judul/nama yang manusiawi, misal judul artikel
   metadata: jsonb('metadata'), // detail tambahan opsional (misal field apa yang berubah)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 10. WhatsApp Clicks (tracking klik tombol/link WA di website)
+export const waClicks = pgTable('wa_clicks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  page: varchar('page', { length: 500 }).notNull(), // path halaman tempat klik terjadi
+  label: varchar('label', { length: 255 }), // teks tombol, misal "Pesan Sekarang"
+  waText: varchar('wa_text', { length: 500 }), // isi pesan WA (memuat nama paket)
+  source: varchar('source', { length: 255 }), // utm_source / referrer / direct
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

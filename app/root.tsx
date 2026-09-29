@@ -9,6 +9,7 @@ import {
 } from "react-router";
 import type { Route } from "./+types/root";
 import { getPublicSettings } from "~/lib/settings.server";
+import { WaTracker } from "~/components/site/wa-tracker";
 import "./app.css";
 
 export async function loader() {
@@ -193,7 +194,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <WaTracker />
+      <Outlet />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -219,8 +225,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="text-2xl font-bold text-brand-dark mt-4">{message}</h1>
         <p className="text-slate-500 mt-2 leading-relaxed">{details}</p>
 
-        
-         <a href="/"
+        <a
+          href="/"
           className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3 rounded-full mt-6 transition-colors"
         >
           Kembali ke Beranda

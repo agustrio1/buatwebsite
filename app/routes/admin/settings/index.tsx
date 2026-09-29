@@ -3,6 +3,8 @@ import { Form, useLoaderData, useSearchParams, useActionData, useNavigation } fr
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { siteSettings } from "~/db/schema";
+import { invalidateSettingsCache } from "~/lib/settings.server";
+import { normalizeCalculatorConfig, parseCalculatorConfig } from "~/lib/price-calculator";
 import { ImageUploadField } from "~/components/admin/image-upload-field";
 import {
   Building2,
@@ -16,6 +18,10 @@ import {
   Save,
   CheckCircle2,
   KeyRound,
+  Calculator,
+  ClipboardList,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 export async function loader() {
@@ -138,6 +144,23 @@ export async function action({ request }: Route.ActionArgs) {
       };
       break;
 
+    case "brief_form":
+      value = {
+        budgetOptions: String(formData.get("budgetOptions") ?? "")
+          .split("\n")
+          .map((o) => o.trim().slice(0, 100))
+          .filter(Boolean)
+          .slice(0, 12),
+      };
+      break;
+
+    case "price_calculator": {
+      const config = parseCalculatorConfig(String(formData.get("configJson") ?? ""));
+      if (!config) return { error: "Data kalkulator tidak valid." };
+      value = config;
+      break;
+    }
+
     default:
       return { error: "Section tidak dikenali" };
   }
@@ -146,6 +169,9 @@ export async function action({ request }: Route.ActionArgs) {
     .insert(siteSettings)
     .values({ key, value })
     .onConflictDoUpdate({ target: siteSettings.key, set: { value } });
+
+  // Supaya perubahan langsung terlihat (di instance yang sama)
+  invalidateSettingsCache();
 
   return { success: true, key };
 }
@@ -159,6 +185,8 @@ const sections = [
   { key: "operational_hours", label: "Jam Operasional", icon: Clock },
   { key: "features", label: "Fitur", icon: ToggleLeft },
   { key: "whatsapp_templates", label: "Template WA", icon: MessageCircle },
+  { key: "brief_form", label: "Brief Form", icon: ClipboardList },
+  { key: "price_calculator", label: "Kalkulator Harga", icon: Calculator },
   { key: "integrations", label: "Integrasi", icon: KeyRound },
 ] as const;
 
@@ -237,6 +265,12 @@ export default function SettingsIndex() {
           {activeKey === "features" && <FeaturesForm data={settings.features} isSubmitting={isSubmitting} />}
           {activeKey === "whatsapp_templates" && (
             <WhatsappTemplatesForm data={settings.whatsapp_templates} isSubmitting={isSubmitting} />
+          )}
+          {activeKey === "brief_form" && (
+            <BriefFormSettingsForm data={settings.brief_form} isSubmitting={isSubmitting} />
+          )}
+          {activeKey === "price_calculator" && (
+            <PriceCalculatorForm data={settings.price_calculator} isSubmitting={isSubmitting} />
           )}
           {activeKey === "integrations" && (
             <IntegrationsForm data={settings.integrations} isSubmitting={isSubmitting} />
@@ -581,10 +615,227 @@ function WhatsappTemplatesForm({ data, isSubmitting }: { data?: any; isSubmittin
         <Field label="Template Tanya Paket" hint="Gunakan {packageName} untuk nama paket dinamis">
           <textarea name="packageInquiry" defaultValue={data?.packageInquiry} rows={2} className={inputClass} />
         </Field>
-        <Field label="Template Custom Quotation">
+        <Field label="Template Custom Quotation" hint="Juga dipakai sebagai pembuka pesan dari halaman Kalkulator Harga">
           <textarea name="customQuotation" defaultValue={data?.customQuotation} rows={2} className={inputClass} />
         </Field>
       </Card>
+      <SubmitButton isSubmitting={isSubmitting} />
+    </Form>
+  );
+}
+
+function BriefFormSettingsForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
+  return (
+    <Form method="post" className="space-y-5">
+      <input type="hidden" name="key" value="brief_form" />
+      <Card>
+        <CardHeader
+          title="Opsi Budget"
+          description="Pilihan kisaran budget di form brief pada halaman utama"
+        />
+        <Field
+          label="Daftar opsi"
+          hint="Satu opsi per baris (maksimal 12). Kosongkan untuk memakai opsi bawaan."
+        >
+          <textarea
+            name="budgetOptions"
+            defaultValue={Array.isArray(data?.budgetOptions) ? data.budgetOptions.join("\n") : ""}
+            rows={7}
+            className={inputClass}
+          />
+        </Field>
+      </Card>
+      <SubmitButton isSubmitting={isSubmitting} />
+    </Form>
+  );
+}
+
+type ItemState = { id: string; label: string; price: string; description: string };
+
+function toItemState(
+  items: { id: string; label: string; price: number; description: string }[]
+): ItemState[] {
+  return items.map((item) => ({
+    id: item.id,
+    label: item.label,
+    price: String(item.price),
+    description: item.description,
+  }));
+}
+
+function newItemId() {
+  return `item-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function ItemsEditor({
+  title,
+  description,
+  items,
+  onChange,
+  addLabel,
+}: {
+  title: string;
+  description: string;
+  items: ItemState[];
+  onChange: (items: ItemState[]) => void;
+  addLabel: string;
+}) {
+  function update(index: number, patch: Partial<ItemState>) {
+    onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  }
+
+  return (
+    <Card>
+      <CardHeader title={title} description={description} />
+
+      <div className="space-y-4">
+        {items.map((item, i) => (
+          <div key={item.id} className="rounded-xl border border-slate-200 p-4 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <Field label="Nama">
+                  <input
+                    value={item.label}
+                    onChange={(e) => update(i, { label: e.target.value })}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <Field label="Harga (Rp)">
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={item.price}
+                  onChange={(e) => update(i, { price: e.target.value })}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+            <Field label="Deskripsi singkat (opsional)">
+              <input
+                value={item.description}
+                onChange={(e) => update(i, { description: e.target.value })}
+                className={inputClass}
+              />
+            </Field>
+            <button
+              type="button"
+              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+              className="flex items-center gap-1.5 text-sm text-rose-600 hover:text-rose-700"
+            >
+              <Trash2 size={14} /> Hapus
+            </button>
+          </div>
+        ))}
+        {items.length === 0 && (
+          <p className="text-sm italic text-slate-400">Belum ada item.</p>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() =>
+          onChange([...items, { id: newItemId(), label: "", price: "0", description: "" }])
+        }
+        className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+      >
+        <Plus size={16} /> {addLabel}
+      </button>
+    </Card>
+  );
+}
+
+function PriceCalculatorForm({ data, isSubmitting }: { data?: any; isSubmitting: boolean }) {
+  const initial = normalizeCalculatorConfig(data);
+
+  const [enabled, setEnabled] = useState(initial.enabled);
+  const [title, setTitle] = useState(initial.title);
+  const [intro, setIntro] = useState(initial.intro);
+  const [note, setNote] = useState(initial.note);
+  const [rangePercent, setRangePercent] = useState(String(initial.rangePercent));
+  const [baseItems, setBaseItems] = useState<ItemState[]>(() => toItemState(initial.baseItems));
+  const [addonItems, setAddonItems] = useState<ItemState[]>(() => toItemState(initial.addonItems));
+
+  const configJson = JSON.stringify({
+    enabled,
+    title,
+    intro,
+    note,
+    rangePercent: Number(rangePercent) || 0,
+    baseItems: baseItems.map((item) => ({ ...item, price: Number(item.price) || 0 })),
+    addonItems: addonItems.map((item) => ({ ...item, price: Number(item.price) || 0 })),
+  });
+
+  return (
+    <Form method="post" className="space-y-5">
+      <input type="hidden" name="key" value="price_calculator" />
+      <input type="hidden" name="configJson" value={configJson} />
+
+      <Card>
+        <CardHeader
+          title="Pengaturan Kalkulator"
+          description="Halaman /kalkulator hanya tampil jika diaktifkan dan minimal ada satu jenis website."
+        />
+        <label className={checkboxRow}>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className={checkboxClass}
+          />
+          Aktifkan kalkulator harga
+        </label>
+        <Field label="Judul halaman">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+        </Field>
+        <Field label="Teks pengantar">
+          <textarea
+            value={intro}
+            onChange={(e) => setIntro(e.target.value)}
+            rows={2}
+            className={inputClass}
+          />
+        </Field>
+        <Field
+          label="Rentang estimasi (%)"
+          hint="Batas atas = total × (1 + persen). Isi 0 untuk menampilkan satu angka saja."
+        >
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={rangePercent}
+            onChange={(e) => setRangePercent(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Catatan di bawah estimasi (opsional)">
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            className={inputClass}
+          />
+        </Field>
+      </Card>
+
+      <ItemsEditor
+        title="Jenis Website"
+        description="Pelanggan memilih satu. Harga di sini adalah harga dasar."
+        items={baseItems}
+        onChange={setBaseItems}
+        addLabel="Tambah jenis website"
+      />
+
+      <ItemsEditor
+        title="Fitur Tambahan"
+        description="Pelanggan boleh memilih lebih dari satu. Harga 0 ditampilkan sebagai “Termasuk”."
+        items={addonItems}
+        onChange={setAddonItems}
+        addLabel="Tambah fitur"
+      />
+
       <SubmitButton isSubmitting={isSubmitting} />
     </Form>
   );

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router";
 import { Menu, X } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
+import { normalizeCalculatorConfig } from "~/lib/price-calculator";
 
 function WhatsAppIcon({ size = 18 }: { size?: number }) {
   return (
@@ -76,9 +77,13 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   const templates = settings.whatsapp_templates ?? {};
   const features = settings.features ?? {};
 
+  const calculator = normalizeCalculatorConfig(settings.price_calculator);
+  const showCalculator = calculator.enabled && calculator.baseItems.length > 0;
+
   const navItems = [
     { label: "Layanan", to: "/#layanan" },
     { label: "Projek", to: "/projek" },
+    ...(showCalculator ? [{ label: "Kalkulator", to: "/kalkulator" }] : []),
     ...(features.showBlogSection !== false ? [{ label: "Blog", to: "/blog" }] : []),
     { label: "Kontak", to: "/kontak" },
   ];
