@@ -6,25 +6,24 @@ export type PortfolioProject = {
   coverImageUrl: string | null;
 };
 
-// Lebar kandidat untuk srcset. Browser memilih yang paling pas dengan
-// `sizes` x DPR layar. AVIF dari Worker menjaga ukuran file tetap kecil.
-const MARQUEE_WIDTHS = [640, 960, 1280, 1600] as const;
-const DEFAULT_WIDTH = 1280;
+// Lebar kandidat srcset. Browser memilih yang pas dengan `sizes` x DPR layar.
+const MARQUEE_WIDTHS = [480, 720, 960, 1280] as const;
+const DEFAULT_WIDTH = 960;
 
-// Kualitas sedikit lebih tinggi khusus marquee karena gambar dirotasi
-// (resampling) dan berisi teks kecil dari screenshot dashboard.
+// Kualitas sedikit lebih tinggi khusus marquee (gambar dirotasi + berisi
+// teks kecil dari screenshot dashboard).
 const MARQUEE_QUALITY = 85;
 
-// Sengaja dilebihkan ~1.5x dari ukuran tampil asli (270/360/390px) agar
-// browser memilih gambar lebih besar. Ini mengimbangi resampling akibat
-// rotate di .portfolio-showcase sehingga gambar tetap tajam.
-const MARQUEE_SIZES = "(max-width: 767px) 400px, (max-width: 1279px) 540px, 600px";
+// Dilebihkan ~1.2x dari ukuran tampil asli (270/360/390px) untuk mengimbangi
+// resampling akibat rotate, tanpa membuat mobile mengunduh gambar terlalu besar.
+// Hasil: HP (DPR ~1.75) -> 720w, laptop -> 720w, retina desktop -> 1280w.
+const MARQUEE_SIZES = "(max-width: 767px) 320px, (max-width: 1279px) 460px, 520px";
 
 const EAGER_COUNT = 2;
 
 // Rasio 16:10 sesuai .portfolio-card-image, mencegah layout shift.
-const IMG_WIDTH = 1280;
-const IMG_HEIGHT = 800;
+const IMG_WIDTH = 960;
+const IMG_HEIGHT = 600;
 
 function buildMarqueeSrcSet(url: string): string | undefined {
   const entries = MARQUEE_WIDTHS.map((w) => {
@@ -109,7 +108,7 @@ export function PortfolioMarquee({ projects }: { projects: PortfolioProject[] })
             <MarqueeCard
               key={`portfolio-row-2-${project.id}-${index}`}
               project={project}
-              eager={index < EAGER_COUNT}
+              eager={false}
               highPriority={false}
             />
           ))}

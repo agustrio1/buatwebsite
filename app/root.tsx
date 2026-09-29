@@ -174,9 +174,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Tanpa crossOrigin: gambar dimuat lewat <img> biasa, jadi koneksi
+            preconnect baru bisa dipakai ulang. Ditaruh paling atas agar
+            koneksi terbuka secepat mungkin. */}
+        <link rel="preconnect" href="https://cdn.enterprisejadikanweb.biz.id" />
         <Meta />
         <Links />
-        <link rel="preconnect" href="https://cdn.enterprisejadikanweb.biz.id" crossOrigin="anonymous" />
         <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
         <StructuredData />
       </head>
@@ -215,8 +218,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <p className="text-brand-500 font-bold text-6xl">{status}</p>
         <h1 className="text-2xl font-bold text-brand-dark mt-4">{message}</h1>
         <p className="text-slate-500 mt-2 leading-relaxed">{details}</p>
+
         
-        <a href="/"
+         <a href="/"
           className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3 rounded-full mt-6 transition-colors"
         >
           Kembali ke Beranda
