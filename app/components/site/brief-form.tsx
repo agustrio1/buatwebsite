@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useFetcher } from "react-router";
 import { Send, CheckCircle2 } from "lucide-react";
 import { getSource } from "~/components/site/wa-tracker";
@@ -25,6 +25,17 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
   const fetcher = useFetcher<{ success?: boolean; error?: string }>();
   const isSubmitting = fetcher.state !== "idle";
   const [meta, setMeta] = useState({ source: "", page: "" });
+
+  // id unik per instance supaya label terhubung ke field (aksesibilitas)
+  const uid = useId();
+  const ids = {
+    name: `${uid}-name`,
+    phone: `${uid}-phone`,
+    serviceType: `${uid}-service-type`,
+    budget: `${uid}-budget`,
+    message: `${uid}-message`,
+    email: `${uid}-email`,
+  };
 
   useEffect(() => {
     setMeta({ source: getSource(), page: window.location.pathname });
@@ -66,12 +77,23 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className={labelClass}>Nama</label>
-          <input name="name" required autoComplete="name" className={inputClass} />
+          <label htmlFor={ids.name} className={labelClass}>
+            Nama
+          </label>
+          <input
+            id={ids.name}
+            name="name"
+            required
+            autoComplete="name"
+            className={inputClass}
+          />
         </div>
         <div>
-          <label className={labelClass}>No. WhatsApp</label>
+          <label htmlFor={ids.phone} className={labelClass}>
+            No. WhatsApp
+          </label>
           <input
+            id={ids.phone}
             name="phone"
             type="tel"
             inputMode="tel"
@@ -86,8 +108,15 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {services.length > 0 && (
           <div>
-            <label className={labelClass}>Yang dibutuhkan</label>
-            <select name="serviceType" defaultValue="" className={inputClass}>
+            <label htmlFor={ids.serviceType} className={labelClass}>
+              Yang dibutuhkan
+            </label>
+            <select
+              id={ids.serviceType}
+              name="serviceType"
+              defaultValue=""
+              className={inputClass}
+            >
               <option value="">Pilih layanan (opsional)</option>
               {services.map((s) => (
                 <option key={s.id} value={s.title}>
@@ -98,8 +127,10 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
           </div>
         )}
         <div>
-          <label className={labelClass}>Kisaran budget</label>
-          <select name="budget" defaultValue="" className={inputClass}>
+          <label htmlFor={ids.budget} className={labelClass}>
+            Kisaran budget
+          </label>
+          <select id={ids.budget} name="budget" defaultValue="" className={inputClass}>
             <option value="">Pilih budget (opsional)</option>
             {budgets.map((b) => (
               <option key={b} value={b}>
@@ -111,8 +142,11 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
       </div>
 
       <div>
-        <label className={labelClass}>Ceritakan singkat kebutuhan Anda</label>
+        <label htmlFor={ids.message} className={labelClass}>
+          Ceritakan singkat kebutuhan Anda
+        </label>
         <textarea
+          id={ids.message}
           name="message"
           rows={3}
           placeholder="Contoh: toko online untuk produk kue, butuh pembayaran online"
@@ -121,8 +155,16 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
       </div>
 
       <div>
-        <label className={labelClass}>Email (opsional)</label>
-        <input name="email" type="email" autoComplete="email" className={inputClass} />
+        <label htmlFor={ids.email} className={labelClass}>
+          Email (opsional)
+        </label>
+        <input
+          id={ids.email}
+          name="email"
+          type="email"
+          autoComplete="email"
+          className={inputClass}
+        />
       </div>
 
       <button

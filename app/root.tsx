@@ -10,7 +10,8 @@ import {
 import type { Route } from "./+types/root";
 import { getPublicSettings } from "~/lib/settings.server";
 import { WaTracker } from "~/components/site/wa-tracker";
-import "./app.css";
+// CSS di-inline ke <head> supaya tidak ada request stylesheet yang memblokir render.
+import appCss from "./app.css?inline";
 
 export async function loader() {
   const settings = await getPublicSettings();
@@ -179,6 +180,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             preconnect baru bisa dipakai ulang. Ditaruh paling atas agar
             koneksi terbuka secepat mungkin. */}
         <link rel="preconnect" href="https://cdn.enterprisejadikanweb.biz.id" />
+        {/* CSS inline: menghilangkan 1 round trip stylesheet yang memblokir render.
+            String yang sama dirender di server dan client, jadi hydration aman. */}
+        <style dangerouslySetInnerHTML={{ __html: appCss }} />
         <Meta />
         <Links />
         <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
