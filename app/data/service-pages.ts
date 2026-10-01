@@ -1,3 +1,10 @@
+export type ServiceBlock = {
+  heading: string;
+  items: { title: string; desc: string }[];
+};
+
+export type ServiceFaq = { q: string; a: string };
+
 export type ServicePage = {
   slug: string;
   title: string;
@@ -7,6 +14,12 @@ export type ServicePage = {
   shortDesc: string;
   intro: string;
   features: string[];
+  // Opsional: dirender di halaman kalau diisi
+  problems?: ServiceBlock;
+  metrics?: ServiceBlock;
+  process?: ServiceBlock;
+  faqs?: ServiceFaq[];
+  related?: string[];
 };
 
 export const servicePages: ServicePage[] = [
@@ -32,6 +45,7 @@ export const servicePages: ServicePage[] = [
       "Optimasi SEO On-Page dasar (Meta Tag, Schema Markup, & XML Sitemap)",
       "Sistem CMS yang mudah dikelola untuk memperbarui konten & berita"
     ],
+    related: ["optimasi-kecepatan", "redesign-ui-ux", "maintenance-website"],
   },
   {
     slug: "sistem-erp-pos",
@@ -55,6 +69,7 @@ export const servicePages: ServicePage[] = [
       "Manajemen Role & Hak Akses Berjenjang (RBAC) untuk keamanan data",
       "Arsitektur API terbuka yang siap diintegrasikan dengan sistem existing"
     ],
+    related: ["website-custom", "maintenance-website"],
   },
   {
     slug: "toko-online",
@@ -78,6 +93,7 @@ export const servicePages: ServicePage[] = [
       "Manajemen pesanan, stok, dan laporan transaksi yang simpel",
       "Performa loading tinggi yang dioptimalkan untuk transaksi mobile"
     ],
+    related: ["optimasi-kecepatan", "maintenance-website", "website-custom"],
   },
   {
     slug: "landing-page",
@@ -101,6 +117,7 @@ export const servicePages: ServicePage[] = [
       "Call-to-Action (CTA) interaktif yang menuntun pengunjung ke penjualan",
       "Desain adaptif tanpa gangguan navigasi berlebih (Distraction-Free)"
     ],
+    related: ["optimasi-kecepatan", "company-profile"],
   },
   {
     slug: "website-custom",
@@ -124,6 +141,7 @@ export const servicePages: ServicePage[] = [
       "Keamanan tingkat tinggi terhadap kerentanan OWASP Top 10",
       "Dokumentasi kode lengkap & pendampingan teknis jangka panjang"
     ],
+    related: ["sistem-erp-pos", "maintenance-website", "optimasi-kecepatan"],
   },
   {
     slug: "maintenance-website",
@@ -147,6 +165,7 @@ export const servicePages: ServicePage[] = [
       "Perbaikan error teknis, masalah tampilan, serta perbaikan broken link",
       "Bantuan rutin untuk pembaruan teks, gambar, dan konten produk"
     ],
+    related: ["optimasi-kecepatan", "redesign-ui-ux"],
   },
   {
     slug: "redesign-ui-ux",
@@ -170,28 +189,109 @@ export const servicePages: ServicePage[] = [
       "Optimasi tampilan visual khusus pengguna smartphone (Mobile Usability)",
       "Proses migrasi aman tanpa menghilangkan nilai SEO & data lama"
     ],
+    related: ["optimasi-kecepatan", "company-profile", "maintenance-website"],
   },
   {
     slug: "optimasi-kecepatan",
     title: "Jasa Optimasi Kecepatan Website & Core Web Vitals",
-    metaTitle: "Jasa Optimasi Kecepatan Website & Core Web Vitals Google",
-    metaDesc: "Percepat loading website hingga skor 90+ di PageSpeed Insights. Tingkatkan peringkat SEO & pengalaman pengguna secara drastis.",
+    metaTitle: "Jasa Optimasi Kecepatan Website, PageSpeed & Core Web Vitals",
+    metaDesc: "Website lambat? Percepat loading & perbaiki skor PageSpeed Insights serta Core Web Vitals (LCP, INP, CLS). Ada laporan sebelum–sesudah. Konsultasi gratis.",
     keywords: [
       "jasa optimasi kecepatan website",
-      "cara mempercepat loading web",
-      "optimasi core web vitals google",
-      "perbaiki pagespeed insights 90+",
-      "jasa speed up website"
+      "jasa mempercepat website",
+      "jasa optimasi pagespeed",
+      "jasa optimasi speed website",
+      "jasa speed up website",
+      "optimasi core web vitals",
+      "perbaiki skor pagespeed insights"
     ],
-    shortDesc: "Tingkatkan skor PageSpeed Insights hingga hijau (90+) dan lolos indikator Google Core Web Vitals untuk peringkat SEO yang lebih baik.",
+    shortDesc: "Website lambat membuat pengunjung pergi sebelum halaman selesai dimuat. Kami mempercepat website Anda dan memperbaiki skor PageSpeed Insights serta Core Web Vitals berdasarkan hasil audit, bukan tebakan.",
     intro:
-      "Kecepatan pemuatan halaman adalah salah satu faktor penentu peringkat terpenting di Google. Kami menganalisis kode, gambar, server, dan skrip pihak ketiga untuk menghilangkan hambatan teknis agar website Anda dapat dimuat secara instan.",
+      "Website yang lambat membuat pengunjung pergi sebelum sempat membaca penawaran Anda, dan anggaran iklan ikut terbuang untuk klik yang tidak berubah menjadi prospek. Kami mempercepat website dengan pendekatan berbasis data: mengukur kondisi awal, mencari penyebab lambat yang sebenarnya, memperbaiki yang paling berdampak, lalu mengukur ulang. Core Web Vitals memang salah satu sinyal pengalaman halaman di Google, tetapi manfaat yang paling terasa biasanya ada di pengunjung yang bertahan lebih lama dan konversi yang lebih baik.",
     features: [
-      "Audit teknis menyeluruh pada skor LCP, INP, dan CLS (Core Web Vitals)",
-      "Kompresi dan konversi format gambar ke generasi baru (WebP/AVIF)",
-      "Minifikasi dan pembersihan file CSS, JS, serta pangkas render-blocking assets",
-      "Penerapan mekanisme Caching mendalam & konfigurasinya di server/CDN",
-      "Garansi peningkatan skor kecepatan di Google PageSpeed Insights & GTmetrix"
+      "Audit awal: PageSpeed Insights (mobile & desktop), GTmetrix, dan data lapangan Core Web Vitals di Search Console bila tersedia",
+      "Perbaikan LCP, INP, dan CLS sesuai penyebab nyata di website Anda",
+      "Kompresi dan konversi gambar ke WebP/AVIF, ukuran gambar responsif, dan lazy loading",
+      "Minifikasi CSS/JS, pangkas render-blocking, optimasi font, dan tunda skrip pihak ketiga (analytics, pixel, live chat) yang membebani halaman",
+      "Konfigurasi caching, kompresi Brotli/Gzip, dan CDN untuk menurunkan waktu respons server (TTFB)",
+      "Laporan sebelum–sesudah beserta daftar perubahan yang dilakukan"
     ],
+    problems: {
+      heading: "Tanda website Anda perlu dioptimasi",
+      items: [
+        {
+          title: "Skor mobile rendah",
+          desc: "Skor PageSpeed Insights di mobile merah atau oranye, atau laporan Data Web Inti di Search Console berstatus Buruk atau Perlu ditingkatkan."
+        },
+        {
+          title: "Halaman terasa lambat di HP",
+          desc: "Pengunjung harus menunggu lama sebelum konten tampil atau tombol bisa diklik, terutama dengan koneksi seluler biasa."
+        },
+        {
+          title: "Iklan ramai klik, sedikit prospek",
+          desc: "Landing page yang lambat membuat sebagian pengunjung pergi sebelum halaman selesai dimuat, padahal biaya klik sudah terbayar."
+        },
+        {
+          title: "Tampilan melompat saat dimuat",
+          desc: "Tombol atau teks bergeser sendiri ketika gambar dan iklan muncul, sehingga pengunjung salah klik. Inilah yang diukur oleh CLS."
+        }
+      ]
+    },
+    metrics: {
+      heading: "Target yang kami ukur (kategori “Baik” menurut Google)",
+      items: [
+        { title: "LCP ≤ 2,5 detik", desc: "Kecepatan konten utama (gambar atau judul terbesar) tampil di layar." },
+        { title: "INP ≤ 200 ms", desc: "Kecepatan halaman merespons saat diklik, diketuk, atau diketik." },
+        { title: "CLS ≤ 0,1", desc: "Stabilitas tampilan: elemen tidak bergeser ketika halaman dimuat." }
+      ]
+    },
+    process: {
+      heading: "Cara kami mempercepat website Anda",
+      items: [
+        {
+          title: "Audit dan baseline",
+          desc: "Kami mengukur kondisi saat ini lewat data lab (PageSpeed Insights, GTmetrix) dan data pengunjung nyata bila tersedia, lalu mencatat angka awal."
+        },
+        {
+          title: "Tentukan prioritas",
+          desc: "Penyebab lambat diurutkan berdasarkan dampak: gambar, JavaScript, font, skrip pihak ketiga, atau server."
+        },
+        {
+          title: "Perbaikan bertahap",
+          desc: "Perubahan dikerjakan setelah backup dan diuji, supaya desain dan fungsi website tetap sama."
+        },
+        {
+          title: "Uji ulang dan laporan",
+          desc: "Kami mengukur ulang, menyerahkan laporan sebelum–sesudah, dan memberi saran lanjutan bila masih ada yang perlu dibenahi."
+        }
+      ]
+    },
+    faqs: [
+      {
+        q: "Apakah skor PageSpeed pasti 90+?",
+        a: "Tidak ada yang bisa menjanjikan angka pasti sebelum website diaudit. Targetnya adalah Core Web Vitals berstatus Baik dan skor hijau di PageSpeed Insights. Hasil akhirnya bergantung pada tema atau framework, hosting, ukuran konten, dan skrip pihak ketiga. Setelah audit, kami jelaskan batas yang realistis untuk website Anda."
+      },
+      {
+        q: "Apa bedanya skor PageSpeed dengan Core Web Vitals?",
+        a: "Skor PageSpeed Insights adalah hasil simulasi di lab. Core Web Vitals yang dinilai Google berasal dari data pengunjung nyata (Chrome UX Report) dalam rentang sekitar 28 hari. Karena itu skor bisa membaik langsung, sedangkan status di Search Console baru ikut membaik beberapa minggu kemudian."
+      },
+      {
+        q: "Website berbasis apa saja yang bisa dioptimasi?",
+        a: "Kami menangani website PHP/Laravel, React/Next.js, dan Astro. Untuk platform lain, kami cek kecocokannya saat audit karena ruang optimasi tiap platform berbeda."
+      },
+      {
+        q: "Apakah tampilan website akan berubah?",
+        a: "Tidak. Tujuannya mempercepat tanpa mengubah desain dan fungsi. Kami membuat backup sebelum mengubah apa pun dan menguji hasilnya sebelum diserahkan."
+      },
+      {
+        q: "Apakah website lebih cepat otomatis naik peringkat di Google?",
+        a: "Tidak otomatis. Kecepatan adalah salah satu sinyal pengalaman halaman, sedangkan relevansi dan kualitas konten tetap faktor utama. Website yang cepat membantu pengunjung bertahan dan berkonversi, serta menghilangkan hambatan teknis yang bisa menahan peringkat."
+      },
+      {
+        q: "Berapa biaya dan lama pengerjaannya?",
+        a: "Bergantung pada ukuran dan kondisi website. Setelah audit awal, kami memberi penawaran dan estimasi waktu yang jelas. Hubungi kami lewat WhatsApp untuk konsultasi gratis."
+      }
+    ],
+    related: ["landing-page", "website-custom", "maintenance-website", "redesign-ui-ux"],
   },
 ];
