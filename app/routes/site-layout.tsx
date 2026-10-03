@@ -8,10 +8,18 @@ import { SiteFooter } from "~/components/site/footer";
 import { getPublicSettings } from "~/lib/settings.server";
 
 export function links() {
-  return [
-    { rel: "preconnect", href: "https://www.googletagmanager.com" },
-    { rel: "dns-prefetch", href: "https://www.googletagmanager.com" },
-  ];
+  return [{ rel: "dns-prefetch", href: "https://www.googletagmanager.com" }];
+}
+
+const GTM_PATTERN = /^GTM-[A-Z0-9]{4,10}$/;
+const GA_PATTERN = /^G-[A-Z0-9]{6,12}$/;
+// Nilai contoh seperti GTM-XXXXXXX atau G-XXXXXXXXXX dianggap tidak valid.
+const PLACEHOLDER_PATTERN = /^(GTM|G)-X+$/;
+
+function cleanTrackingId(value: unknown, pattern: RegExp): string {
+  const id = typeof value === "string" ? value.trim().toUpperCase() : "";
+  if (!id || PLACEHOLDER_PATTERN.test(id)) return "";
+  return pattern.test(id) ? id : "";
 }
 
 export async function loader() {
@@ -30,8 +38,8 @@ export async function loader() {
 export default function SiteLayout() {
   const { settings, cities } = useLoaderData<typeof loader>();
 
-  const gtmId = settings.seo?.googleTagManagerId;
-  const gaId = settings.seo?.googleAnalyticsId;
+  const gtmId = cleanTrackingId(settings.seo?.googleTagManagerId, GTM_PATTERN);
+  const gaId = cleanTrackingId(settings.seo?.googleAnalyticsId, GA_PATTERN);
 
   const seoData = settings.seo || {};
   const generalData = settings.general || {};
@@ -135,8 +143,8 @@ export default function SiteLayout() {
       <SiteFooter settings={settings} cities={cities} />
 
       {cleanPhone ? (
-        
-         <a href={whatsappUrl}
+        <a
+          href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 rounded-full shadow-lg transition-all"
