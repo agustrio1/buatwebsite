@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Form, useNavigation } from "react-router";
+import { Form, useNavigation, useSubmit } from "react-router";
 import { ImagePlus, Save, Trash2, Eye } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
+import { uploadDirect } from "~/lib/image-client";
 import type { JSONContent } from "@tiptap/react";
 
 type GalleryImage = { id: string; imageUrl: string; imageId: string };
@@ -28,25 +29,62 @@ export function ProjectForm({
   onDeleteImage?: (imageId: string) => void;
 }) {
   const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+  const submit = useSubmit();
 
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const isSubmitting = navigation.state === "submitting" || uploading;
+
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [coverPreview, setCoverPreview] = useState<string | null>(
     defaultValues?.coverImageUrl ?? null
   );
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0] ?? null;
+    setCoverFile(file);
     setCoverPreview(file ? URL.createObjectURL(file) : defaultValues?.coverImageUrl ?? null);
   }
 
   function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
+    setGalleryFiles(files);
     setGalleryPreviews(files.map((f) => URL.createObjectURL(f)));
   }
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    setUploadError(null);
+    setUploading(true);
+    try {
+      if (coverFile) {
+        const up = await uploadDirect(coverFile, "projects/cover");
+        formData.set("coverImageUrl", up.url);
+        formData.set("coverImageId", up.key);
+      }
+
+      if (galleryFiles.length > 0) {
+        const uploads: { url: string; key: string }[] = [];
+        for (const file of galleryFiles) {
+          uploads.push(await uploadDirect(file, "projects/gallery"));
+        }
+        formData.set("galleryUploads", JSON.stringify(uploads));
+      }
+
+      submit(formData, { method: "post" });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload gagal");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
-    <Form method="post" encType="multipart/form-data" className="space-y-6 max-w-3xl">
+    <Form method="post" onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
@@ -111,7 +149,7 @@ export function ProjectForm({
               <span className="text-sm text-slate-400">Pilih gambar cover</span>
             </>
           )}
-          <input type="file" name="coverImage" accept="image/*" onChange={handleCoverChange} className="hidden" />
+          <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
         </label>
         {defaultValues?.coverImageUrl && (
           <p className="text-xs text-slate-400">Pilih file baru untuk mengganti cover.</p>
@@ -141,7 +179,7 @@ export function ProjectForm({
         <label className="flex items-center justify-center gap-2 border-2 border-dashed rounded-lg h-24 cursor-pointer hover:border-brand-500 transition-colors">
           <ImagePlus size={20} className="text-slate-400" />
           <span className="text-sm text-slate-400">Tambah gambar galeri</span>
-          <input type="file" name="galleryImages" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
+          <input type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
         </label>
         {galleryPreviews.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -152,13 +190,16 @@ export function ProjectForm({
         )}
       </div>
 
+      {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
+
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={isSubmitting}
           className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded"
         >
-          <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Artikel"}
+          <Save size={16} />{" "}
+          {uploading ? "Mengunggah gambar..." : isSubmitting ? "Menyimpan..." : "Simpan Proyek"}
         </button>
 
         {defaultValues?.id && (

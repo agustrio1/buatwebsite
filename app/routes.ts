@@ -29,6 +29,7 @@ export default [
   route("sitemap-4.xml", "routes/sitemap-4.tsx"),
   route("llms.txt", "routes/llms.tsx"),
   route("rss.xml", "routes/rss[.]xml.tsx"),
+  route("api/admin/presign", "routes/api.admin.presign.ts"),
 
   layout("routes/admin/layout.tsx", [
     route("admin", "routes/admin/index.tsx"),

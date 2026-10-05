@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomBytes } from "crypto";
 import sharp from "sharp";
 
@@ -75,6 +76,29 @@ export async function uploadToR2(
     url: `${PUBLIC_URL}/${key}`,
     key,
   };
+}
+
+// Dipakai untuk upload langsung dari browser ke R2 (hindari 413)
+export async function createPresignedUpload(
+  fileName: string,
+  folder: string,
+  contentType: string
+) {
+  const cleanFolder = folder.replace(/^\/+|\/+$/g, "");
+  const forcedExt = contentType === "image/webp" ? "webp" : undefined;
+  const key = `${cleanFolder}/${buildSafeFileName(fileName, forcedExt)}`;
+
+  const uploadUrl = await getSignedUrl(
+    r2,
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      ContentType: contentType,
+    }),
+    { expiresIn: 300 }
+  );
+
+  return { uploadUrl, url: `${PUBLIC_URL}/${key}`, key };
 }
 
 export async function deleteFromR2(key: string | null | undefined) {
