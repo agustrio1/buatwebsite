@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
@@ -7,6 +7,7 @@ import { User } from "lucide-react";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
+import { pageMeta } from "~/lib/meta";
 
 export function headers() {
   return {
@@ -14,8 +15,26 @@ export function headers() {
   };
 }
 
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  const page = loaderData?.currentPage ?? 1;
+  const suffix = page > 1 ? ` - Halaman ${page}` : "";
+  return pageMeta(matches, {
+    title: `Blog & Artikel Seputar Website dan SEO${suffix} | JadikanWeb`,
+    description:
+      "Tips, panduan, dan insight seputar pembuatan website, SEO, dan strategi bisnis online untuk membantu bisnis Anda bertumbuh." +
+      (page > 1 ? ` Halaman ${page}.` : ""),
+    page,
+  });
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
+
+  // /blog?page=1 sama dengan /blog, redirect biar nggak duplikat
+  if (url.searchParams.get("page") === "1") {
+    throw redirect(url.pathname, 301);
+  }
+
   const page = parsePage(url.searchParams);
 
   const [{ value: totalItems }] = await db

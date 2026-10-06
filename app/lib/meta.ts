@@ -32,3 +32,40 @@ export function mergeMeta(matches: any[], own: MetaTag[]): MetaTag[] {
 
   return [...inherited, ...own];
 }
+
+export function pageMeta(
+  matches: any[],
+  o: { title: string; description: string; page?: number }
+): MetaTag[] {
+  const page = o.page ?? 1;
+
+  const parentCanonical = matches
+    .flatMap((m) => (m?.meta ?? []) as MetaTag[])
+    .find((t) => t.tagName === "link" && t.rel === "canonical")?.href as
+    | string
+    | undefined;
+
+  const canonical = parentCanonical
+    ? parentCanonical + (page > 1 ? `?page=${page}` : "")
+    : undefined;
+
+  const own: MetaTag[] = [
+    { title: o.title },
+    { name: "description", content: o.description },
+    { property: "og:title", content: o.title },
+    { property: "og:description", content: o.description },
+    { name: "twitter:title", content: o.title },
+    { name: "twitter:description", content: o.description },
+  ];
+
+  if (canonical) {
+    own.push(
+      { property: "og:url", content: canonical },
+      { tagName: "link", rel: "canonical", href: canonical },
+      { tagName: "link", rel: "alternate", hrefLang: "id", href: canonical },
+      { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonical }
+    );
+  }
+
+  return mergeMeta(matches, own);
+}

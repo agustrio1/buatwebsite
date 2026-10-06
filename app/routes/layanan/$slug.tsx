@@ -4,6 +4,7 @@ import type { Route } from "./+types/$slug";
 import { servicePages, type ServicePage } from "~/data/service-pages";
 import { ArrowRight, ChevronRight, Check, MessageCircle } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
+import { mergeMeta } from "~/lib/meta";
 
 export function loader({ params, request }: Route.LoaderArgs) {
   const service = servicePages.find((s) => s.slug === params.slug);
@@ -18,18 +19,22 @@ export function loader({ params, request }: Route.LoaderArgs) {
   };
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.service) return [{ title: "Layanan tidak ditemukan" }];
   const { service, canonical } = loaderData;
-  return [
+  return mergeMeta(matches, [
     { title: service.metaTitle },
     { name: "description", content: service.metaDesc },
     { tagName: "link", rel: "canonical", href: canonical },
+    { tagName: "link", rel: "alternate", hrefLang: "id", href: canonical },
+    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonical },
     { property: "og:type", content: "website" },
     { property: "og:title", content: service.metaTitle },
     { property: "og:description", content: service.metaDesc },
     { property: "og:url", content: canonical },
-  ];
+    { name: "twitter:title", content: service.metaTitle },
+    { name: "twitter:description", content: service.metaDesc },
+  ]);
 }
 
 function Block({ heading, children }: { heading: string; children: ReactNode }) {

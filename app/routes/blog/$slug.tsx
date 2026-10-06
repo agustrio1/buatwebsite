@@ -10,6 +10,7 @@ import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 import { checkRedirect } from "~/lib/redirects.server";
 import { getPublicSettings } from "~/lib/settings.server";
+import { mergeMeta } from "~/lib/meta";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
@@ -108,35 +109,47 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   );
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.post) {
     return [{ title: "Artikel tidak ditemukan" }];
   }
 
   const { post, canonicalUrl, siteName } = loaderData;
+  const title = `${post.title} | ${siteName}`;
   const description = post.summary ?? "";
   const featuredImage = post.coverImageUrl
     ? resizeImage(post.coverImageUrl, 1200)
     : undefined;
 
-  const tags: Route.MetaDescriptors = [
-    { title: `${post.title} | ${siteName}` },
+  const tags: any[] = [
+    { title },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: canonicalUrl },
+    { tagName: "link", rel: "alternate", hrefLang: "id", href: canonicalUrl },
+    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonicalUrl },
     { property: "og:type", content: "article" },
     { property: "og:site_name", content: siteName },
     { property: "og:title", content: post.title },
     { property: "og:description", content: description },
     { property: "og:url", content: canonicalUrl },
     { property: "og:locale", content: "id_ID" },
-    { property: "article:published_time", content: post.publishedAt?.toString() ?? "" },
-    { property: "article:modified_time", content: post.updatedAt?.toString() ?? "" },
-    ...(post.category ? [{ property: "article:section", content: post.category.name }] : []),
-    ...(post.author ? [{ property: "article:author", content: post.author.name }] : []),
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: post.title },
     { name: "twitter:description", content: description },
   ];
+
+  if (post.publishedAt) {
+    tags.push({ property: "article:published_time", content: String(post.publishedAt) });
+  }
+  if (post.updatedAt) {
+    tags.push({ property: "article:modified_time", content: String(post.updatedAt) });
+  }
+  if (post.category) {
+    tags.push({ property: "article:section", content: post.category.name });
+  }
+  if (post.author) {
+    tags.push({ property: "article:author", content: post.author.name });
+  }
 
   if (featuredImage) {
     tags.push(
@@ -144,11 +157,12 @@ export function meta({ loaderData }: Route.MetaArgs) {
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "675" },
       { property: "og:image:alt", content: post.title },
-      { name: "twitter:image", content: featuredImage }
+      { name: "twitter:image", content: featuredImage },
+      { name: "twitter:image:alt", content: post.title }
     );
   }
 
-  return tags;
+  return mergeMeta(matches, tags);
 }
 
 export default function BlogDetail({ loaderData }: Route.ComponentProps) {

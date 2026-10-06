@@ -7,11 +7,20 @@ import { InquiryForm } from "~/components/site/inquiry-form";
 import { sendWhatsAppNotification } from "~/lib/fonnte.server";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import { inquiryRateLimiter, checkRateLimit, getClientIp } from "~/lib/rate-limit.server";
+import { pageMeta } from "~/lib/meta";
 
 export function headers() {
   return {
     "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=600",
   };
+}
+
+export function meta({ matches }: Route.MetaArgs) {
+  return pageMeta(matches, {
+    title: "Hubungi Kami - Konsultasi Pembuatan Website | JadikanWeb",
+    description:
+      "Ada pertanyaan atau ingin konsultasi proyek website Anda? Isi form atau hubungi JadikanWeb langsung.",
+  });
 }
 
 export async function loader() {

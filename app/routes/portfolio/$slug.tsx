@@ -8,6 +8,7 @@ import { ArrowLeft, ExternalLink, X, ChevronLeft, ChevronRight } from "lucide-re
 import { richTextToHtml } from "~/components/site/rich-text-view";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
+import { mergeMeta } from "~/lib/meta";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
@@ -33,12 +34,35 @@ export async function loader({ params }: Route.LoaderArgs) {
   );
 }
 
-export function meta({ loaderData }: Route.MetaArgs) {
+export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.project) return [{ title: "Projek tidak ditemukan" }];
-  return [
-    { title: loaderData.project.title },
-    { name: "description", content: loaderData.project.summary ?? "" },
+
+  const { project } = loaderData;
+  const description = project.summary ?? "";
+  const image = project.coverImageUrl
+    ? resizeImage(project.coverImageUrl, 1200)
+    : undefined;
+
+  const tags: any[] = [
+    { title: project.title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:title", content: project.title },
+    { property: "og:description", content: description },
+    { name: "twitter:title", content: project.title },
+    { name: "twitter:description", content: description },
   ];
+
+  if (image) {
+    tags.push(
+      { property: "og:image", content: image },
+      { property: "og:image:alt", content: project.title },
+      { name: "twitter:image", content: image },
+      { name: "twitter:image:alt", content: project.title }
+    );
+  }
+
+  return mergeMeta(matches, tags);
 }
 
 type GalleryImage = {

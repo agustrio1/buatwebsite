@@ -1,6 +1,16 @@
 import { Link } from "react-router";
+import type { Route } from "./+types/index";
 import { servicePages } from "~/data/service-pages";
 import { ArrowRight } from "lucide-react";
+import { pageMeta } from "~/lib/meta";
+
+export function meta({ matches }: Route.MetaArgs) {
+  return pageMeta(matches, {
+    title: "Layanan Pembuatan Website dan Sistem Bisnis Custom | JadikanWeb",
+    description:
+      "Dari website profil sederhana hingga sistem bisnis custom. Pilih layanan JadikanWeb yang sesuai dengan kebutuhan Anda.",
+  });
+}
 
 export default function LayananIndex() {
   return (

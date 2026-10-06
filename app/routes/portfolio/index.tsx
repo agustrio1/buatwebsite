@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { projects } from "~/db/schema";
@@ -7,6 +7,7 @@ import { ExternalLink } from "lucide-react";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
+import { pageMeta } from "~/lib/meta";
 
 export function headers() {
   return {
@@ -14,8 +15,26 @@ export function headers() {
   };
 }
 
+export function meta({ loaderData, matches }: Route.MetaArgs) {
+  const page = loaderData?.currentPage ?? 1;
+  const suffix = page > 1 ? ` - Halaman ${page}` : "";
+  return pageMeta(matches, {
+    title: `Portofolio Projek Website Klien${suffix} | JadikanWeb`,
+    description:
+      "Kumpulan website yang sudah kami bangun untuk klien dari berbagai industri." +
+      (page > 1 ? ` Halaman ${page}.` : ""),
+    page,
+  });
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
+
+  // /projek?page=1 sama dengan /projek, redirect biar nggak duplikat
+  if (url.searchParams.get("page") === "1") {
+    throw redirect(url.pathname, 301);
+  }
+
   const page = parsePage(url.searchParams);
 
   const [{ value: totalItems }] = await db.select({ value: count() }).from(projects);
