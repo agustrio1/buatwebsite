@@ -1,4 +1,4 @@
-import { Link, redirect } from "react-router";
+import { Link } from "react-router";
 import type { Route } from "./+types/index";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
@@ -29,12 +29,6 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-
-  // /blog?page=1 sama dengan /blog, redirect biar nggak duplikat
-  if (url.searchParams.get("page") === "1") {
-    throw redirect(url.pathname, 301);
-  }
-
   const page = parsePage(url.searchParams);
 
   const [{ value: totalItems }] = await db
