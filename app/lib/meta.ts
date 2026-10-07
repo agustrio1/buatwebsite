@@ -13,6 +13,10 @@ function metaKey(tag: MetaTag): string | null {
  * mempertahankan tag dari route induk (og:image, robots, favicon, dst)
  * kecuali yang ditimpa oleh tag milik route ini.
  *
+ * Route tanpa export meta (mis. layout) mendapat salinan meta induknya,
+ * jadi tag root bisa muncul dobel di matches. Karena itu tag dengan key
+ * yang sama dipakai sekali saja, yang paling dekat ke route ini menang.
+ *
  * Pemakaian:
  *   export function meta({ matches }: Route.MetaArgs) {
  *     return mergeMeta(matches, [{ title: "..." }, ...]);
@@ -23,14 +27,16 @@ export function mergeMeta(matches: any[], own: MetaTag[]): MetaTag[] {
     own.map(metaKey).filter((key): key is string => key !== null)
   );
 
-  const inherited = matches
-    .flatMap((match) => (match?.meta ?? []) as MetaTag[])
-    .filter((tag) => {
+  const inherited = new Map<string, MetaTag>();
+  for (const match of matches) {
+    for (const tag of (match?.meta ?? []) as MetaTag[]) {
       const key = metaKey(tag);
-      return key === null || !ownKeys.has(key);
-    });
+      if (key !== null && ownKeys.has(key)) continue;
+      inherited.set(key ?? JSON.stringify(tag), tag);
+    }
+  }
 
-  return [...inherited, ...own];
+  return [...inherited.values(), ...own];
 }
 
 export function pageMeta(
