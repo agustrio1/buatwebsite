@@ -11,6 +11,7 @@ import type { JSONContent } from "@tiptap/react";
 import { checkRedirect } from "~/lib/redirects.server";
 import { getPublicSettings } from "~/lib/settings.server";
 import { mergeMeta } from "~/lib/meta";
+import type { FaqItem } from "~/lib/validation/post-seo";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
@@ -48,6 +49,14 @@ function addHeadingIdsAndToc(html: string): { html: string; toc: TocItem[] } {
   );
 
   return { html: newHtml, toc };
+}
+
+function absoluteUrl(origin: string, path: string) {
+  return /^https?:\/\//i.test(path) ? path : `${origin}${path}`;
+}
+
+function toIso(value: Date | string | null | undefined) {
+  return value ? new Date(value).toISOString() : undefined;
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -88,7 +97,92 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const siteName: string = general.siteName ?? "Nama Situs";
   const siteLogo: string | undefined = general.logoUrl ?? undefined;
 
-  const canonicalUrl = `${url.origin}/blog/${post.slug}`;
+  const origin = url.origin;
+  const canonicalUrl = post.canonicalUrl || `${origin}/blog/${post.slug}`;
+  const description = post.metaDescription || post.summary || "";
+
+  // Gambar OG: upload khusus > cover image
+  const ogImage = post.ogImageUrl
+    ? absoluteUrl(origin, post.ogImageUrl)
+    : post.coverImageUrl
+      ? absoluteUrl(origin, resizeImage(post.coverImageUrl, 1200))
+      : undefined;
+
+  const images = post.ogImageUrl
+    ? [absoluteUrl(origin, post.ogImageUrl)]
+    : post.coverImageUrl
+      ? [1200, 768, 480].map((w) => absoluteUrl(origin, resizeImage(post.coverImageUrl!, w)))
+      : undefined;
+
+  const faqs: FaqItem[] = Array.isArray(post.faqs)
+    ? (post.faqs as FaqItem[]).filter((f) => f?.question && f?.answer)
+    : [];
+
+  // ---- JSON-LD ----
+  const graph: Record<string, unknown>[] = [];
+
+  if (post.schemaType !== "None") {
+    graph.push({
+      "@type": post.schemaType,
+      "@id": `${canonicalUrl}#article`,
+      mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
+      headline: post.title,
+      description,
+      image: images,
+      datePublished: toIso(post.publishedAt ?? post.createdAt),
+      dateModified: toIso(post.updatedAt),
+      author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
+      publisher: {
+        "@type": "Organization",
+        name: siteName,
+        logo: { "@type": "ImageObject", url: siteLogo ?? `${origin}/logo.png` },
+      },
+      articleSection: post.category?.name,
+      url: canonicalUrl,
+      inLanguage: "id-ID",
+    });
+  }
+
+  graph.push({
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Beranda", item: origin },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${origin}/blog` },
+      { "@type": "ListItem", position: 3, name: post.title, item: canonicalUrl },
+    ],
+  });
+
+  if (faqs.length > 0) {
+    graph.push({
+      "@type": "FAQPage",
+      mainEntity: faqs.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: { "@type": "Answer", text: f.answer },
+      })),
+    });
+  }
+
+  if (post.customJsonLd) {
+    try {
+      const parsed = JSON.parse(post.customJsonLd);
+      const items = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.["@graph"])
+          ? parsed["@graph"]
+          : [parsed];
+      for (const item of items) {
+        if (item && typeof item === "object") {
+          const { "@context": _ctx, ...rest } = item as Record<string, unknown>;
+          graph.push(rest);
+        }
+      }
+    } catch {
+      // JSON-LD custom rusak: abaikan, jangan bikin halaman error
+    }
+  }
+
+  const jsonLd = { "@context": "https://schema.org", "@graph": graph };
 
   return createResponse(
     {
@@ -96,10 +190,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       contentHtml,
       toc,
       relatedPosts,
+      faqs,
+      jsonLd,
       canonicalUrl,
-      origin: url.origin,
+      description,
+      ogImage,
       siteName,
-      siteLogo,
     },
     {
       headers: {
@@ -114,12 +210,9 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     return [{ title: "Artikel tidak ditemukan" }];
   }
 
-  const { post, canonicalUrl, siteName } = loaderData;
-  const title = `${post.title} | ${siteName}`;
-  const description = post.summary ?? "";
-  const featuredImage = post.coverImageUrl
-    ? resizeImage(post.coverImageUrl, 1200)
-    : undefined;
+  const { post, canonicalUrl, siteName, description, ogImage } = loaderData;
+  const title = post.metaTitle || `${post.title} | ${siteName}`;
+  const socialTitle = post.metaTitle || post.title;
 
   const tags: any[] = [
     { title },
@@ -129,14 +222,18 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonicalUrl },
     { property: "og:type", content: "article" },
     { property: "og:site_name", content: siteName },
-    { property: "og:title", content: post.title },
+    { property: "og:title", content: socialTitle },
     { property: "og:description", content: description },
     { property: "og:url", content: canonicalUrl },
     { property: "og:locale", content: "id_ID" },
     { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: post.title },
+    { name: "twitter:title", content: socialTitle },
     { name: "twitter:description", content: description },
   ];
+
+  if (post.noindex) {
+    tags.push({ name: "robots", content: "noindex, nofollow" });
+  }
 
   if (post.publishedAt) {
     tags.push({ property: "article:published_time", content: String(post.publishedAt) });
@@ -151,15 +248,20 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     tags.push({ property: "article:author", content: post.author.name });
   }
 
-  if (featuredImage) {
+  if (ogImage) {
     tags.push(
-      { property: "og:image", content: featuredImage },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "675" },
+      { property: "og:image", content: ogImage },
       { property: "og:image:alt", content: post.title },
-      { name: "twitter:image", content: featuredImage },
+      { name: "twitter:image", content: ogImage },
       { name: "twitter:image:alt", content: post.title }
     );
+    // Dimensi hanya pasti kalau gambar berasal dari cover (di-resize 1200)
+    if (!post.ogImageUrl) {
+      tags.push(
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "675" }
+      );
+    }
   }
 
   return mergeMeta(matches, tags);
@@ -171,10 +273,8 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
     contentHtml = "",
     toc = [],
     relatedPosts = [],
-    canonicalUrl,
-    origin,
-    siteName,
-    siteLogo,
+    faqs = [],
+    jsonLd,
   } = loaderData;
 
   const [isTocOpen, setIsTocOpen] = useState(true);
@@ -190,47 +290,13 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
   const featuredSrc = post.coverImageUrl ? resizeImage(post.coverImageUrl, 1024) : undefined;
   const featuredSrcSet = post.coverImageUrl ? buildSrcSet(post.coverImageUrl, 1024) : undefined;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": canonicalUrl,
-    },
-    headline: post.title,
-    description: post.summary ?? "",
-    image: post.coverImageUrl
-      ? [
-          resizeImage(post.coverImageUrl, 1200),
-          resizeImage(post.coverImageUrl, 768),
-          resizeImage(post.coverImageUrl, 480),
-        ]
-      : undefined,
-    datePublished: post.publishedAt ?? post.createdAt,
-    dateModified: post.updatedAt,
-    author: post.author
-      ? {
-          "@type": "Person",
-          name: post.author.name,
-        }
-      : undefined,
-    publisher: {
-      "@type": "Organization",
-      name: siteName,
-      logo: {
-        "@type": "ImageObject",
-        url: siteLogo ?? `${origin}/logo.png`,
-      },
-    },
-    articleSection: post.category?.name,
-    url: canonicalUrl,
-  };
-
   return (
     <article className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       <Link to="/blog" prefetch="intent" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors mb-8">
@@ -318,6 +384,22 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
           className="prose prose-sm sm:prose-base max-w-none mt-8 [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24"
           dangerouslySetInnerHTML={{ __html: contentHtml }}
         />
+      )}
+
+      {faqs.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl md:text-2xl font-bold text-brand-dark">
+            Pertanyaan yang Sering Ditanyakan
+          </h2>
+          <div className="mt-5 space-y-3">
+            {faqs.map((f) => (
+              <details key={f.question} className="rounded-xl border border-slate-200 bg-white p-4">
+                <summary className="cursor-pointer font-medium text-brand-dark">{f.question}</summary>
+                <p className="text-sm text-slate-600 mt-3 leading-relaxed">{f.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
       )}
 
       {relatedPosts.length > 0 && (

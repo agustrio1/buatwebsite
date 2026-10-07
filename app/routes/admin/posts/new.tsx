@@ -3,11 +3,12 @@ import { Link } from "react-router";
 import { ArrowLeft, Eye } from "lucide-react";
 import type { Route } from "./+types/new";
 import { db } from "~/db";
-import { posts, categories } from "~/db/schema";
+import { posts } from "~/db/schema";
 import { uploadToR2 } from "~/lib/r2-server";
 import { requireAdmin } from "~/lib/session.server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
+import { parseSeoFields } from "~/lib/validation/post-seo";
 import { logActivity } from "~/lib/activity-log.server";
 
 export async function loader() {
@@ -27,8 +28,15 @@ export async function action({ request }: Route.ActionArgs) {
     status: formData.get("status"),
   });
 
-  if (!parsed.success) {
-    return { errors: flattenZodErrors(parsed.error) };
+  const seo = parseSeoFields(formData);
+
+  if (!parsed.success || Object.keys(seo.errors).length > 0) {
+    return {
+      errors: {
+        ...(parsed.success ? {} : flattenZodErrors(parsed.error)),
+        ...seo.errors,
+      },
+    };
   }
 
   const { title, slug, summary, categoryId, status } = parsed.data;
@@ -52,26 +60,49 @@ export async function action({ request }: Route.ActionArgs) {
     coverImageId = uploaded.key;
   }
 
-  const [inserted] = await db.insert(posts).values({
-  authorId: userId,
-  categoryId,
-  title,
-  slug,
-  summary,
-  contentRich,
-  status,
-  publishedAt: status === "published" ? new Date() : null,
-  coverImageUrl,
-  coverImageId,
-}).returning();
+  const ogFile = formData.get("ogImage") as File | null;
+  let ogImageUrl: string | null = null;
+  let ogImageId: string | null = null;
 
-await logActivity({
-  userId,
-  action: "create",
-  entityType: "post",
-  entityId: inserted.id,
-  entityLabel: title,
-});
+  if (ogFile && ogFile.size > 0) {
+    const buffer = Buffer.from(await ogFile.arrayBuffer());
+    const uploaded = await uploadToR2(buffer, ogFile.name, "posts/og", ogFile.type);
+    ogImageUrl = uploaded.url;
+    ogImageId = uploaded.key;
+  }
+
+  const [inserted] = await db
+    .insert(posts)
+    .values({
+      authorId: userId,
+      categoryId,
+      title,
+      slug,
+      summary,
+      contentRich,
+      status,
+      publishedAt: status === "published" ? new Date() : null,
+      coverImageUrl,
+      coverImageId,
+      ogImageUrl,
+      ogImageId,
+      metaTitle: seo.values.metaTitle,
+      metaDescription: seo.values.metaDescription,
+      canonicalUrl: seo.values.canonicalUrl,
+      noindex: seo.values.noindex,
+      schemaType: seo.values.schemaType,
+      faqs: seo.values.faqs,
+      customJsonLd: seo.values.customJsonLd,
+    })
+    .returning();
+
+  await logActivity({
+    userId,
+    action: "create",
+    entityType: "post",
+    entityId: inserted.id,
+    entityLabel: title,
+  });
 
   return redirect("/admin/posts");
 }

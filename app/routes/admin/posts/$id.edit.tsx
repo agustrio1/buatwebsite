@@ -8,6 +8,7 @@ import { eq, and, ne } from "drizzle-orm";
 import { uploadToR2, deleteFromR2 } from "~/lib/r2-server";
 import { PostForm } from "~/components/admin/post-form";
 import { postSchema, flattenZodErrors } from "~/lib/validation/post";
+import { parseSeoFields, type FaqItem, type SchemaType } from "~/lib/validation/post-seo";
 import type { JSONContent } from "@tiptap/react";
 import { logActivity } from "~/lib/activity-log.server";
 
@@ -30,8 +31,15 @@ export async function action({ request, params }: Route.ActionArgs) {
     status: formData.get("status"),
   });
 
-  if (!parsed.success) {
-    return { errors: flattenZodErrors(parsed.error) };
+  const seo = parseSeoFields(formData);
+
+  if (!parsed.success || Object.keys(seo.errors).length > 0) {
+    return {
+      errors: {
+        ...(parsed.success ? {} : flattenZodErrors(parsed.error)),
+        ...seo.errors,
+      },
+    };
   }
 
   const { title, slug, summary, categoryId, status } = parsed.data;
@@ -57,6 +65,13 @@ export async function action({ request, params }: Route.ActionArgs) {
     contentRich,
     updatedAt: new Date(),
     publishedAt: status === "published" ? (existing?.publishedAt ?? new Date()) : null,
+    metaTitle: seo.values.metaTitle,
+    metaDescription: seo.values.metaDescription,
+    canonicalUrl: seo.values.canonicalUrl,
+    noindex: seo.values.noindex,
+    schemaType: seo.values.schemaType,
+    faqs: seo.values.faqs,
+    customJsonLd: seo.values.customJsonLd,
   };
 
   const coverFile = formData.get("coverImage") as File | null;
@@ -68,14 +83,27 @@ export async function action({ request, params }: Route.ActionArgs) {
     updates.coverImageId = uploaded.key;
   }
 
+  const ogFile = formData.get("ogImage") as File | null;
+  if (ogFile && ogFile.size > 0) {
+    await deleteFromR2(existing?.ogImageId);
+    const buffer = Buffer.from(await ogFile.arrayBuffer());
+    const uploaded = await uploadToR2(buffer, ogFile.name, "posts/og", ogFile.type);
+    updates.ogImageUrl = uploaded.url;
+    updates.ogImageId = uploaded.key;
+  } else if (formData.get("removeOgImage") === "1") {
+    await deleteFromR2(existing?.ogImageId);
+    updates.ogImageUrl = null;
+    updates.ogImageId = null;
+  }
+
   await db.update(posts).set(updates).where(eq(posts.id, params.id));
 
   await logActivity({
-  action: "update",
-  entityType: "post",
-  entityId: params.id,
-  entityLabel: title,
-});
+    action: "update",
+    entityType: "post",
+    entityId: params.id,
+    entityLabel: title,
+  });
 
   return redirect("/admin/posts");
 }
@@ -124,6 +152,14 @@ export default function EditPost({ loaderData, actionData }: Route.ComponentProp
             categoryId: post.categoryId,
             status: post.status,
             coverImageUrl: post.coverImageUrl,
+            metaTitle: post.metaTitle,
+            metaDescription: post.metaDescription,
+            ogImageUrl: post.ogImageUrl,
+            canonicalUrl: post.canonicalUrl,
+            noindex: post.noindex,
+            schemaType: post.schemaType as SchemaType,
+            faqs: (post.faqs as FaqItem[] | null) ?? [],
+            customJsonLd: post.customJsonLd,
           }}
         />
       </div>

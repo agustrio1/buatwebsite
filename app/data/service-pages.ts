@@ -10,6 +10,8 @@ export type ServicePage = {
   title: string;
   metaTitle: string;
   metaDesc: string;
+  // Path relatif (diawali /) atau URL penuh. Dipakai untuk og:image.
+  ogImage?: string;
   keywords: string[];
   shortDesc: string;
   intro: string;
@@ -28,6 +30,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Pembuatan Website Company Profile Profesional",
     metaTitle: "Jasa Pembuatan Website Company Profile Profesional & SEO",
     metaDesc: "Buat website company profile profesional, cepat, dan SEO-friendly. Tingkatkan kredibilitas & branding bisnis Anda secara online. Konsultasi gratis!",
+    ogImage: "/og/company-profile.jpg",
     keywords: [
       "jasa website company profile",
       "buat website profil perusahaan",
@@ -52,6 +55,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Pembuatan Sistem ERP & POS Kasir Custom",
     metaTitle: "Jasa Pembuatan Sistem ERP & POS Custom Berbasis Web",
     metaDesc: "Pengembangan sistem ERP & POS kasir berbasis web custom. Kelola inventori, keuangan, dan operasional bisnis secara efisien & real-time.",
+    ogImage: "/og/sistem-erp-pos.jpg",
     keywords: [
       "jasa pembuatan sistem erp",
       "sistem pos custom berbasis web",
@@ -76,6 +80,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Pembuatan Website Toko Online / E-Commerce",
     metaTitle: "Jasa Pembuatan Toko Online E-Commerce Siap Pakai & Cepat",
     metaDesc: "Toko online e-commerce modern terintegrasi payment gateway & cek ongkir otomatis. Tingkatkan omzet penjualan 24/7. Cek penawarannya!",
+    ogImage: "/og/toko-online.jpg",
     keywords: [
       "jasa toko online e-commerce",
       "buat web e-commerce custom",
@@ -100,6 +105,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Pembuatan Landing Page High-Conversion",
     metaTitle: "Jasa Pembuatan Landing Page Cepat & High Conversion",
     metaDesc: "Tingkatkan hasil iklan Ads dengan landing page berkonversi tinggi. Copywriting persuasif, loading cepat & integrasi tracking lengkap.",
+    ogImage: "/og/landing-page.jpg",
     keywords: [
       "jasa buat landing page",
       "landing page iklan google ads",
@@ -124,6 +130,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Pembuatan Website Custom Framework & Web App",
     metaTitle: "Jasa Pembuatan Website Custom Framework & Aplikasi Web",
     metaDesc: "Pengembangan website custom & aplikasi web dengan Laravel, React, atau Next.js. Solusi teknis scalable sesuai spesifikasi bisnis.",
+    ogImage: "/og/website-custom.jpg",
     keywords: [
       "jasa website custom",
       "web app development indonesia",
@@ -148,6 +155,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Maintenance & Pemeliharaan Website Berkala",
     metaTitle: "Jasa Maintenance Website Profesional, Aman & Terawat",
     metaDesc: "Layanan maintenance website berkala: backup data, update keamanan, perbaikan bug, & optimasi performa agar web selalu lancar.",
+    ogImage: "/og/maintenance-website.jpg",
     keywords: [
       "jasa maintenance website",
       "pemeliharaan web berkala",
@@ -172,6 +180,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Redesign Website & UI/UX Modern",
     metaTitle: "Jasa Redesign Website & UI/UX Modern Berbasis Data",
     metaDesc: "Ubah tampilan website lama menjadi lebih modern, responsif, & mudah digunakan. Tingkatkan brand image dan kenyamanan pengunjung.",
+    ogImage: "/og/redesign-ui-ux.jpg",
     keywords: [
       "jasa redesign website",
       "desain ulang tampilan web",
@@ -196,6 +205,7 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Optimasi Kecepatan Website & Core Web Vitals",
     metaTitle: "Jasa Optimasi Kecepatan Website, PageSpeed & Core Web Vitals",
     metaDesc: "Website lambat? Percepat loading & perbaiki skor PageSpeed Insights serta Core Web Vitals (LCP, INP, CLS). Ada laporan sebelum–sesudah. Konsultasi gratis.",
+    ogImage: "/og/optimasi-kecepatan.jpg",
     keywords: [
       "jasa optimasi kecepatan website",
       "jasa mempercepat website",

@@ -6,6 +6,11 @@ import { ArrowRight, ChevronRight, Check, MessageCircle } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { mergeMeta } from "~/lib/meta";
 
+function absoluteUrl(origin: string, path?: string) {
+  if (!path) return undefined;
+  return /^https?:\/\//.test(path) ? path : `${origin}${path}`;
+}
+
 export function loader({ params, request }: Route.LoaderArgs) {
   const service = servicePages.find((s) => s.slug === params.slug);
   if (!service) throw new Response("Not found", { status: 404 });
@@ -21,8 +26,10 @@ export function loader({ params, request }: Route.LoaderArgs) {
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.service) return [{ title: "Layanan tidak ditemukan" }];
-  const { service, canonical } = loaderData;
-  return mergeMeta(matches, [
+  const { service, canonical, origin } = loaderData;
+  const image = absoluteUrl(origin, service.ogImage);
+
+  const tags: any[] = [
     { title: service.metaTitle },
     { name: "description", content: service.metaDesc },
     { tagName: "link", rel: "canonical", href: canonical },
@@ -34,7 +41,20 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     { property: "og:url", content: canonical },
     { name: "twitter:title", content: service.metaTitle },
     { name: "twitter:description", content: service.metaDesc },
-  ]);
+  ];
+
+  if (image) {
+    tags.push(
+      { property: "og:image", content: image },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:alt", content: service.title },
+      { name: "twitter:image", content: image },
+      { name: "twitter:image:alt", content: service.title }
+    );
+  }
+
+  return mergeMeta(matches, tags);
 }
 
 function Block({ heading, children }: { heading: string; children: ReactNode }) {
@@ -77,6 +97,8 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
     .map((slug) => servicePages.find((s) => s.slug === slug))
     .filter((s): s is ServicePage => Boolean(s));
 
+  const image = absoluteUrl(origin, service.ogImage);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -86,6 +108,7 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
         serviceType: service.title,
         description: service.metaDesc,
         url: canonical,
+        image,
         areaServed: { "@type": "Country", name: "Indonesia" },
         provider: { "@type": "Organization", name: host, url: origin },
       },

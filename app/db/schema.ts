@@ -108,6 +108,17 @@ export const posts = pgTable('posts', {
   coverImageUrl: varchar('cover_image_url', { length: 500 }),
   coverImageId: varchar('cover_image_id', { length: 255 }),
 
+  // SEO
+  metaTitle: varchar('meta_title', { length: 255 }),
+  metaDescription: text('meta_description'),
+  ogImageUrl: varchar('og_image_url', { length: 500 }),
+  ogImageId: varchar('og_image_id', { length: 255 }),
+  canonicalUrl: varchar('canonical_url', { length: 500 }),
+  noindex: boolean('noindex').default(false).notNull(),
+  schemaType: varchar('schema_type', { length: 50 }).default('BlogPosting').notNull(),
+  faqs: jsonb('faqs'), // array [{question, answer}]
+  customJsonLd: text('custom_json_ld'),
+
   status: postStatusEnum('status').default('draft').notNull(),
   publishedAt: timestamp('published_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
