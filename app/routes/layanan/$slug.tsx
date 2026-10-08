@@ -11,6 +11,17 @@ function absoluteUrl(origin: string, path?: string) {
   return /^https?:\/\//.test(path) ? path : `${origin}${path}`;
 }
 
+function formatDateId(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function loader({ params, request }: Route.LoaderArgs) {
   const service = servicePages.find((s) => s.slug === params.slug);
   if (!service) throw new Response("Not found", { status: 404 });
@@ -26,16 +37,20 @@ export function loader({ params, request }: Route.LoaderArgs) {
 
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.service) return [{ title: "Layanan tidak ditemukan" }];
-  const { service, canonical, origin } = loaderData;
+  const { service, canonical, origin, host } = loaderData;
   const image = absoluteUrl(origin, service.ogImage);
 
   const tags: any[] = [
     { title: service.metaTitle },
     { name: "description", content: service.metaDesc },
+    {
+      name: "robots",
+      content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+    },
     { tagName: "link", rel: "canonical", href: canonical },
-    { tagName: "link", rel: "alternate", hrefLang: "id", href: canonical },
-    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonical },
     { property: "og:type", content: "website" },
+    { property: "og:locale", content: "id_ID" },
+    { property: "og:site_name", content: host },
     { property: "og:title", content: service.metaTitle },
     { property: "og:description", content: service.metaDesc },
     { property: "og:url", content: canonical },
@@ -45,6 +60,7 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
 
   if (image) {
     tags.push(
+      { name: "twitter:card", content: "summary_large_image" },
       { property: "og:image", content: image },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
@@ -99,21 +115,63 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
 
   const image = absoluteUrl(origin, service.ogImage);
 
+  const orgId = `${origin}/#organization`;
+  const siteId = `${origin}/#website`;
+  const pageId = `${canonical}#webpage`;
+  const serviceId = `${canonical}#service`;
+  const breadcrumbId = `${canonical}#breadcrumb`;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "Organization",
+        "@id": orgId,
+        name: host,
+        url: origin,
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer service",
+          url: waLink,
+          availableLanguage: "id",
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": siteId,
+        url: origin,
+        name: host,
+        inLanguage: "id-ID",
+        publisher: { "@id": orgId },
+      },
+      {
+        "@type": "WebPage",
+        "@id": pageId,
+        url: canonical,
+        name: service.metaTitle,
+        description: service.metaDesc,
+        inLanguage: "id-ID",
+        isPartOf: { "@id": siteId },
+        breadcrumb: { "@id": breadcrumbId },
+        about: { "@id": serviceId },
+        ...(image ? { primaryImageOfPage: { "@type": "ImageObject", url: image } } : {}),
+        ...(service.updatedAt ? { dateModified: service.updatedAt } : {}),
+      },
+      {
         "@type": "Service",
+        "@id": serviceId,
         name: service.title,
         serviceType: service.title,
         description: service.metaDesc,
         url: canonical,
         image,
         areaServed: { "@type": "Country", name: "Indonesia" },
-        provider: { "@type": "Organization", name: host, url: origin },
+        provider: { "@id": orgId },
+        mainEntityOfPage: { "@id": pageId },
       },
       {
         "@type": "BreadcrumbList",
+        "@id": breadcrumbId,
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Beranda", item: origin },
           { "@type": "ListItem", position: 2, name: "Layanan", item: `${origin}/layanan` },
@@ -124,6 +182,8 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
         ? [
             {
               "@type": "FAQPage",
+              "@id": `${canonical}#faq`,
+              isPartOf: { "@id": pageId },
               mainEntity: service.faqs.map((f) => ({
                 "@type": "Question",
                 name: f.q,
@@ -144,19 +204,24 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
         }}
       />
 
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-1.5 text-sm text-slate-500 mb-8 min-w-0"
-      >
-        <Link to="/" className="hover:text-brand-600 transition-colors">
-          Beranda
-        </Link>
-        <ChevronRight size={14} className="shrink-0" />
-        <Link to="/layanan" className="hover:text-brand-600 transition-colors">
-          Layanan
-        </Link>
-        <ChevronRight size={14} className="shrink-0" />
-        <span className="truncate text-slate-400">{service.title}</span>
+      <nav aria-label="Breadcrumb" className="mb-8 min-w-0">
+        <ol className="flex items-center gap-1.5 text-sm text-slate-500">
+          <li>
+            <Link to="/" className="hover:text-brand-600 transition-colors">
+              Beranda
+            </Link>
+          </li>
+          <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+          <li>
+            <Link to="/layanan" className="hover:text-brand-600 transition-colors">
+              Layanan
+            </Link>
+          </li>
+          <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+          <li className="truncate text-slate-400" aria-current="page">
+            {service.title}
+          </li>
+        </ol>
       </nav>
 
       <h1 className="text-2xl md:text-4xl font-bold text-brand-dark leading-tight">
@@ -164,9 +229,25 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
       </h1>
       <p className="text-lg text-slate-500 mt-4 leading-relaxed">{service.shortDesc}</p>
 
+      {service.updatedAt && (
+        <p className="text-sm text-slate-400 mt-3">
+          Diperbarui:{" "}
+          <time dateTime={service.updatedAt}>{formatDateId(service.updatedAt)}</time>
+        </p>
+      )}
+
       <div className="mt-6">
         <WaButton href={waLink} />
       </div>
+
+      {service.answer && (
+        <section className="mt-10">
+          <h2 className="text-xl md:text-2xl font-bold text-brand-dark">
+            {service.answer.heading}
+          </h2>
+          <p className="text-slate-700 leading-relaxed mt-3">{service.answer.text}</p>
+        </section>
+      )}
 
       <p className="text-slate-600 leading-relaxed mt-10">{service.intro}</p>
 

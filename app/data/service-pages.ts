@@ -12,8 +12,12 @@ export type ServicePage = {
   metaDesc: string;
   // Path relatif (diawali /) atau URL penuh. Dipakai untuk og:image.
   ogImage?: string;
+  // Format YYYY-MM-DD. Dipakai untuk dateModified di schema + teks "Diperbarui" di halaman.
+  updatedAt?: string;
   keywords: string[];
   shortDesc: string;
+  // Opsional: jawaban langsung 40-60 kata (untuk AEO / AI Overview)
+  answer?: { heading: string; text: string };
   intro: string;
   features: string[];
   // Opsional: dirender di halaman kalau diisi
@@ -206,6 +210,7 @@ export const servicePages: ServicePage[] = [
     metaTitle: "Jasa Optimasi Kecepatan Website, PageSpeed & Core Web Vitals",
     metaDesc: "Website lambat? Percepat loading & perbaiki skor PageSpeed Insights serta Core Web Vitals (LCP, INP, CLS). Ada laporan sebelum–sesudah. Konsultasi gratis.",
     ogImage: "/og/optimasi-kecepatan.jpg",
+    updatedAt: "2026-10-08",
     keywords: [
       "jasa optimasi kecepatan website",
       "jasa mempercepat website",
@@ -216,8 +221,12 @@ export const servicePages: ServicePage[] = [
       "perbaiki skor pagespeed insights"
     ],
     shortDesc: "Website lambat membuat pengunjung pergi sebelum halaman selesai dimuat. Kami mempercepat website Anda dan memperbaiki skor PageSpeed Insights serta Core Web Vitals berdasarkan hasil audit, bukan tebakan.",
+    answer: {
+      heading: "Apa itu jasa optimasi kecepatan website?",
+      text: "Jasa optimasi kecepatan website adalah proses mengukur penyebab website lambat, lalu memperbaikinya: gambar, JavaScript, font, skrip pihak ketiga, caching, dan respons server. Targetnya Core Web Vitals berstatus Baik (LCP ≤ 2,5 detik, INP ≤ 200 ms, CLS ≤ 0,1) dan skor PageSpeed Insights yang ikut membaik."
+    },
     intro:
-      "Website yang lambat membuat pengunjung pergi sebelum sempat membaca penawaran Anda, dan anggaran iklan ikut terbuang untuk klik yang tidak berubah menjadi prospek. Kami mempercepat website dengan pendekatan berbasis data: mengukur kondisi awal, mencari penyebab lambat yang sebenarnya, memperbaiki yang paling berdampak, lalu mengukur ulang. Core Web Vitals memang salah satu sinyal pengalaman halaman di Google, tetapi manfaat yang paling terasa biasanya ada di pengunjung yang bertahan lebih lama dan konversi yang lebih baik.",
+      "Website yang lambat membuat pengunjung pergi sebelum sempat membaca penawaran Anda, dan anggaran iklan ikut terbuang untuk klik yang tidak berubah menjadi prospek. Kami mempercepat website dan memperbaiki skor PageSpeed dengan pendekatan berbasis data: mengukur kondisi awal, mencari penyebab lambat yang sebenarnya, memperbaiki yang paling berdampak, lalu mengukur ulang. Core Web Vitals memang salah satu sinyal pengalaman halaman di Google, tetapi manfaat yang paling terasa biasanya ada di pengunjung yang bertahan lebih lama dan konversi yang lebih baik.",
     features: [
       "Audit awal: PageSpeed Insights (mobile & desktop), GTmetrix, dan data lapangan Core Web Vitals di Search Console bila tersedia",
       "Perbaikan LCP, INP, dan CLS sesuai penyebab nyata di website Anda",
