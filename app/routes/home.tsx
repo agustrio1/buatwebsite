@@ -20,6 +20,7 @@ import { BriefForm } from "~/components/site/brief-form";
 function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg
+      aria-hidden="true"
       className={`shrink-0 fill-current ${className}`}
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
@@ -27,6 +28,11 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
       <path d="M12.012 2C6.486 2 2 6.479 2 12.005c0 2.13.663 4.106 1.794 5.733L2 22l4.406-1.748A9.957 9.957 0 0012.012 22c5.527 0 10.013-4.479 10.013-9.995C22.025 6.479 17.539 2 12.012 2zm0 18.232c-1.802 0-3.486-.487-4.938-1.339l-.354-.208-2.617 1.038.988-2.505-.23-.365A8.183 8.183 0 013.8 12.005c0-4.528 3.684-8.212 8.212-8.212 4.528 0 8.213 3.684 8.213 8.212 0 4.528-3.685 8.227-8.213 8.227zm4.502-6.155c-.247-.124-1.463-.722-1.69-.804-.227-.083-.392-.124-.557.124-.165.247-.64.804-.784.97-.144.165-.289.185-.536.062-.247-.124-1.044-.385-1.988-1.227-.735-.656-1.232-1.465-1.376-1.712-.144-.247-.015-.381.108-.504.111-.11.247-.289.371-.433.124-.144.165-.247.247-.412.083-.165.042-.31-.02-.433-.062-.124-.557-1.341-.763-1.836-.2-.482-.404-.417-.557-.425-.144-.008-.31-.008-.475-.008s-.433.062-.66.31c-.227.247-.866.846-.866 2.064 0 1.217.887 2.393 1.011 2.558.124.165 1.745 2.664 4.229 3.738.591.255 1.053.407 1.412.521.593.188 1.133.162 1.56.098.476-.071 1.463-.598 1.669-1.176.206-.578.206-1.073.144-1.176-.062-.103-.227-.185-.474-.309z" />
     </svg>
   );
+}
+
+// Escape "<" supaya data dari DB tidak bisa menutup tag <script>
+function safeJsonLd(data: unknown) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
 export function headers() {
@@ -86,46 +92,48 @@ const processSteps = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Rina Wijaya",
-    role: "Owner, Toko Kue Rina",
-    quote:
-      "Yang paling kerasa itu pelanggan udah nggak nanya-nanya harga lewat DM lagi, tinggal buka menu di website. Ngurangin kerjaan admin lumayan banyak.",
-    rating: 5,
-  },
-  {
-    name: "Doni Prasetyo",
-    role: "Founder, Doni Konveksi",
-    quote:
-      "Sempat ragu perlu website apa nggak buat konveksi. Tapi sekarang kalau ada calon klien nanya portofolio, tinggal kasih link, nggak perlu kirim PDF satu-satu lagi.",
-    rating: 5,
-  },
-  {
-    name: "Melati Sari",
-    role: "Manajer, Klinik Melati",
-    quote:
-      "Proses bolak-balik revisi jadwal booking-nya agak lama di awal, tapi hasil akhirnya sesuai kebutuhan kami. Sekarang pasien bisa cek jadwal dokter sendiri tanpa telepon.",
-    rating: 4,
-  },
-];
+type Testimonial = {
+  name: string;
+  role: string;
+  quote: string;
+  rating: number;
+};
+
+// Isi hanya dengan testimoni klien asli. Selama kosong, section testimoni tidak ditampilkan.
+const testimonials: Testimonial[] = [];
 
 const faqs = [
   {
     q: "Berapa lama waktu pengerjaan website?",
-    a: "Landing page atau website sederhana bisa selesai 1–2 hari kerja. Company profile multi-halaman sekitar 3–5 hari kerja. Sistem custom menyesuaikan kompleksitas fitur.",
-  },
-  {
-    q: "Apakah bisa request revisi?",
-    a: "Bisa. Ada jatah revisi di setiap paket, dan kami diskusikan dulu sebelum mulai kerja supaya arahnya jelas.",
+    a: "Landing page atau website sederhana bisa selesai 1–2 hari kerja, company profile multi-halaman sekitar 3–5 hari kerja. Waktu dihitung sejak materi (teks, logo, foto) lengkap kami terima. Untuk sistem custom, estimasi diberikan setelah kebutuhan fitur dibahas.",
   },
   {
     q: "Apakah sudah termasuk domain dan hosting?",
-    a: "Tergantung paket. Beberapa paket sudah termasuk domain dan hosting gratis periode tertentu — detailnya ada di tiap paket harga.",
+    a: "Paket Starter dan Pro sudah termasuk domain dan hosting gratis untuk tahun pertama. Untuk tahun berikutnya ada biaya perpanjangan, dan kami infokan jelas sebelum kesepakatan supaya tidak ada biaya mendadak. Untuk paket Custom, kebutuhan hosting disesuaikan dengan sistemnya.",
+  },
+  {
+    q: "Apa yang perlu saya siapkan sebelum mulai?",
+    a: "Yang paling membantu: logo (kalau ada), teks tentang bisnis dan layanan Anda, foto produk atau usaha, serta contoh website yang Anda sukai. Kalau belum lengkap, kami bantu arahkan saat konsultasi.",
+  },
+  {
+    q: "Apakah bisa request revisi?",
+    a: "Bisa. Jumlah dan batas revisi kami sepakati di awal sebelum pengerjaan dimulai, supaya arahnya jelas untuk kedua pihak.",
   },
   {
     q: "Bisa dikelola sendiri setelah website jadi?",
-    a: "Bisa. Kami sediakan panduan pemakaian, dan website dibuat agar mudah diubah tanpa harus paham coding.",
+    a: "Bisa. Kami sediakan panduan pemakaian dan website dibuat agar teks serta gambar mudah diubah tanpa harus paham coding.",
+  },
+  {
+    q: "Apakah bisa dibuatkan sistem custom seperti CRM, ERP, atau booking?",
+    a: "Bisa. Kami mengerjakan sistem bisnis custom seperti CRM, ERP/keuangan, toko online dengan pembayaran dan ekspedisi, serta sistem booking. Contohnya bisa dilihat di bagian demo di atas. Ceritakan alur kerja bisnis Anda lewat konsultasi, lalu kami usulkan fitur yang sesuai.",
+  },
+  {
+    q: "Apakah proyek di bagian demo itu milik klien?",
+    a: "Bukan. Proyek di bagian demo adalah sistem yang kami bangun sendiri untuk menunjukkan kemampuan teknis kami. Anda bisa mencobanya langsung untuk melihat cara kerjanya sebelum memutuskan.",
+  },
+  {
+    q: "Apakah konsultasi awal berbayar?",
+    a: "Tidak. Konsultasi lewat WhatsApp gratis dan tanpa komitmen. Kami dengarkan kebutuhan Anda dulu, lalu berikan saran dan estimasi.",
   },
 ];
 
@@ -207,20 +215,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
       {servicesJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(servicesJsonLd) }}
         />
       )}
 
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
 
       {blogJsonLd.map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
 
@@ -259,7 +267,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   href="#projek"
                   className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
                 >
-                  Lihat Portofio
+                  Lihat Demo Proyek
                   <ArrowRight size={16} />
                 </a>
               )}
@@ -267,7 +275,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
             {projectsCount > 0 && (
               <p className="mt-5 text-sm text-slate-400">
-                Berbagai solusi digital telah kami bangun untuk kebutuhan bisnis.
+                Contoh sistem bisnis yang kami bangun sebagai demo kemampuan.
               </p>
             )}
           </div>
@@ -317,9 +325,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
                 Harga
               </span>
-              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
-                Paket Harga Terbaik
-              </h2>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">Paket & Harga</h2>
               <p className="mt-2 text-slate-500">
                 Pilih paket yang sesuai dengan kebutuhan bisnis Anda.
               </p>
@@ -423,9 +429,15 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
-                Portofolio
+                Showcase
               </span>
-              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">Karya Terbaik Kami</h2>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Demo Sistem Buatan Kami
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Proyek di bawah adalah demo yang kami bangun sendiri untuk menunjukkan kemampuan
+                teknis, bukan hasil kerja untuk klien tertentu.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -451,7 +463,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
                   <div className="p-5">
                     <h3 className="font-semibold text-brand-dark">{p.title}</h3>
-                    {p.clientName && <p className="mt-0.5 text-sm text-slate-400">{p.clientName}</p>}
+                    {features.showClientName === true && p.clientName && (
+                      <p className="mt-0.5 text-sm text-slate-400">{p.clientName}</p>
+                    )}
 
                     {p.techStack && p.techStack.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -476,47 +490,67 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 </Link>
               ))}
             </div>
+
+            {projectsCount > projects.length && (
+              <div className="mt-10 text-center">
+                <Link
+                  to="/projek"
+                  prefetch="intent"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+                >
+                  Lihat semua proyek
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            )}
           </div>
         </section>
       )}
 
-      <section>
-        <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
-              Testimoni
-            </span>
-            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">Apa Kata Klien Kami</h2>
-          </div>
+      {testimonials.length > 0 && (
+        <section>
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Testimoni
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Apa Kata Klien Kami
+              </h2>
+            </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-2xl border border-slate-200 bg-white p-6">
-                <div className="mb-4 flex gap-0.5">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} size={14} className="fill-brand-500 text-brand-500" />
-                  ))}
-                  {Array.from({ length: 5 - t.rating }).map((_, i) => (
-                    <Star key={`empty-${i}`} size={14} className="text-slate-200" />
-                  ))}
-                </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {testimonials.map((t) => {
+                const rating = Math.min(5, Math.max(0, t.rating));
+                return (
+                  <div key={t.name} className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <div className="mb-4 flex gap-0.5" role="img" aria-label={`Rating ${rating} dari 5`}>
+                      {Array.from({ length: rating }).map((_, i) => (
+                        <Star key={i} size={14} className="fill-brand-500 text-brand-500" />
+                      ))}
+                      {Array.from({ length: 5 - rating }).map((_, i) => (
+                        <Star key={`empty-${i}`} size={14} className="text-slate-200" />
+                      ))}
+                    </div>
 
-                <p className="text-sm leading-relaxed text-slate-600">{t.quote}</p>
+                    <p className="text-sm leading-relaxed text-slate-600">{t.quote}</p>
 
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-                    {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                    <div className="mt-5 flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                        {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-brand-dark">{t.name}</p>
+                        <p className="text-xs text-slate-400">{t.role}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-brand-dark">{t.name}</p>
-                    <p className="text-xs text-slate-400">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section>
         <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
@@ -536,19 +570,30 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 <div key={item.q}>
                   <button
                     type="button"
+                    id={`faq-button-${i}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`faq-panel-${i}`}
                     onClick={() => setOpenFaq(isOpen ? null : i)}
                     className="flex w-full items-center justify-between gap-4 py-5 text-left"
                   >
                     <span className="font-medium text-brand-dark">{item.q}</span>
                     <ChevronDown
                       size={18}
+                      aria-hidden="true"
                       className={`shrink-0 text-slate-400 transition-transform ${
                         isOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
                   {isOpen && (
-                    <p className="pb-5 text-sm leading-relaxed text-slate-500">{item.a}</p>
+                    <p
+                      id={`faq-panel-${i}`}
+                      role="region"
+                      aria-labelledby={`faq-button-${i}`}
+                      className="pb-5 text-sm leading-relaxed text-slate-500"
+                    >
+                      {item.a}
+                    </p>
                   )}
                 </div>
               );
@@ -571,43 +616,58 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             </div>
 
             {posts.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {posts.map((post) => (
-                  <Link
-                    key={post.id}
-                    to={`/blog/${post.slug}`}
-                    prefetch="intent"
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
-                  >
-                    <div className="aspect-video overflow-hidden bg-slate-100">
-                      {post.coverImageUrl && (
-                        <img
-                          src={resizeImage(post.coverImageUrl, 640) ?? undefined}
-                          srcSet={buildSrcSet(post.coverImageUrl, 640) ?? undefined}
-                          sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
-                          alt={post.title}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      )}
-                    </div>
+              <>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                  {posts.map((post) => (
+                    <Link
+                      key={post.id}
+                      to={`/blog/${post.slug}`}
+                      prefetch="intent"
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <div className="aspect-video overflow-hidden bg-slate-100">
+                        {post.coverImageUrl && (
+                          <img
+                            src={resizeImage(post.coverImageUrl, 640) ?? undefined}
+                            srcSet={buildSrcSet(post.coverImageUrl, 640) ?? undefined}
+                            sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                            alt={post.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        )}
+                      </div>
 
-                    <div className="p-5">
-                      {post.category && (
-                        <span className="text-xs font-medium text-brand-600">
-                          {post.category.name}
-                        </span>
-                      )}
-                      <h3 className="mt-1.5 line-clamp-2 font-semibold text-brand-dark">
-                        {post.title}
-                      </h3>
-                      {post.summary && (
-                        <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">{post.summary}</p>
-                      )}
-                    </div>
+                      <div className="p-5">
+                        {post.category && (
+                          <span className="text-xs font-medium text-brand-600">
+                            {post.category.name}
+                          </span>
+                        )}
+                        <h3 className="mt-1.5 line-clamp-2 font-semibold text-brand-dark">
+                          {post.title}
+                        </h3>
+                        {post.summary && (
+                          <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">
+                            {post.summary}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="mt-10 text-center">
+                  <Link
+                    to="/blog"
+                    prefetch="intent"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+                  >
+                    Lihat semua artikel
+                    <ArrowRight size={16} />
                   </Link>
-                ))}
-              </div>
+                </div>
+              </>
             ) : (
               <p className="text-center text-sm text-slate-400">Artikel akan segera hadir.</p>
             )}
