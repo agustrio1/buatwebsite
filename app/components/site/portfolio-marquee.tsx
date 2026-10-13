@@ -7,7 +7,8 @@ export type PortfolioProject = {
 };
 
 // Lebar kandidat srcset. Browser memilih yang pas dengan `sizes` x DPR layar.
-const MARQUEE_WIDTHS = [480, 720, 960, 1280] as const;
+// 560w ditambahkan supaya HP (320px x DPR 1.75 = 560) tidak loncat ke 720w.
+const MARQUEE_WIDTHS = [480, 560, 720, 960, 1280] as const;
 const DEFAULT_WIDTH = 960;
 
 // Kualitas sedikit lebih tinggi khusus marquee (gambar dirotasi + berisi
@@ -16,7 +17,6 @@ const MARQUEE_QUALITY = 85;
 
 // Dilebihkan ~1.2x dari ukuran tampil asli (270/360/390px) untuk mengimbangi
 // resampling akibat rotate, tanpa membuat mobile mengunduh gambar terlalu besar.
-// Hasil: HP (DPR ~1.75) -> 720w, laptop -> 720w, retina desktop -> 1280w.
 const MARQUEE_SIZES = "(max-width: 767px) 320px, (max-width: 1279px) 460px, 520px";
 
 const EAGER_COUNT = 2;
