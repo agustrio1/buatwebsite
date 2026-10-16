@@ -8,7 +8,53 @@ import { Check, MessageCircle, ChevronDown, MapPin, Calculator } from "lucide-re
 import { buildWaLink } from "~/lib/format";
 import { mergeMeta } from "~/lib/meta";
 import { normalizeCalculatorConfig } from "~/lib/price-calculator";
+import { servicePages } from "~/data/service-pages";
 import { BriefForm } from "~/components/site/brief-form";
+
+// Halaman lokal non-kota (mis. artikel Kediri) yang ditampilkan paling depan
+// di bagian "Layanan Kami di Kota Lain". Ubah atau kosongkan sesuai kebutuhan.
+const EXTRA_LOCAL_LINKS: { label: string; to: string }[] = [
+  { label: "Jasa Website Kediri", to: "/blog/jasa-pembuatan-website-kediri" },
+];
+
+const STOPWORDS = new Set([
+  "jasa",
+  "pembuatan",
+  "website",
+  "web",
+  "dan",
+  "yang",
+  "untuk",
+  "dengan",
+]);
+
+function tokenize(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t && !STOPWORDS.has(t));
+}
+
+// Mencocokkan teks "Layanan yang Relevan" dari database ke halaman layanan statis.
+// Semua kata kunci di teks harus ada di judul/slug layanan; kalau tidak cocok, tidak jadi link.
+function findServiceSlug(label: string): string | null {
+  const labelTokens = new Set(tokenize(label));
+  if (labelTokens.size === 0) return null;
+
+  let best: { slug: string; score: number } | null = null;
+  for (const s of servicePages) {
+    const serviceTokens = new Set(tokenize(`${s.title} ${s.slug}`));
+    let hit = 0;
+    labelTokens.forEach((t) => {
+      if (serviceTokens.has(t)) hit++;
+    });
+    if (hit !== labelTokens.size) continue;
+    const score = hit / (labelTokens.size + serviceTokens.size - hit);
+    if (!best || score > best.score) best = { slug: s.slug, score };
+  }
+  return best ? best.slug : null;
+}
 
 export function headers() {
   return {
@@ -66,6 +112,11 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
   const advantages = (city.advantages as string[] | null) ?? [];
   const serviceAreas = (city.serviceAreas as string[] | null) ?? [];
   const faqs = (city.faqs as { question: string; answer: string }[] | null) ?? [];
+
+  const relevantLinks = relevantServices.map((label) => ({
+    label,
+    slug: findServiceSlug(label),
+  }));
 
   const general = settings.general ?? {};
   const contact = settings.contact ?? {};
@@ -139,6 +190,8 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         }
       : null;
 
+  const showOtherLocal = EXTRA_LOCAL_LINKS.length > 0 || otherCities.length > 0;
+
   return (
     <article className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-16">
       <script
@@ -162,13 +215,27 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         {city.h1 || `Jasa Pembuatan Website Profesional di ${city.name}`}
       </h1>
 
-      <p className="text-lg text-slate-500 mt-4 leading-relaxed">
+      <p className="text-lg text-slate-600 mt-4 leading-relaxed">
         {city.intro ||
           `Bantu bisnis Anda di ${city.name} tampil profesional secara online dengan website modern, cepat, dan mudah dikelola.`}
       </p>
 
+      <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium px-6 py-3.5 rounded-full transition-colors shadow-lg shadow-brand-500/20"
+        >
+          <MessageCircle size={18} /> Konsultasi via WhatsApp
+        </a>
+        <Link to="/projek" className="text-sm font-medium text-brand-600 hover:underline">
+          Lihat demo proyek
+        </Link>
+      </div>
+
       {city.localContext && (
-        <p className="text-slate-600 leading-relaxed mt-6">{city.localContext}</p>
+        <p className="text-slate-600 leading-relaxed mt-8">{city.localContext}</p>
       )}
 
       {(city.localChallenges || city.whyWebsiteNeeded) && (
@@ -204,16 +271,25 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      {(relevantServices.length > 0 || advantages.length > 0) && (
+      {(relevantLinks.length > 0 || advantages.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
-          {relevantServices.length > 0 && (
+          {relevantLinks.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <h2 className="font-semibold text-brand-dark mb-4">Layanan yang Relevan</h2>
               <ul className="space-y-3">
-                {relevantServices.map((s) => (
-                  <li key={s} className="flex items-start gap-2.5 text-sm text-slate-600">
+                {relevantLinks.map(({ label, slug }) => (
+                  <li key={label} className="flex items-start gap-2.5 text-sm text-slate-600">
                     <Check size={16} className="text-brand-500 mt-0.5 shrink-0" />
-                    {s}
+                    {slug ? (
+                      <Link
+                        to={`/layanan/${slug}`}
+                        className="text-brand-600 hover:underline underline-offset-2"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      label
+                    )}
                   </li>
                 ))}
               </ul>
@@ -322,10 +398,19 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         </p>
       )}
 
-      {otherCities.length > 0 && (
+      {showOtherLocal && (
         <div className="mt-10 border-t border-slate-100 pt-8">
           <h2 className="font-semibold text-brand-dark text-sm mb-3">Layanan Kami di Kota Lain</h2>
           <div className="flex flex-wrap gap-2">
+            {EXTRA_LOCAL_LINKS.map((l) => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="text-xs text-slate-600 bg-slate-100 hover:bg-brand-100 hover:text-brand-700 px-3 py-1.5 rounded-full transition-colors"
+              >
+                {l.label}
+              </Link>
+            ))}
             {otherCities.map((c) => (
               <Link
                 key={c.slug}
