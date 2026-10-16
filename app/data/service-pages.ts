@@ -712,9 +712,9 @@ export const servicePages: ServicePage[] = [
     title: "Jasa Optimasi Kecepatan Website & Core Web Vitals",
     metaTitle: "Jasa Optimasi Kecepatan Website, PageSpeed & Core Web Vitals",
     metaDesc:
-      "Website lambat? Percepat loading & perbaiki skor PageSpeed Insights serta Core Web Vitals (LCP, INP, CLS). Ada laporan sebelum–sesudah. Konsultasi gratis.",
+      "Website lambat? Percepat loading & perbaiki PageSpeed dan Core Web Vitals. Mulai Rp750.000, ada laporan sebelum–sesudah. Konsultasi gratis.",
     ogImage: "/og/optimasi-kecepatan.jpg",
-    updatedAt: "2026-10-09",
+    updatedAt: "2026-10-14",
     keywords: [
       "jasa optimasi kecepatan website",
       "jasa mempercepat website",
@@ -725,13 +725,13 @@ export const servicePages: ServicePage[] = [
       "perbaiki skor pagespeed insights",
     ],
     shortDesc:
-      "Website lambat membuat pengunjung pergi sebelum halaman selesai dimuat. Kami mempercepat website Anda dan memperbaiki skor PageSpeed Insights serta Core Web Vitals berdasarkan hasil audit, bukan tebakan.",
+      "Website lambat membuat pengunjung pergi sebelum halaman selesai dimuat. Kami mempercepat website Anda dan memperbaiki skor PageSpeed Insights serta Core Web Vitals berdasarkan hasil audit, bukan tebakan. Mulai dari Rp750.000.",
     answer: {
       heading: "Apa itu jasa optimasi kecepatan website?",
       text: "Jasa optimasi kecepatan website adalah proses mengukur penyebab website lambat, lalu memperbaikinya: gambar, JavaScript, font, skrip pihak ketiga, caching, dan respons server. Targetnya Core Web Vitals berstatus Baik (LCP ≤ 2,5 detik, INP ≤ 200 ms, CLS ≤ 0,1) dan skor PageSpeed Insights yang ikut membaik.",
     },
     intro:
-      "Website yang lambat membuat pengunjung pergi sebelum sempat membaca penawaran Anda, dan anggaran iklan ikut terbuang untuk klik yang tidak berubah menjadi prospek. Kami mempercepat website dengan pendekatan berbasis pengukuran: mengukur kondisi awal, mencari penyebab lambat yang sebenarnya, memperbaiki yang paling berdampak, lalu mengukur ulang. Core Web Vitals memang salah satu sinyal pengalaman halaman di Google, tetapi manfaat yang paling terasa biasanya ada di pengunjung yang bertahan lebih lama dan konversi yang lebih baik. Sebagai gambaran proses kerjanya, kami menulis studi kasus optimasi PageSpeed pada website jadikanweb.id sendiri di blog, lengkap dengan hal yang belum berhasil.",
+      "Website yang lambat membuat pengunjung pergi sebelum sempat membaca penawaran Anda, dan anggaran iklan ikut terbuang untuk klik yang tidak berubah menjadi prospek. Kami mempercepat website dengan pendekatan berbasis pengukuran: mengukur kondisi awal, mencari penyebab lambat yang sebenarnya, memperbaiki yang paling berdampak, lalu mengukur ulang. Biaya mulai dari Rp750.000 dengan pengerjaan umumnya 2–5 hari kerja. Core Web Vitals memang salah satu sinyal pengalaman halaman di Google, tetapi manfaat yang paling terasa biasanya ada di pengunjung yang bertahan lebih lama dan konversi yang lebih baik. Sebagai gambaran proses kerjanya, kami menulis studi kasus optimasi PageSpeed pada website jadikanweb.id sendiri di blog, lengkap dengan hal yang belum berhasil.",
     features: [
       "Audit awal: PageSpeed Insights (mobile & desktop), GTmetrix, dan data lapangan Core Web Vitals di Search Console bila tersedia",
       "Perbaikan LCP, INP, dan CLS sesuai penyebab nyata di website Anda",
@@ -792,6 +792,14 @@ export const servicePages: ServicePage[] = [
     },
     faqs: [
       {
+        q: "Berapa biaya jasa optimasi kecepatan website?",
+        a: "Mulai dari Rp750.000 untuk website kecil hingga sekitar 5 halaman, sudah termasuk audit awal, perbaikan, dan laporan sebelum–sesudah. Website yang lebih besar, toko online, atau aplikasi web custom ditawarkan setelah audit karena tingkat kerumitannya berbeda. Perombakan besar seperti mengganti tema atau memindahkan hosting tidak termasuk dan dihitung terpisah.",
+      },
+      {
+        q: "Berapa lama pengerjaannya?",
+        a: "Umumnya 2–5 hari kerja sejak akses website kami terima, bergantung pada ukuran website dan penyebab lambatnya. Estimasi pastinya kami sampaikan setelah audit awal.",
+      },
+      {
         q: "Apakah skor PageSpeed pasti 90+?",
         a: "Tidak ada yang bisa menjanjikan angka pasti sebelum website diaudit. Targetnya adalah Core Web Vitals berstatus Baik dan skor hijau di PageSpeed Insights. Hasil akhirnya bergantung pada tema atau framework, hosting, ukuran konten, dan skrip pihak ketiga. Setelah audit, kami jelaskan batas yang realistis untuk website Anda.",
       },
@@ -814,10 +822,6 @@ export const servicePages: ServicePage[] = [
       {
         q: "Apakah website lebih cepat otomatis naik peringkat di Google?",
         a: "Tidak otomatis. Kecepatan adalah salah satu sinyal pengalaman halaman, sedangkan relevansi dan kualitas konten tetap faktor utama. Website yang cepat membantu pengunjung bertahan dan berkonversi, serta menghilangkan hambatan teknis yang bisa menahan peringkat.",
-      },
-      {
-        q: "Berapa biaya dan lama pengerjaannya?",
-        a: "Bergantung pada ukuran dan kondisi website. Setelah audit awal, kami memberi penawaran dan estimasi waktu yang jelas. Hubungi kami lewat WhatsApp untuk konsultasi gratis.",
       },
     ],
     related: ["landing-page", "website-custom", "maintenance-website", "redesign-ui-ux"],
