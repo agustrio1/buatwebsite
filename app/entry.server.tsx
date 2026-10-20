@@ -6,18 +6,32 @@ import { ServerRouter } from "react-router";
 import { isbot } from "isbot";
 import type { RenderToPipeableStreamOptions } from "react-dom/server";
 import { renderToPipeableStream } from "react-dom/server";
+import { findRedirect } from "~/lib/redirects.server";
 
 export const streamTimeout = 5_000;
 
-export default function handleRequest(
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
   loadContext: RouterContextProvider,
-) {
+): Promise<Response> {
+  const method = request.method.toUpperCase();
+
+  // Safety net: URL yang tidak cocok route mana pun tapi punya redirect terdaftar
+  if (responseStatusCode === 404 && (method === "GET" || method === "HEAD")) {
+    const rule = await findRedirect(new URL(request.url).pathname);
+    if (rule) {
+      return new Response(null, {
+        status: rule.statusCode,
+        headers: { Location: rule.toPath },
+      });
+    }
+  }
+
   // https://httpwg.org/specs/rfc9110.html#HEAD
-  if (request.method.toUpperCase() === "HEAD") {
+  if (method === "HEAD") {
     return new Response(null, {
       status: responseStatusCode,
       headers: responseHeaders,

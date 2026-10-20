@@ -1,19 +1,32 @@
-// app/root.tsx
 import {
   isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
+  redirect,
   Scripts,
   ScrollRestoration,
   useRouteLoaderData,
 } from "react-router";
+import { findRedirect } from "~/lib/redirects.server";
 import type { Route } from "./+types/root";
 import { getPublicSettings } from "~/lib/settings.server";
 import { safeJsonLd } from "~/lib/json-ld";
 import { WaTracker } from "~/components/site/wa-tracker";
 // CSS di-inline ke <head> supaya tidak ada request stylesheet yang memblokir render.
 import appCss from "./app.css?inline";
+
+// Dicek untuk semua halaman, termasuk request data client-side.
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request }, next) => {
+    if (request.method !== "GET" && request.method !== "HEAD") return next();
+
+    const rule = await findRedirect(new URL(request.url).pathname);
+    if (rule) throw redirect(rule.toPath, rule.statusCode);
+
+    return next();
+  },
+];
 
 export async function loader() {
   const settings = await getPublicSettings();
