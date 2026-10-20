@@ -4,9 +4,17 @@ import { db } from "~/db";
 import { cities, services } from "~/db/schema";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { useState } from "react";
-import { Check, MessageCircle, ChevronDown, MapPin, Calculator } from "lucide-react";
+import {
+  Check,
+  MessageCircle,
+  ChevronDown,
+  ChevronRight,
+  MapPin,
+  Calculator,
+} from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { mergeMeta } from "~/lib/meta";
+import { safeJsonLd } from "~/lib/json-ld";
 import { normalizeCalculatorConfig } from "~/lib/price-calculator";
 import { servicePages } from "~/data/service-pages";
 import { BriefForm } from "~/components/site/brief-form";
@@ -83,6 +91,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { city, services: allServices, otherCities };
 }
 
+// Canonical dan og:url diwarisi dari root (siteUrl + pathname), jadi tidak diset di sini.
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.city) return [{ title: "Halaman tidak ditemukan" }];
   const { city } = loaderData;
@@ -137,6 +146,7 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
 
   const siteUrl = String(general.siteUrl || "").replace(/\/$/, "");
   const pageUrl = siteUrl ? `${siteUrl}/jasa-pembuatan-website/${city.slug}` : undefined;
+  const breadcrumbLabel = `Jasa Pembuatan Website ${city.name}`;
 
   const cityPlace = {
     "@type": "City",
@@ -167,12 +177,7 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
-          {
-            "@type": "ListItem",
-            position: 2,
-            name: `Jasa Pembuatan Website ${city.name}`,
-            item: pageUrl,
-          },
+          { "@type": "ListItem", position: 2, name: breadcrumbLabel, item: pageUrl },
         ],
       }
     : null;
@@ -196,20 +201,34 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
     <article className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(serviceJsonLd) }}
       />
       {breadcrumbJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
         />
       )}
       {faqJsonLd && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
         />
       )}
+
+      <nav aria-label="Breadcrumb" className="mb-8 min-w-0">
+        <ol className="flex items-center gap-1.5 text-sm text-slate-500">
+          <li>
+            <Link to="/" className="hover:text-brand-600 transition-colors">
+              Beranda
+            </Link>
+          </li>
+          <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+          <li className="truncate text-slate-400" aria-current="page">
+            {breadcrumbLabel}
+          </li>
+        </ol>
+      </nav>
 
       <h1 className="text-2xl md:text-4xl font-bold text-brand-dark leading-tight">
         {city.h1 || `Jasa Pembuatan Website Profesional di ${city.name}`}
@@ -340,20 +359,31 @@ export default function CityServicePage({ loaderData }: Route.ComponentProps) {
                 <div key={i}>
                   <button
                     type="button"
+                    id={`city-faq-button-${i}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`city-faq-panel-${i}`}
                     onClick={() => setOpenFaq(isOpen ? null : i)}
                     className="flex w-full items-center justify-between gap-4 py-4 text-left"
                   >
                     <span className="font-medium text-brand-dark text-sm">{faq.question}</span>
                     <ChevronDown
                       size={16}
+                      aria-hidden="true"
                       className={`shrink-0 text-slate-400 transition-transform ${
                         isOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
-                  {isOpen && (
-                    <p className="pb-4 text-sm leading-relaxed text-slate-500">{faq.answer}</p>
-                  )}
+                  {/* Selalu dirender supaya teks jawaban ada di HTML untuk crawler */}
+                  <p
+                    id={`city-faq-panel-${i}`}
+                    role="region"
+                    aria-labelledby={`city-faq-button-${i}`}
+                    hidden={!isOpen}
+                    className="pb-4 text-sm leading-relaxed text-slate-500"
+                  >
+                    {faq.answer}
+                  </p>
                 </div>
               );
             })}

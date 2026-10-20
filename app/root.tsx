@@ -1,3 +1,4 @@
+// app/root.tsx
 import {
   isRouteErrorResponse,
   Links,
@@ -9,6 +10,7 @@ import {
 } from "react-router";
 import type { Route } from "./+types/root";
 import { getPublicSettings } from "~/lib/settings.server";
+import { safeJsonLd } from "~/lib/json-ld";
 import { WaTracker } from "~/components/site/wa-tracker";
 // CSS di-inline ke <head> supaya tidak ada request stylesheet yang memblokir render.
 import appCss from "./app.css?inline";
@@ -47,10 +49,6 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
     { name: "theme-color", content: "#f97316" },
     { name: "msapplication-navbutton-color", content: "#f97316" },
 
-    { name: "language", content: "id" },
-    { name: "geo.country", content: "id" },
-    { name: "geo.placename", content: "Indonesia" },
-
     { property: "og:type", content: "website" },
     { property: "og:site_name", content: siteName },
     { property: "og:title", content: title },
@@ -69,8 +67,6 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   if (canonicalUrl) {
     tags.push({ property: "og:url", content: canonicalUrl });
     tags.push({ tagName: "link", rel: "canonical", href: canonicalUrl });
-    tags.push({ tagName: "link", rel: "alternate", hrefLang: "id", href: canonicalUrl });
-    tags.push({ tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonicalUrl });
   }
 
   if (ogImage) {
@@ -97,6 +93,12 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
   return tags;
 }
 
+function toInternationalPhone(raw: unknown) {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (!digits) return undefined;
+  return `+${digits.startsWith("0") ? `62${digits.slice(1)}` : digits}`;
+}
+
 function StructuredData() {
   const rootData = useRouteLoaderData<typeof loader>("root");
   const settings = rootData?.settings ?? {};
@@ -108,18 +110,16 @@ function StructuredData() {
 
   if (!siteUrl) return null;
 
+  const telephone = toInternationalPhone(contact.whatsappNumber);
+
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": `${siteUrl}/#website`,
     name: siteName,
-    url: siteUrl,
+    url: `${siteUrl}/`,
     inLanguage: "id-ID",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${siteUrl}/?s={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
+    publisher: { "@id": `${siteUrl}/#organization` },
   };
 
   const organizationJsonLd = {
@@ -128,19 +128,18 @@ function StructuredData() {
     "@id": `${siteUrl}/#organization`,
     name: siteName,
     alternateName: general.companyLegalName || undefined,
-    url: siteUrl,
-    inLanguage: "id-ID",
+    url: `${siteUrl}/`,
     logo: general.logoUrl
       ? {
           "@type": "ImageObject",
           url: general.logoUrl,
         }
       : undefined,
-    contactPoint: contact.whatsappNumber
+    contactPoint: telephone
       ? [
           {
             "@type": "ContactPoint",
-            telephone: contact.whatsappNumber,
+            telephone,
             contactType: "customer service",
             areaServed: "ID",
             availableLanguage: ["Indonesian"],
@@ -160,11 +159,11 @@ function StructuredData() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }}
       />
     </>
   );

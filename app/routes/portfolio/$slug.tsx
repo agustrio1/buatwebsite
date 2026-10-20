@@ -10,11 +10,9 @@ import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import { buildWaLink } from "~/lib/format";
 import type { JSONContent } from "@tiptap/react";
 import { mergeMeta } from "~/lib/meta";
-
-// Escape "<" supaya data dari DB tidak bisa menutup tag <script>
-function safeJsonLd(data: unknown) {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}
+import { getSiteUrl } from "~/lib/seo";
+import { getPublicSettings } from "~/lib/settings.server";
+import { safeJsonLd } from "~/lib/json-ld";
 
 function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
@@ -29,29 +27,76 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+function absoluteUrl(base: string, path: string | null | undefined) {
+  if (!path) return undefined;
+  return /^https?:\/\//i.test(path) ? path : `${base}${path}`;
+}
+
+function toIso(value: Date | string | null | undefined) {
+  if (!value) return undefined;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
   return loaderHeaders;
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
-  const project = await db.query.projects.findFirst({
-    where: eq(projects.slug, params.slug),
-    with: { images: { orderBy: [asc(projectImages.sortOrder)] } },
-  });
+export async function loader({ params }: Route.LoaderArgs) {
+  const [project, settings, siteUrl] = await Promise.all([
+    db.query.projects.findFirst({
+      where: eq(projects.slug, params.slug),
+      with: { images: { orderBy: [asc(projectImages.sortOrder)] } },
+    }),
+    getPublicSettings(),
+    getSiteUrl(),
+  ]);
 
   if (!project) throw new Response("Not found", { status: 404 });
 
-  const related = await db.query.projects.findMany({
+  const relatedRows = await db.query.projects.findMany({
     where: ne(projects.id, project.id),
     orderBy: [desc(projects.createdAt)],
     limit: 3,
   });
 
   const contentHtml = richTextToHtml(project.descriptionRich as JSONContent | null);
-  const origin = new URL(request.url).origin;
+
+  const general = (settings.general as Record<string, any>) ?? {};
+  const siteName: string = general.siteName ?? "JadikanWeb";
+
+  const ogImage = absoluteUrl(
+    siteUrl,
+    project.coverImageUrl ? resizeImage(project.coverImageUrl, 1200) : null
+  );
+
+  // Hanya kolom yang dipakai di halaman. descriptionRich sengaja tidak ikut terkirim.
+  const projectData = {
+    id: project.id,
+    slug: project.slug,
+    title: project.title,
+    summary: project.summary,
+    coverImageUrl: project.coverImageUrl,
+    clientName: project.clientName,
+    liveDemoUrl: project.liveDemoUrl,
+    techStack: project.techStack,
+    createdAt: toIso(project.createdAt) ?? null,
+    images: (project.images ?? []).map((img) => ({
+      id: img.id,
+      imageUrl: img.imageUrl,
+      altText: img.altText,
+    })),
+  };
+
+  const related = relatedRows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    coverImageUrl: r.coverImageUrl,
+  }));
 
   return createResponse(
-    { project, contentHtml, related, origin },
+    { project: projectData, contentHtml, related, siteUrl, siteName, ogImage },
     {
       headers: {
         "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
@@ -60,15 +105,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   );
 }
 
+// Canonical, og:url, og:site_name, dan robots diwarisi dari root.
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.project) return [{ title: "Demo proyek tidak ditemukan" }];
 
-  const { project } = loaderData;
-  const title = `${project.title} - Demo Proyek | JadikanWeb`;
+  const { project, siteName, ogImage } = loaderData;
+  const title = `${project.title} - Demo Proyek | ${siteName}`;
   const description =
     project.summary ??
-    `Demo ${project.title} buatan JadikanWeb. Bukan proyek klien, bisa disesuaikan dengan kebutuhan bisnis Anda.`;
-  const image = project.coverImageUrl ? resizeImage(project.coverImageUrl, 1200) : undefined;
+    `Demo ${project.title} buatan ${siteName}. Bukan proyek klien, bisa disesuaikan dengan kebutuhan bisnis Anda.`;
 
   const tags: any[] = [
     { title },
@@ -80,11 +125,11 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     { name: "twitter:description", content: description },
   ];
 
-  if (image) {
+  if (ogImage) {
     tags.push(
-      { property: "og:image", content: image },
+      { property: "og:image", content: ogImage },
       { property: "og:image:alt", content: `Tampilan demo ${project.title}` },
-      { name: "twitter:image", content: image },
+      { name: "twitter:image", content: ogImage },
       { name: "twitter:image:alt", content: `Tampilan demo ${project.title}` }
     );
   }
@@ -246,7 +291,7 @@ function GalleryLightbox({
 }
 
 export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
-  const { project, contentHtml, origin } = loaderData;
+  const { project, contentHtml, siteUrl, ogImage } = loaderData;
   const related = loaderData.related ?? [];
   const images = project.images ?? [];
   const techStack = project.techStack ?? [];
@@ -255,7 +300,6 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
 
   const contact = settings?.contact ?? {};
   const features = settings?.features ?? {};
-  const general = settings?.general ?? {};
 
   const waProject = buildWaLink(
     contact.whatsappNumber,
@@ -264,22 +308,23 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
 
   const hasTech = techStack.length > 0;
   const showDemo = features.showPortfolioDemoLinks !== false && !!project.liveDemoUrl;
-  const siteOrigin = origin ?? "";
-  const pageUrl = `${siteOrigin}/projek/${project.slug}`;
+  const pageUrl = `${siteUrl}/projek/${project.slug}`;
+
+  // @id ini harus sama dengan yang dibuat di root.tsx
+  const orgId = `${siteUrl}/#organization`;
 
   const projectJsonLd = {
     "@context": "https://schema.org",
     "@type": "CreativeWork",
+    "@id": `${pageUrl}#project`,
     name: project.title,
     description: project.summary ?? undefined,
     url: pageUrl,
     inLanguage: "id-ID",
-    image: project.coverImageUrl ? resizeImage(project.coverImageUrl, 1200) : undefined,
+    image: ogImage,
     keywords: hasTech ? techStack.join(", ") : undefined,
     datePublished: project.createdAt ?? undefined,
-    creator: general.siteName
-      ? { "@type": "Organization", name: general.siteName, url: siteOrigin }
-      : undefined,
+    creator: { "@id": orgId },
     mainEntityOfPage: pageUrl,
   };
 
@@ -287,8 +332,8 @@ export default function PortfolioDetail({ loaderData }: Route.ComponentProps) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteOrigin}/` },
-      { "@type": "ListItem", position: 2, name: "Demo Proyek", item: `${siteOrigin}/projek` },
+      { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
+      { "@type": "ListItem", position: 2, name: "Demo Proyek", item: `${siteUrl}/projek` },
       { "@type": "ListItem", position: 3, name: project.title, item: pageUrl },
     ],
   };

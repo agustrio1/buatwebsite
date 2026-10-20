@@ -67,9 +67,7 @@ export function pageMeta(
   if (canonical) {
     own.push(
       { property: "og:url", content: canonical },
-      { tagName: "link", rel: "canonical", href: canonical },
-      { tagName: "link", rel: "alternate", hrefLang: "id", href: canonical },
-      { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonical }
+      { tagName: "link", rel: "canonical", href: canonical }
     );
   }
 

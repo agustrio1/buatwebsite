@@ -2,16 +2,18 @@ import { Link, useOutletContext } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/home";
 import { db } from "~/db";
-import { services, projects, posts } from "~/db/schema";
+import { services, projects, posts, cities } from "~/db/schema";
 import { asc, desc, eq } from "drizzle-orm";
 import { formatPrice, buildWaLink } from "~/lib/format";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
+import { safeJsonLd } from "~/lib/json-ld";
 import {
   Check,
   ArrowRight,
   ArrowUpRight,
   ExternalLink,
   ChevronDown,
+  MapPin,
   Star,
 } from "lucide-react";
 import { PortfolioMarquee, type PortfolioProject } from "~/components/site/portfolio-marquee";
@@ -30,11 +32,6 @@ function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-// Escape "<" supaya data dari DB tidak bisa menutup tag <script>
-function safeJsonLd(data: unknown) {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}
-
 export function headers() {
   return {
     "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
@@ -42,30 +39,38 @@ export function headers() {
 }
 
 export async function loader() {
-  const [allProjects, featuredServices, latestPosts, allProjectsCount] = await Promise.all([
-    db.query.projects.findMany({
-      orderBy: [desc(projects.isFeatured), desc(projects.createdAt)],
-      limit: 6,
-    }),
-    db.query.services.findMany({
-      orderBy: [asc(services.sortOrder)],
-      with: { features: true },
-      limit: 6,
-    }),
-    db.query.posts.findMany({
-      where: eq(posts.status, "published"),
-      orderBy: [desc(posts.publishedAt)],
-      with: { category: true },
-      limit: 3,
-    }),
-    db.$count(projects),
-  ]);
+  const [allProjects, featuredServices, latestPosts, allProjectsCount, activeCities] =
+    await Promise.all([
+      db.query.projects.findMany({
+        orderBy: [desc(projects.isFeatured), desc(projects.createdAt)],
+        limit: 6,
+      }),
+      db.query.services.findMany({
+        orderBy: [asc(services.sortOrder)],
+        with: { features: true },
+        limit: 6,
+      }),
+      db.query.posts.findMany({
+        where: eq(posts.status, "published"),
+        orderBy: [desc(posts.publishedAt)],
+        with: { category: true },
+        limit: 3,
+      }),
+      db.$count(projects),
+      db.query.cities.findMany({
+        where: eq(cities.isActive, true),
+        orderBy: [asc(cities.sortOrder), asc(cities.name)],
+        columns: { name: true, slug: true },
+        limit: 12,
+      }),
+    ]);
 
   return {
     services: featuredServices,
     projects: allProjects,
     posts: latestPosts,
     projectsCount: allProjectsCount,
+    cities: activeCities,
   };
 }
 
@@ -138,7 +143,7 @@ const faqs = [
 ];
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { services, projects, posts, projectsCount } = loaderData;
+  const { services, projects, posts, projectsCount, cities } = loaderData;
   const { settings } = useOutletContext<{ settings: Record<string, any> }>();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -180,23 +185,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         }
       : null;
 
-  // Query posts di loader tidak memuat relasi `author`, jadi author
-  // memakai Organization (nama situs) sebagai fallback yang valid untuk schema.org.
-  const blogJsonLd =
-    posts.length > 0
-      ? posts.map((post) => ({
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          headline: post.title,
-          description: post.summary ?? undefined,
-          image: post.coverImageUrl ?? undefined,
-          datePublished: post.publishedAt ?? undefined,
-          author: general.siteName
-            ? { "@type": "Organization", name: general.siteName }
-            : undefined,
-        }))
-      : [];
-
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -223,14 +211,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
-
-      {blogJsonLd.map((schema, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
-        />
-      ))}
 
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 md:px-8 md:pb-12 md:pt-24 lg:grid lg:grid-cols-2 lg:items-center lg:gap-12 lg:pb-20">
@@ -420,6 +400,17 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                 );
               })}
             </div>
+
+            <div className="mt-10 text-center">
+              <Link
+                to="/layanan"
+                prefetch="intent"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+              >
+                Lihat semua layanan
+                <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
         </section>
       )}
@@ -585,22 +576,54 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                       }`}
                     />
                   </button>
-                  {isOpen && (
-                    <p
-                      id={`faq-panel-${i}`}
-                      role="region"
-                      aria-labelledby={`faq-button-${i}`}
-                      className="pb-5 text-sm leading-relaxed text-slate-500"
-                    >
-                      {item.a}
-                    </p>
-                  )}
+                  {/* Selalu dirender supaya teks jawaban ada di HTML untuk crawler */}
+                  <p
+                    id={`faq-panel-${i}`}
+                    role="region"
+                    aria-labelledby={`faq-button-${i}`}
+                    hidden={!isOpen}
+                    className="pb-5 text-sm leading-relaxed text-slate-500"
+                  >
+                    {item.a}
+                  </p>
                 </div>
               );
             })}
           </div>
         </div>
       </section>
+
+      {cities.length > 0 && (
+        <section id="area-layanan">
+          <div className="mx-auto max-w-5xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Area Layanan
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Jasa Pembuatan Website di Kota Anda
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Kami melayani klien dari berbagai kota di Indonesia secara online.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {cities.map((city) => (
+                <Link
+                  key={city.slug}
+                  to={`/jasa-pembuatan-website/${city.slug}`}
+                  prefetch="intent"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors hover:border-brand-500 hover:text-brand-600"
+                >
+                  <MapPin size={14} aria-hidden="true" />
+                  Jasa Website {city.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {features.showBlogSection !== false && (
         <section id="blog">

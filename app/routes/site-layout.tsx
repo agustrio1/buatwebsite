@@ -1,11 +1,11 @@
 ﻿import { useEffect } from "react";
-import { Outlet, useLoaderData, useNavigation } from "react-router";
+import { Outlet, useLoaderData, useNavigation, useRouteLoaderData } from "react-router";
 import { db } from "~/db";
 import { cities } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { SiteHeader } from "~/components/site/header";
 import { SiteFooter } from "~/components/site/footer";
-import { getPublicSettings } from "~/lib/settings.server";
+import type { loader as rootLoader } from "~/root";
 
 export function links() {
   return [{ rel: "dns-prefetch", href: "https://www.googletagmanager.com" }];
@@ -22,52 +22,38 @@ function cleanTrackingId(value: unknown, pattern: RegExp): string {
   return pattern.test(id) ? id : "";
 }
 
-export async function loader() {
-  const [settings, activeCities] = await Promise.all([
-    getPublicSettings(),
-    db.query.cities.findMany({
-      where: eq(cities.isActive, true),
-      orderBy: [asc(cities.sortOrder), asc(cities.name)],
-      columns: { name: true, slug: true },
-    }),
-  ]);
+function toWaNumber(raw: unknown) {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+}
 
-  return { settings, cities: activeCities };
+// Settings sudah diambil di loader root, jadi di sini cukup query kota.
+export async function loader() {
+  const activeCities = await db.query.cities.findMany({
+    where: eq(cities.isActive, true),
+    orderBy: [asc(cities.sortOrder), asc(cities.name)],
+    columns: { name: true, slug: true },
+  });
+
+  return { cities: activeCities };
 }
 
 export default function SiteLayout() {
-  const { settings, cities } = useLoaderData<typeof loader>();
+  const { cities } = useLoaderData<typeof loader>();
+  const { settings } = useRouteLoaderData<typeof rootLoader>("root")!;
 
   const gtmId = cleanTrackingId(settings.seo?.googleTagManagerId, GTM_PATTERN);
   const gaId = cleanTrackingId(settings.seo?.googleAnalyticsId, GA_PATTERN);
 
-  const seoData = settings.seo || {};
-  const generalData = settings.general || {};
   const contactData = settings.contact || {};
-
-  const siteName = generalData.siteName || "WebCraft";
-  const siteDescription =
-    seoData.metaDescription ||
-    generalData.siteTagline ||
-    "Jasa Pembuatan Website Profesional & Layanan Digital.";
-  const siteUrl = generalData.siteUrl || "https://jadikanweb.id";
-
-  const rawPhone = contactData.whatsappNumber || contactData.phoneOffice || "";
-  const cleanPhone = String(rawPhone).replace(/\D/g, "");
+  const cleanPhone = toWaNumber(contactData.whatsappNumber || contactData.phoneOffice);
 
   const whatsappUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(
         "Halo, saya ingin bertanya mengenai layanan Anda."
       )}`
     : "#";
-
-  const websiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: siteName,
-    description: siteDescription,
-    url: siteUrl,
-  };
 
   const navigation = useNavigation();
   const isLoading = navigation.state !== "idle";
@@ -76,30 +62,25 @@ export default function SiteLayout() {
     if (!gtmId && !gaId) return;
     if (document.getElementById("gtm-script") || document.getElementById("ga-script")) return;
 
+    const events: (keyof WindowEventMap)[] = ["scroll", "mousemove", "touchstart", "keydown", "click"];
     let loaded = false;
+    let fallbackTimer: ReturnType<typeof setTimeout>;
+
+    function cleanup() {
+      events.forEach((ev) => window.removeEventListener(ev, loadTracking));
+      clearTimeout(fallbackTimer);
+    }
 
     function loadTracking() {
       if (loaded) return;
       loaded = true;
-
-      events.forEach((ev) => window.removeEventListener(ev, loadTracking));
-      clearTimeout(fallbackTimer);
+      cleanup();
 
       if (gtmId) {
         const script = document.createElement("script");
         script.id = "gtm-script";
         script.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`;
         document.head.appendChild(script);
-
-        const noscript = document.createElement("noscript");
-        const iframe = document.createElement("iframe");
-        iframe.src = `https://www.googletagmanager.com/ns.html?id=${gtmId}`;
-        iframe.height = "0";
-        iframe.width = "0";
-        iframe.style.display = "none";
-        iframe.style.visibility = "hidden";
-        noscript.appendChild(iframe);
-        document.body.prepend(noscript);
       } else if (gaId) {
         const loaderScript = document.createElement("script");
         loaderScript.id = "ga-script";
@@ -113,14 +94,10 @@ export default function SiteLayout() {
       }
     }
 
-    const events: (keyof WindowEventMap)[] = ["scroll", "mousemove", "touchstart", "keydown", "click"];
     events.forEach((ev) => window.addEventListener(ev, loadTracking, { once: true, passive: true }));
-    const fallbackTimer = setTimeout(loadTracking, 5000);
+    fallbackTimer = setTimeout(loadTracking, 5000);
 
-    return () => {
-      events.forEach((ev) => window.removeEventListener(ev, loadTracking));
-      clearTimeout(fallbackTimer);
-    };
+    return cleanup;
   }, [gtmId, gaId]);
 
   return (
@@ -128,11 +105,6 @@ export default function SiteLayout() {
       {isLoading && (
         <div className="fixed top-0 left-0 right-0 z-60 h-0.5 bg-brand-500 animate-pulse" />
       )}
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
-      />
 
       <SiteHeader settings={settings} />
 

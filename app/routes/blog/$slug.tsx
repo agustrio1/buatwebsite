@@ -10,7 +10,9 @@ import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 import { checkRedirect } from "~/lib/redirects.server";
 import { getPublicSettings } from "~/lib/settings.server";
+import { getSiteUrl } from "~/lib/seo";
 import { mergeMeta } from "~/lib/meta";
+import { safeJsonLd } from "~/lib/json-ld";
 import type { FaqItem } from "~/lib/validation/post-seo";
 
 export function headers({ loaderHeaders }: Route.HeadersArgs) {
@@ -51,23 +53,26 @@ function addHeadingIdsAndToc(html: string): { html: string; toc: TocItem[] } {
   return { html: newHtml, toc };
 }
 
-function absoluteUrl(origin: string, path: string) {
-  return /^https?:\/\//i.test(path) ? path : `${origin}${path}`;
+function absoluteUrl(base: string, path: string) {
+  return /^https?:\/\//i.test(path) ? path : `${base}${path}`;
 }
 
 function toIso(value: Date | string | null | undefined) {
-  return value ? new Date(value).toISOString() : undefined;
+  if (!value) return undefined;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const url = new URL(request.url);
 
-  const [post, settings] = await Promise.all([
+  const [post, settings, siteUrl] = await Promise.all([
     db.query.posts.findFirst({
       where: eq(posts.slug, params.slug),
       with: { category: true, author: true },
     }),
     getPublicSettings(),
+    getSiteUrl(),
   ]);
 
   if (!post || post.status !== "published") {
@@ -80,7 +85,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     ? addHeadingIdsAndToc(rawHtml)
     : { html: "", toc: [] as TocItem[] };
 
-  const relatedPosts = post.categoryId
+  const relatedRows = post.categoryId
     ? await db.query.posts.findMany({
         where: and(
           eq(posts.categoryId, post.categoryId),
@@ -94,29 +99,36 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     : [];
 
   const general = (settings.general as Record<string, any>) ?? {};
-  const siteName: string = general.siteName ?? "Nama Situs";
+  const siteName: string = general.siteName ?? "JadikanWeb";
   const siteLogo: string | undefined = general.logoUrl ?? undefined;
 
-  const origin = url.origin;
-  const canonicalUrl = post.canonicalUrl || `${origin}/blog/${post.slug}`;
+  const canonicalUrl = post.canonicalUrl || `${siteUrl}/blog/${post.slug}`;
   const description = post.metaDescription || post.summary || "";
 
   // Gambar OG: upload khusus > cover image
   const ogImage = post.ogImageUrl
-    ? absoluteUrl(origin, post.ogImageUrl)
+    ? absoluteUrl(siteUrl, post.ogImageUrl)
     : post.coverImageUrl
-      ? absoluteUrl(origin, resizeImage(post.coverImageUrl, 1200))
+      ? absoluteUrl(siteUrl, resizeImage(post.coverImageUrl, 1200) ?? "")
       : undefined;
 
   const images = post.ogImageUrl
-    ? [absoluteUrl(origin, post.ogImageUrl)]
+    ? [absoluteUrl(siteUrl, post.ogImageUrl)]
     : post.coverImageUrl
-      ? [1200, 768, 480].map((w) => absoluteUrl(origin, resizeImage(post.coverImageUrl!, w)))
+      ? [1200, 768, 480].map((w) =>
+          absoluteUrl(siteUrl, resizeImage(post.coverImageUrl!, w) ?? "")
+        )
       : undefined;
 
   const faqs: FaqItem[] = Array.isArray(post.faqs)
     ? (post.faqs as FaqItem[]).filter((f) => f?.question && f?.answer)
     : [];
+
+  const publishedIso = toIso(post.publishedAt ?? post.createdAt);
+  const modifiedIso = toIso(post.updatedAt);
+
+  // @id ini harus sama dengan yang dibuat di root.tsx
+  const orgId = `${siteUrl}/#organization`;
 
   // ---- JSON-LD ----
   const graph: Record<string, unknown>[] = [];
@@ -129,14 +141,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       headline: post.title,
       description,
       image: images,
-      datePublished: toIso(post.publishedAt ?? post.createdAt),
-      dateModified: toIso(post.updatedAt),
-      author: post.author ? { "@type": "Person", name: post.author.name } : undefined,
-      publisher: {
-        "@type": "Organization",
-        name: siteName,
-        logo: { "@type": "ImageObject", url: siteLogo ?? `${origin}/logo.png` },
-      },
+      datePublished: publishedIso,
+      dateModified: modifiedIso ?? publishedIso,
+      author: post.author
+        ? { "@type": "Person", name: post.author.name }
+        : { "@id": orgId },
+      publisher: { "@id": orgId },
       articleSection: post.category?.name,
       url: canonicalUrl,
       inLanguage: "id-ID",
@@ -146,8 +156,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   graph.push({
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Beranda", item: origin },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${origin}/blog` },
+      { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${siteUrl}/blog` },
       { "@type": "ListItem", position: 3, name: post.title, item: canonicalUrl },
     ],
   });
@@ -184,9 +194,33 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   const jsonLd = { "@context": "https://schema.org", "@graph": graph };
 
+  // Hanya kolom yang dipakai di halaman. contentRich sengaja tidak ikut terkirim.
+  const postData = {
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    summary: post.summary,
+    coverImageUrl: post.coverImageUrl,
+    ogImageUrl: post.ogImageUrl,
+    metaTitle: post.metaTitle,
+    noindex: post.noindex,
+    publishedAt: publishedIso ?? null,
+    updatedAt: modifiedIso ?? null,
+    category: post.category ? { name: post.category.name } : null,
+    author: post.author ? { name: post.author.name } : null,
+  };
+
+  const relatedPosts = relatedRows.map((r) => ({
+    id: r.id,
+    slug: r.slug,
+    title: r.title,
+    coverImageUrl: r.coverImageUrl,
+    category: r.category ? { name: r.category.name } : null,
+  }));
+
   return createResponse(
     {
-      post,
+      post: postData,
       contentHtml,
       toc,
       relatedPosts,
@@ -205,6 +239,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   );
 }
 
+// og:site_name, og:locale, dan robots default diwarisi dari root.
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.post) {
     return [{ title: "Artikel tidak ditemukan" }];
@@ -218,14 +253,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
     { title },
     { name: "description", content: description },
     { tagName: "link", rel: "canonical", href: canonicalUrl },
-    { tagName: "link", rel: "alternate", hrefLang: "id", href: canonicalUrl },
-    { tagName: "link", rel: "alternate", hrefLang: "x-default", href: canonicalUrl },
     { property: "og:type", content: "article" },
-    { property: "og:site_name", content: siteName },
     { property: "og:title", content: socialTitle },
     { property: "og:description", content: description },
     { property: "og:url", content: canonicalUrl },
-    { property: "og:locale", content: "id_ID" },
     { name: "twitter:card", content: "summary_large_image" },
     { name: "twitter:title", content: socialTitle },
     { name: "twitter:description", content: description },
@@ -236,10 +267,10 @@ export function meta({ loaderData, matches }: Route.MetaArgs) {
   }
 
   if (post.publishedAt) {
-    tags.push({ property: "article:published_time", content: String(post.publishedAt) });
+    tags.push({ property: "article:published_time", content: post.publishedAt });
   }
   if (post.updatedAt) {
-    tags.push({ property: "article:modified_time", content: String(post.updatedAt) });
+    tags.push({ property: "article:modified_time", content: post.updatedAt });
   }
   if (post.category) {
     tags.push({ property: "article:section", content: post.category.name });
@@ -294,9 +325,7 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
     <article className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <Link to="/blog" prefetch="intent" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors mb-8">
@@ -347,9 +376,10 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
       )}
 
       {toc.length > 0 && (
-        <nav className="mt-8 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+        <nav aria-label="Daftar isi" className="mt-8 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
           <button
             type="button"
+            aria-expanded={isTocOpen}
             onClick={() => setIsTocOpen((prev) => !prev)}
             className="w-full flex items-center justify-between gap-2 px-5 py-4 text-sm font-semibold text-brand-dark"
           >
@@ -358,24 +388,23 @@ export default function BlogDetail({ loaderData }: Route.ComponentProps) {
               Daftar Isi
             </span>
             <span className={`transition-transform duration-200 ${isTocOpen ? "rotate-180" : ""}`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
           </button>
 
-          {isTocOpen && (
-            <ul className="space-y-1.5 text-sm px-5 pb-5">
-              {toc.map((item) => {
-                const indentClass = item.level === 3 ? "ml-4" : "ml-0";
-                return (
-                  <li key={item.id} className={indentClass}>
-                    <a href={`#${item.id}`} className="text-slate-600 hover:text-brand-600 transition-colors">{item.text}</a>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          {/* Selalu dirender supaya link daftar isi ada di HTML */}
+          <ul hidden={!isTocOpen} className="space-y-1.5 text-sm px-5 pb-5">
+            {toc.map((item) => {
+              const indentClass = item.level === 3 ? "ml-4" : "ml-0";
+              return (
+                <li key={item.id} className={indentClass}>
+                  <a href={`#${item.id}`} className="text-slate-600 hover:text-brand-600 transition-colors">{item.text}</a>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
       )}
 

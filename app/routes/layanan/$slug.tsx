@@ -5,10 +5,12 @@ import { servicePages, type ServicePage } from "~/data/service-pages";
 import { ArrowRight, ChevronRight, Check, MessageCircle } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { mergeMeta } from "~/lib/meta";
+import { getSiteUrl } from "~/lib/seo";
+import { safeJsonLd } from "~/lib/json-ld";
 
-function absoluteUrl(origin: string, path?: string) {
+function absoluteUrl(base: string, path?: string) {
   if (!path) return undefined;
-  return /^https?:\/\//.test(path) ? path : `${origin}${path}`;
+  return /^https?:\/\//i.test(path) ? path : `${base}${path}`;
 }
 
 function formatDateId(iso: string) {
@@ -22,38 +24,32 @@ function formatDateId(iso: string) {
   });
 }
 
-export function loader({ params, request }: Route.LoaderArgs) {
-  const service = servicePages.find((s) => s.slug === params.slug);
-  if (!service) throw new Response("Not found", { status: 404 });
-
-  const url = new URL(request.url);
+export function headers() {
   return {
-    service,
-    origin: url.origin,
-    host: url.hostname,
-    canonical: `${url.origin}${url.pathname.replace(/\/+$/, "")}`,
+    "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
   };
 }
 
+export async function loader({ params }: Route.LoaderArgs) {
+  const service = servicePages.find((s) => s.slug === params.slug);
+  if (!service) throw new Response("Not found", { status: 404 });
+
+  const siteUrl = await getSiteUrl();
+  return { service, siteUrl };
+}
+
+// Canonical, og:url, robots, dan og:site_name diwarisi dari root.
 export function meta({ loaderData, matches }: Route.MetaArgs) {
   if (!loaderData?.service) return [{ title: "Layanan tidak ditemukan" }];
-  const { service, canonical, origin, host } = loaderData;
-  const image = absoluteUrl(origin, service.ogImage);
+  const { service, siteUrl } = loaderData;
+  const image = absoluteUrl(siteUrl, service.ogImage);
 
   const tags: any[] = [
     { title: service.metaTitle },
     { name: "description", content: service.metaDesc },
-    {
-      name: "robots",
-      content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-    },
-    { tagName: "link", rel: "canonical", href: canonical },
     { property: "og:type", content: "website" },
-    { property: "og:locale", content: "id_ID" },
-    { property: "og:site_name", content: host },
     { property: "og:title", content: service.metaTitle },
     { property: "og:description", content: service.metaDesc },
-    { property: "og:url", content: canonical },
     { name: "twitter:title", content: service.metaTitle },
     { name: "twitter:description", content: service.metaDesc },
   ];
@@ -96,7 +92,7 @@ function WaButton({ href }: { href: string }) {
 }
 
 export default function LayananDetail({ loaderData }: Route.ComponentProps) {
-  const { service, origin, host, canonical } = loaderData;
+  const { service, siteUrl } = loaderData;
   const { settings } = useOutletContext<{ settings: Record<string, any> }>();
 
   const contact = settings.contact ?? {};
@@ -113,10 +109,12 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
     .map((slug) => servicePages.find((s) => s.slug === slug))
     .filter((s): s is ServicePage => Boolean(s));
 
-  const image = absoluteUrl(origin, service.ogImage);
+  const image = absoluteUrl(siteUrl, service.ogImage);
+  const canonical = `${siteUrl}/layanan/${service.slug}`;
 
-  const orgId = `${origin}/#organization`;
-  const siteId = `${origin}/#website`;
+  // @id ini harus sama dengan yang dibuat di root.tsx
+  const orgId = `${siteUrl}/#organization`;
+  const siteId = `${siteUrl}/#website`;
   const pageId = `${canonical}#webpage`;
   const serviceId = `${canonical}#service`;
   const breadcrumbId = `${canonical}#breadcrumb`;
@@ -124,26 +122,6 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Organization",
-        "@id": orgId,
-        name: host,
-        url: origin,
-        contactPoint: {
-          "@type": "ContactPoint",
-          contactType: "customer service",
-          url: waLink,
-          availableLanguage: "id",
-        },
-      },
-      {
-        "@type": "WebSite",
-        "@id": siteId,
-        url: origin,
-        name: host,
-        inLanguage: "id-ID",
-        publisher: { "@id": orgId },
-      },
       {
         "@type": "WebPage",
         "@id": pageId,
@@ -173,8 +151,8 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
         "@type": "BreadcrumbList",
         "@id": breadcrumbId,
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Beranda", item: origin },
-          { "@type": "ListItem", position: 2, name: "Layanan", item: `${origin}/layanan` },
+          { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
+          { "@type": "ListItem", position: 2, name: "Layanan", item: `${siteUrl}/layanan` },
           { "@type": "ListItem", position: 3, name: service.title, item: canonical },
         ],
       },
@@ -199,9 +177,7 @@ export default function LayananDetail({ loaderData }: Route.ComponentProps) {
     <article className="max-w-3xl mx-auto px-4 md:px-8 py-10 md:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <nav aria-label="Breadcrumb" className="mb-8 min-w-0">
