@@ -4,7 +4,7 @@ import { desc, count, and, or, ilike, eq } from "drizzle-orm";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { ProjectsIndexClient, type ProjectRow } from "~/components/admin/projects-index-client";
-import { deleteProject, bulkDeleteProjects } from "./actions";
+import { deleteProject, bulkDeleteProjects, bulkSetProjectsFeatured } from "./actions";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -51,6 +51,7 @@ export default async function ProjectsIndex({ searchParams }: { searchParams: Se
         featuredFilter={featuredFilter}
         deleteProjectAction={deleteProject}
         bulkDeleteAction={bulkDeleteProjects}
+        bulkSetFeaturedAction={bulkSetProjectsFeatured}
       />
       <Pagination
         currentPage={currentPage}

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { revalidateCityPages } from "~/lib/revalidate-public";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, inArray } from "drizzle-orm";
 import { db } from "~/db";
 import { cities } from "~/db/schema";
 import { requireAdmin } from "~/lib/session.server";
@@ -109,5 +109,32 @@ export async function deleteCity(id: string) {
   });
   await db.delete(cities).where(eq(cities.id, id));
   revalidateCityPages([city?.slug]);
+  revalidatePath("/admin/cities");
+}
+
+export async function bulkDeleteCities(ids: string[]) {
+  await requireAdmin();
+  if (ids.length === 0) return;
+  const rows = await db.query.cities.findMany({
+    where: inArray(cities.id, ids),
+    columns: { slug: true },
+  });
+  await db.delete(cities).where(inArray(cities.id, ids));
+  revalidateCityPages(rows.map((r) => r.slug));
+  revalidatePath("/admin/cities");
+}
+
+export async function bulkSetCitiesActive(ids: string[], value: boolean) {
+  await requireAdmin();
+  if (ids.length === 0) return;
+  const rows = await db.query.cities.findMany({
+    where: inArray(cities.id, ids),
+    columns: { slug: true },
+  });
+  await db
+    .update(cities)
+    .set({ isActive: value, updatedAt: new Date() })
+    .where(inArray(cities.id, ids));
+  revalidateCityPages(rows.map((r) => r.slug));
   revalidatePath("/admin/cities");
 }

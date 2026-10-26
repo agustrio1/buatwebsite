@@ -160,3 +160,17 @@ export async function bulkDeleteProjects(ids: string[]) {
   revalidateProjectPages(rows.map((r) => r.slug));
   revalidatePath("/admin/projects");
 }
+
+export async function bulkSetProjectsFeatured(ids: string[], value: boolean) {
+  await requireAdmin();
+  if (ids.length === 0) return;
+
+  const rows = await db.query.projects.findMany({
+    where: inArray(projects.id, ids),
+    columns: { slug: true },
+  });
+  await db.update(projects).set({ isFeatured: value }).where(inArray(projects.id, ids));
+
+  revalidateProjectPages(rows.map((r) => r.slug));
+  revalidatePath("/admin/projects");
+}
