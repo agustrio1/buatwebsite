@@ -19,6 +19,7 @@ import { Button, buttonVariants } from "~/components/ui/button";
 import { Input, Select, Label } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { EmptyState } from "~/components/ui/misc";
+import { resizeImage } from "~/lib/imagekit-url";
 
 export type ProjectRow = {
   id: string;
@@ -164,7 +165,13 @@ export function ProjectsIndexClient({
             </label>
             <div className="aspect-video bg-slate-100">
               {p.coverImageUrl && (
-                <img src={p.coverImageUrl} alt={p.title} className="w-full h-full object-cover" />
+                <img
+                  src={resizeImage(p.coverImageUrl, 640) ?? p.coverImageUrl}
+                  alt={p.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
               )}
             </div>
             <div className="p-4 space-y-2">

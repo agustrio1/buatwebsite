@@ -17,6 +17,7 @@ import { Card } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { EmptyState } from "~/components/ui/misc";
 import { toast } from "~/components/ui/toast";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { MediaItem } from "~/lib/media.server";
 
 const PAGE_SIZE = 24;
@@ -129,7 +130,15 @@ export function MediaGallery({ initialItems }: { initialItems: MediaItem[] }) {
             <Card key={it.url} className="overflow-hidden">
               <div className="aspect-square bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={it.url} alt={it.label} loading="lazy" className="h-full w-full object-cover" />
+                <img
+                  src={resizeImage(it.url, 400) ?? it.url}
+                  srcSet={buildSrcSet(it.url, 400)}
+                  sizes="200px"
+                  alt={it.label}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="p-2.5 space-y-1.5">
                 <Badge variant="secondary" className="text-[10px]">{it.source}</Badge>
