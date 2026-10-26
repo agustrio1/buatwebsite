@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { servicePages } from "~/data/service-pages";
 import { normalizeCalculatorConfig } from "~/lib/price-calculator";
@@ -126,7 +126,7 @@ export function SiteFooter({
           <h3 className="text-slate-900 font-semibold mb-3">Navigasi</h3>
           <div className="flex flex-col gap-2 text-sm">
             {navigasiLinks.map((item) => (
-              <Link key={item.to} to={item.to} className="hover:text-brand-600 transition-colors">
+              <Link key={item.to} href={item.to} className="hover:text-brand-600 transition-colors">
                 {item.label}
               </Link>
             ))}
@@ -137,7 +137,7 @@ export function SiteFooter({
           <h3 className="text-slate-900 font-semibold mb-3">Layanan Kami</h3>
           <div className="flex flex-col gap-2 text-sm">
             {servicePages.map((s) => (
-              <Link key={s.slug} to={`/layanan/${s.slug}`} className="hover:text-brand-600 transition-colors">
+              <Link key={s.slug} href={`/layanan/${s.slug}`} prefetch={false} className="hover:text-brand-600 transition-colors">
                 {s.title}
               </Link>
             ))}
@@ -151,14 +151,15 @@ export function SiteFooter({
               {visibleCities.map((city) => (
                 <Link
                   key={city.slug}
-                  to={`/jasa-pembuatan-website/${city.slug}`}
+                  href={`/jasa-pembuatan-website/${city.slug}`}
+                  prefetch={false}
                   className="hover:text-brand-600 transition-colors"
                 >
                   {city.name}
                 </Link>
               ))}
               {hasMoreCities && (
-                <Link to="/layanan" className="text-brand-600 hover:underline text-xs mt-1">
+                <Link href="/layanan" prefetch={false} className="text-brand-600 hover:underline text-xs mt-1">
                   Lihat kota lainnya
                 </Link>
               )}
@@ -170,10 +171,10 @@ export function SiteFooter({
           <div>
             <h3 className="text-slate-900 font-semibold mb-3">Legal</h3>
             <div className="flex flex-col gap-2 text-sm">
-              <Link to="/legal/syarat-ketentuan" className="hover:text-brand-600 transition-colors">
+              <Link href="/legal/syarat-ketentuan" className="hover:text-brand-600 transition-colors">
                 Syarat & Ketentuan
               </Link>
-              <Link to="/legal/kebijakan-privasi" className="hover:text-brand-600 transition-colors">
+              <Link href="/legal/kebijakan-privasi" className="hover:text-brand-600 transition-colors">
                 Kebijakan Privasi
               </Link>
             </div>

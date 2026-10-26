@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from "react";
 
 const WA_HREF = /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i;

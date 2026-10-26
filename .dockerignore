@@ -1,4 +1,14 @@
-.react-router
-build
 node_modules
+.next
+build
+.react-router
+legacy
+flat-unit-a6a3
+.git
+.gitignore
+.env
+.env.*
+Dockerfile
+.dockerignore
 README.md
+npm-debug.log*

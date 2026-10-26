@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useId, useState } from "react";
-import { useFetcher } from "react-router";
 import { Send, CheckCircle2 } from "lucide-react";
 import { getSource } from "~/components/site/wa-tracker";
 
@@ -22,9 +23,25 @@ const inputClass =
 const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
 export function BriefForm({ services, budgetOptions }: BriefFormProps) {
-  const fetcher = useFetcher<{ success?: boolean; error?: string }>();
-  const isSubmitting = fetcher.state !== "idle";
+  // Padanan useFetcher({ method: "post", action: "/api/inquiry" }): submit ditangani
+  // manual lewat fetch supaya bentuk response ({success}/{error}) tetap sama.
+  const [data, setData] = useState<{ success?: boolean; error?: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [meta, setMeta] = useState({ source: "", page: "" });
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const body = new FormData(e.currentTarget);
+      const res = await fetch("/api/inquiry", { method: "POST", body });
+      setData((await res.json()) as { success?: boolean; error?: string });
+    } catch {
+      setData({ error: "Gagal mengirim. Coba lagi sebentar." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   // id unik per instance supaya label terhubung ke field (aksesibilitas)
   const uid = useId();
@@ -45,7 +62,7 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
     budgetOptions && budgetOptions.length > 0 ? budgetOptions : DEFAULT_BUDGET_OPTIONS;
   const source = meta.source ? `${meta.source} → ${meta.page}` : "";
 
-  if (fetcher.data?.success) {
+  if (data?.success) {
     return (
       <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center">
         <CheckCircle2 className="mx-auto text-green-600" size={32} />
@@ -58,10 +75,10 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
   }
 
   return (
-    <fetcher.Form method="post" action="/api/inquiry" className="relative space-y-4">
-      {fetcher.data?.error && (
+    <form onSubmit={onSubmit} className="relative space-y-4">
+      {data?.error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-          {fetcher.data.error}
+          {data.error}
         </p>
       )}
 
@@ -174,6 +191,6 @@ export function BriefForm({ services, budgetOptions }: BriefFormProps) {
       >
         <Send size={16} /> {isSubmitting ? "Mengirim..." : "Kirim Brief"}
       </button>
-    </fetcher.Form>
+    </form>
   );
 }

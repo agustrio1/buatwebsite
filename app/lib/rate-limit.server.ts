@@ -22,12 +22,16 @@ export const inquiryRateLimiter = new Ratelimit({
   analytics: true,
 });
 
-export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
+export function getIpFromHeaders(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
-  const realIp = request.headers.get("x-real-ip");
+  const realIp = headers.get("x-real-ip");
   if (realIp) return realIp;
   return "unknown";
+}
+
+export function getClientIp(request: Request): string {
+  return getIpFromHeaders(request.headers);
 }
 
 // Helper: return null kalau lolos, atau pesan error kalau kena limit

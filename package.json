@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "react-router build",
-    "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
@@ -20,8 +20,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@google-analytics/data": "^7.0.0",
     "@neondatabase/serverless": "^1.1.0",
-    "@react-router/node": "^8",
-    "@react-router/serve": "^8",
     "@tailwindcss/typography": "^0.5.20",
     "@tiptap/extension-image": "^3.30.0",
     "@tiptap/extension-link": "^3.30.0",
@@ -39,19 +37,18 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "imagekit": "^6.0.0",
-    "isbot": "^5.1.36",
+    "iron-session": "^8.0.4",
+    "isbot": "^5.2.2",
     "lucide-react": "^1.31.0",
+    "next": "^16.4.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "^8",
     "recharts": "^3.10.1",
     "sharp": "^0.35.4",
-    "vite-tsconfig-paths": "^6.1.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@react-router/dev": "^8",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22",
     "@types/react": "^19.2.14",
@@ -59,7 +56,6 @@
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.12",
-    "typescript": "^5.9.3",
-    "vite": "^7.0.0"
+    "typescript": "^5.9.3"
   }
 }

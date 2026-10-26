@@ -1,5 +1,8 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
@@ -34,7 +37,7 @@ function unlockBodyScroll(restoreScrollY: number) {
 export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
+  const pathname = usePathname();
   const scrollYRef = useRef(0);
 
   useEffect(() => {
@@ -48,7 +51,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
     return () => {
       unlockBodyScroll(scrollYRef.current);
     };
-  }, [location.pathname, location.hash]);
+  }, [pathname]);
 
   useEffect(() => {
     unlockBodyScroll(0);
@@ -89,14 +92,14 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
   ];
 
   const logoUrl: string | undefined = general.logoUrl ?? undefined;
-  const logoSrc: string | undefined = logoUrl ? resizeImage(logoUrl, 220) : undefined;
+  const logoSrc = logoUrl ? resizeImage(logoUrl, 220) ?? undefined : undefined;
   const logoSrcSet: string | undefined = logoUrl ? buildSrcSet(logoUrl, 220) : undefined;
   const waLink = buildWaLink(contact.whatsappNumber, templates.defaultConsultation);
 
   return (
     <header className={isScrolled ? "sticky top-0 z-40 transition-all duration-300 bg-white/80 backdrop-blur-lg shadow-sm border-b border-slate-100" : "sticky top-0 z-40 transition-all duration-300 bg-white/60 backdrop-blur-md border-b border-transparent"}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 md:h-17.5 flex items-center justify-between">
-        <Link to="/" prefetch="intent" className="group flex items-center gap-2 min-w-0 shrink-0 transition-transform duration-200 hover:scale-[1.03]">
+        <Link href="/" className="group flex items-center gap-2 min-w-0 shrink-0 transition-transform duration-200 hover:scale-[1.03]">
           {logoSrc ? (
             <img src={logoSrc} srcSet={logoSrcSet} sizes="215px" width={215} height={56} alt={general.siteName} className="h-8 w-auto transition-opacity duration-200 group-hover:opacity-80" fetchPriority="high" />
           ) : (
@@ -108,8 +111,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
           {navItems.map((item) => (
             <Link
               key={item.to}
-              to={item.to}
-              prefetch="intent"
+              href={item.to}
               className="relative px-4 py-2 rounded-full text-sm font-medium text-slate-600 transition-all duration-200 hover:text-brand-600 hover:bg-white hover:shadow-sm active:scale-95"
             >
               {item.label}
@@ -141,8 +143,7 @@ export function SiteHeader({ settings }: { settings: Record<string, any> }) {
           {navItems.map((item) => (
             <Link
               key={item.to}
-              to={item.to}
-              prefetch="intent"
+              href={item.to}
               onClick={closeMenu}
               className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 hover:text-brand-600 hover:pl-5 active:scale-[0.98]"
             >

@@ -1,0 +1,39 @@
+import { generateHTML } from "@tiptap/html";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import { ResizableImage } from "~/lib/tiptap-extensions/resizable-image";
+import type { JSONContent } from "@tiptap/react";
+
+const extensions = [
+  StarterKit,
+  Link.configure({ HTMLAttributes: { class: "text-brand-600 underline underline-offset-2" } }),
+  ResizableImage.configure({ HTMLAttributes: { class: "rounded-xl" } }),
+  Table.configure({ HTMLAttributes: { class: "tiptap-table-wrapper" } }),
+  TableRow,
+  TableHeader,
+  TableCell,
+];
+
+export function richTextToHtml(content: JSONContent | null): string {
+  if (!content) return "";
+  return generateHTML(content, extensions);
+}
+
+export function RichTextView({ content }: { content: JSONContent | null }) {
+  const html = richTextToHtml(content);
+
+  if (!html) {
+    return null;
+  }
+
+  return (
+    <div
+      className="prose prose-sm sm:prose-base max-w-none tiptap-table-wrapper"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}

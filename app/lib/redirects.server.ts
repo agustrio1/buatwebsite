@@ -1,4 +1,3 @@
-import { redirect } from "react-router";
 import { db } from "~/db";
 import { redirects } from "~/db/schema";
 
@@ -16,6 +15,7 @@ const SKIP_PREFIXES = [
   "/robots.txt",
   "/rss.xml",
   "/favicon",
+  "/_next",
 ];
 
 let cache: Map<string, Rule> | null = null;
@@ -30,9 +30,6 @@ export function normalizeRequestPath(pathname: string) {
   } catch {
     // path rusak: pakai apa adanya
   }
-  // Request data client-side: /blog/x.data dan /_root.data
-  p = p.replace(/\.data$/, "");
-  if (p === "/_root") p = "/";
   return p.length > 1 ? p.replace(/\/+$/, "") : p;
 }
 
@@ -78,13 +75,4 @@ export async function findRedirect(pathname: string): Promise<Rule | null> {
   const rule = rules.get(path);
   if (!rule || rule.toPath === path) return null;
   return rule;
-}
-
-/**
- * Tetap disediakan supaya pemanggilan lama (mis. di blog/$slug) tidak rusak.
- * Redirect sekarang sudah dicek global di root middleware.
- */
-export async function checkRedirect(pathname: string): Promise<never | void> {
-  const rule = await findRedirect(pathname);
-  if (rule) throw redirect(rule.toPath, rule.statusCode);
 }

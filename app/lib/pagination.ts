@@ -1,7 +1,21 @@
 const DEFAULT_PAGE_SIZE = 12;
 
-export function parsePage(searchParams: URLSearchParams) {
-  const page = Number(searchParams.get("page") ?? "1");
+/** Bentuk searchParams di App Router Next 16 (nilai bisa array atau undefined). */
+export type PageParamValue = string | string[] | undefined;
+
+/**
+ * Menerima URLSearchParams (versi React Router) sekaligus object searchParams
+ * milik Next, jadi semua call site lama tetap bisa dipakai.
+ */
+export function parsePage(
+  searchParams: URLSearchParams | Record<string, PageParamValue>
+) {
+  const raw =
+    searchParams instanceof URLSearchParams
+      ? searchParams.get("page")
+      : searchParams.page;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const page = Number(value ?? "1");
   return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
 }
 
