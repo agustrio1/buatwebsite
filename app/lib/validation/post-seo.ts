@@ -1,6 +1,9 @@
 export const SCHEMA_TYPES = ["BlogPosting", "Article", "NewsArticle", "None"] as const;
 export type SchemaType = (typeof SCHEMA_TYPES)[number];
 
+// Item FAQ yang disimpan di kolom posts.faqs / cities.faqs (array JSON).
+export type FaqItem = { question: string; answer: string };
+
 export type SeoErrors = Partial<
   Record<"metaTitle" | "metaDescription" | "canonicalUrl" | "customJsonLd", string>
 >;

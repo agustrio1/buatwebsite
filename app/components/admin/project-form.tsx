@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Form, useNavigation, useSubmit } from "react-router";
+"use client";
+
+import { useState, useTransition } from "react";
 import { ImagePlus, Save, Trash2, Eye } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
 import { uploadDirect } from "~/lib/image-client";
@@ -22,18 +23,19 @@ type ProjectFormValues = {
 };
 
 export function ProjectForm({
+  action,
   defaultValues,
   onDeleteImage,
 }: {
+  action: (formData: FormData) => void | Promise<void>;
   defaultValues?: ProjectFormValues;
   onDeleteImage?: (imageId: string) => void;
 }) {
-  const navigation = useNavigation();
-  const submit = useSubmit();
+  const [isPending, startTransition] = useTransition();
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const isSubmitting = navigation.state === "submitting" || uploading;
+  const isSubmitting = isPending || uploading;
 
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
@@ -75,7 +77,9 @@ export function ProjectForm({
         formData.set("galleryUploads", JSON.stringify(uploads));
       }
 
-      submit(formData, { method: "post" });
+      startTransition(() => {
+        action(formData);
+      });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload gagal");
     } finally {
@@ -84,7 +88,7 @@ export function ProjectForm({
   }
 
   return (
-    <Form method="post" onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
@@ -166,7 +170,10 @@ export function ProjectForm({
                 <img src={img.imageUrl} alt="" className="aspect-square object-cover rounded w-full" />
                 <button
                   type="button"
-                  onClick={() => onDeleteImage?.(img.imageId)}
+                  onClick={() => {
+                    if (!window.confirm("Hapus gambar ini?")) return;
+                    onDeleteImage?.(img.imageId);
+                  }}
                   className="absolute top-1 right-1 bg-white/90 rounded p-1 text-red-500 hover:bg-white"
                 >
                   <Trash2 size={14} />
@@ -213,6 +220,6 @@ export function ProjectForm({
           </a>
         )}
       </div>
-    </Form>
+    </form>
   );
 }

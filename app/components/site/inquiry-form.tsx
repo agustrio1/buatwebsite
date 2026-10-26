@@ -1,10 +1,13 @@
-import { Form, useNavigation, useActionData } from "react-router";
+"use client";
+
+import { useActionState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
+import { submitInquiry, type InquiryResult } from "~/lib/actions/inquiry";
+
+const initialState: InquiryResult = {};
 
 export function InquiryForm({ services }: { services: { id: string; title: string }[] }) {
-  const navigation = useNavigation();
-  const actionData = useActionData<{ success?: boolean; error?: string }>();
-  const isSubmitting = navigation.state === "submitting";
+  const [actionData, formAction, isSubmitting] = useActionState(submitInquiry, initialState);
 
   if (actionData?.success) {
     return (
@@ -19,7 +22,7 @@ export function InquiryForm({ services }: { services: { id: string; title: strin
   }
 
   return (
-    <Form method="post" className="space-y-4">
+    <form action={formAction} className="space-y-4">
       {actionData?.error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {actionData.error}
@@ -68,6 +71,6 @@ export function InquiryForm({ services }: { services: { id: string; title: strin
       >
         <Send size={16} /> {isSubmitting ? "Mengirim..." : "Kirim Pesan"}
       </button>
-    </Form>
+    </form>
   );
 }

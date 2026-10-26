@@ -1,0 +1,101 @@
+import Link from "next/link";
+import { db } from "~/db";
+import { services } from "~/db/schema";
+import { asc, count } from "drizzle-orm";
+import { Check } from "lucide-react";
+import { parsePage, getPagination } from "~/lib/pagination";
+import { Pagination } from "~/components/shared/pagination";
+import { DeleteForm } from "~/components/admin/delete-form";
+import { deleteService } from "./actions";
+
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function ServicesIndex({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams;
+  const page = parsePage(sp);
+
+  const [{ value: totalItems }] = await db.select({ value: count() }).from(services);
+  const { limit, offset, currentPage, totalPages } = getPagination(page, totalItems, 10);
+
+  const rows = await db.query.services.findMany({
+    orderBy: [asc(services.sortOrder)],
+    with: { features: true },
+    limit,
+    offset,
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-brand-dark">Layanan</h1>
+        <Link
+          href="/admin/services/new"
+          className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded"
+        >
+          + Tambah Layanan
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-100 text-left">
+            <tr>
+              <th className="p-3">Judul</th>
+              <th className="p-3">Harga</th>
+              <th className="p-3">Badge</th>
+              <th className="p-3">Featured</th>
+              <th className="p-3">Urutan</th>
+              <th className="p-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((s) => (
+              <tr key={s.id} className="border-t">
+                <td className="p-3 font-medium">{s.title}</td>
+                <td className="p-3">
+                  {!s.isPriceVisible
+                    ? <span className="text-slate-400 italic">Disembunyikan</span>
+                    : s.priceLabel
+                      ? s.priceLabel
+                      : s.priceAmount
+                        ? `Rp${Number(s.priceAmount).toLocaleString("id-ID")}${s.priceUnit ?? ""}`
+                        : "-"}
+                </td>
+                <td className="p-3">
+                  {s.badge && (
+                    <span className="bg-brand-100 text-brand-700 text-xs px-2 py-1 rounded">
+                      {s.badge}
+                    </span>
+                  )}
+                </td>
+                <td className="p-3">{s.isFeatured && <Check size={16} className="text-brand-600" />}</td>
+                <td className="p-3">{s.sortOrder}</td>
+                <td className="p-3 text-right space-x-3">
+                  <Link href={`/admin/services/${s.id}/edit`} className="text-brand-600 hover:underline">
+                    Edit
+                  </Link>
+                  <DeleteForm
+                    action={deleteService.bind(null, s.id)}
+                    confirmMessage={`Hapus layanan "${s.title}"?`}
+                    buttonClassName="text-red-500 hover:underline"
+                  >
+                    Hapus
+                  </DeleteForm>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-slate-400">
+                  Belum ada layanan.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/services" searchParams={sp} />
+    </div>
+  );
+}

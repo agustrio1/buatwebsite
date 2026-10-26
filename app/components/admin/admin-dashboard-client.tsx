@@ -1,0 +1,459 @@
+"use client";
+
+import Link from "next/link";
+import {
+  LayoutGrid,
+  FolderKanban,
+  FileText,
+  Inbox,
+  ArrowRight,
+  Mail,
+  Users,
+  Eye,
+  BarChart3,
+  Settings,
+  MessageCircle,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+} from "recharts";
+
+type RankRow = { name: string | null; total: number };
+
+type Analytics = {
+  totalUsers: number;
+  totalPageViews: number;
+  totalSessions: number;
+  trend: { date: string; users: number; pageViews: number }[];
+  topPages: { path: string; views: number }[];
+  sources: { channel: string; sessions: number }[];
+};
+
+type WaStats = {
+  total: number;
+  byPage: RankRow[];
+  byLabel: RankRow[];
+  byMessage: RankRow[];
+  bySource: RankRow[];
+};
+
+type InquiryRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+};
+
+type Props = {
+  servicesCount: number;
+  projectsCount: number;
+  postsCount: number;
+  publishedPostsCount: number;
+  newInquiriesCount: number;
+  recentInquiriesCount: number;
+  recentInquiries: InquiryRow[];
+  analytics: Analytics | null;
+  waStats: WaStats | null;
+};
+
+const channelLabel: Record<string, string> = {
+  "Organic Search": "Organic Search",
+  Direct: "Direct",
+  Referral: "Referral",
+  "Organic Social": "Social Media",
+  "Paid Search": "Paid Search",
+  Email: "Email",
+  Unassigned: "Lainnya",
+};
+
+function formatDate(raw: string) {
+  // GA4 format: YYYYMMDD
+  if (raw.length !== 8) return raw;
+  const month = raw.slice(4, 6);
+  const day = raw.slice(6, 8);
+  return `${day}/${month}`;
+}
+
+function RankList({
+  title,
+  rows,
+  fallback,
+}: {
+  title: string;
+  rows: RankRow[];
+  fallback: string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.total));
+
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="px-5 py-4 border-b">
+        <p className="text-sm font-medium text-slate-600">{title}</p>
+      </div>
+      <div className="divide-y">
+        {rows.map((row, i) => {
+          const name = row.name && row.name.trim() ? row.name : fallback;
+          return (
+            <div key={`${name}-${i}`} className="px-5 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-600 truncate" title={name}>
+                  {name}
+                </span>
+                <span className="text-sm font-medium text-brand-dark shrink-0">
+                  {row.total.toLocaleString("id-ID")}
+                </span>
+              </div>
+              <div className="h-1 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                <div
+                  className="h-full bg-brand-500 rounded-full"
+                  style={{ width: `${(row.total / max) * 100}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        {rows.length === 0 && (
+          <p className="text-sm text-slate-400 italic px-5 py-6 text-center">Belum ada data.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Isi halaman Dashboard. Dipisah ke client karena Recharts ResponsiveContainer
+ * butuh DOM. Data sudah difilter & diserialisasi di server; markup identik
+ * dengan admin/index.tsx versi React Router.
+ */
+export function AdminDashboardClient({
+  servicesCount,
+  projectsCount,
+  postsCount,
+  publishedPostsCount,
+  newInquiriesCount,
+  recentInquiriesCount,
+  recentInquiries,
+  analytics,
+  waStats,
+}: Props) {
+  const stats = [
+    {
+      label: "Layanan",
+      value: servicesCount,
+      href: "/admin/services",
+      icon: LayoutGrid,
+    },
+    {
+      label: "Projek",
+      value: projectsCount,
+      href: "/admin/projects",
+      icon: FolderKanban,
+    },
+    {
+      label: "Artikel",
+      value: postsCount,
+      sub: `${publishedPostsCount} published`,
+      href: "/admin/posts",
+      icon: FileText,
+    },
+    {
+      label: "Inquiry Baru",
+      value: newInquiriesCount,
+      href: "/admin/inquiries",
+      icon: Inbox,
+      highlight: newInquiriesCount > 0,
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-brand-dark">Dashboard</h1>
+        <p className="text-sm text-slate-400 mt-1">Ringkasan aktivitas website kamu.</p>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => {
+          const Icon = s.icon;
+          return (
+            <Link
+              key={s.label}
+              href={s.href}
+              className="bg-white rounded-lg shadow p-5 hover:shadow-md transition-shadow group"
+            >
+              <div className="flex items-start justify-between">
+                <div
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    s.highlight ? "bg-brand-500/10 text-brand-500" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  <Icon size={20} />
+                </div>
+                <ArrowRight
+                  size={16}
+                  className="text-slate-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all"
+                />
+              </div>
+              <p className="text-2xl font-bold text-brand-dark mt-3">{s.value}</p>
+              <p className="text-sm text-slate-500">{s.label}</p>
+              {s.sub && <p className="text-xs text-slate-400 mt-0.5">{s.sub}</p>}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Google Analytics */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-brand-dark flex items-center gap-2">
+            <BarChart3 size={18} /> Kunjungan Website (30 hari terakhir)
+          </h2>
+        </div>
+
+        {!analytics ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-slate-400 text-sm">
+              Google Analytics belum dikonfigurasi.
+            </p>
+            <Link
+              href="/admin/settings?tab=integrations"
+              className="inline-flex items-center gap-1.5 text-sm text-brand-600 hover:underline mt-2"
+            >
+              <Settings size={14} /> Atur di Pengaturan &gt; Integrasi
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <Users size={14} /> Visitor
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {analytics.totalUsers.toLocaleString("id-ID")}
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <Eye size={14} /> Page Views
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {analytics.totalPageViews.toLocaleString("id-ID")}
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <BarChart3 size={14} /> Sessions
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {analytics.totalSessions.toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+
+            {/* Trend chart */}
+            <div className="bg-white rounded-lg shadow p-5 mb-4">
+              <p className="text-sm font-medium text-slate-600 mb-3">Trend Visitor & Page Views</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.trend} barGap={4}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDate}
+                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      labelFormatter={(v) => formatDate(String(v))}
+                      cursor={{ fill: "#f8fafc" }}
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "none",
+                        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: 12 }}
+                      formatter={(value) => (
+                        <span className="text-slate-600">{value}</span>
+                      )}
+                    />
+                    <Bar
+                      dataKey="users"
+                      name="Visitor"
+                      fill="#f97316"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={18}
+                    />
+                    <Bar
+                      dataKey="pageViews"
+                      name="Page Views"
+                      fill="#cbd5e1"
+                      radius={[4, 4, 0, 0]}
+                      maxBarSize={18}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Top pages */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-5 py-4 border-b">
+                  <p className="text-sm font-medium text-slate-600">Halaman Populer</p>
+                </div>
+                <div className="divide-y">
+                  {analytics.topPages.map((page) => (
+                    <div key={page.path} className="flex items-center justify-between gap-3 px-5 py-3">
+                      <span className="text-sm text-slate-600 truncate">{page.path}</span>
+                      <span className="text-sm font-medium text-brand-dark shrink-0">
+                        {page.views.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  ))}
+                  {analytics.topPages.length === 0 && (
+                    <p className="text-sm text-slate-400 italic px-5 py-6 text-center">
+                      Belum ada data.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Traffic sources */}
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-5 py-4 border-b">
+                  <p className="text-sm font-medium text-slate-600">Sumber Traffic</p>
+                </div>
+                <div className="divide-y">
+                  {analytics.sources.map((s) => (
+                    <div key={s.channel} className="flex items-center justify-between gap-3 px-5 py-3">
+                      <span className="text-sm text-slate-600">
+                        {channelLabel[s.channel] ?? s.channel}
+                      </span>
+                      <span className="text-sm font-medium text-brand-dark shrink-0">
+                        {s.sessions.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  ))}
+                  {analytics.sources.length === 0 && (
+                    <p className="text-sm text-slate-400 italic px-5 py-6 text-center">
+                      Belum ada data.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Klik WhatsApp */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-brand-dark flex items-center gap-2">
+            <MessageCircle size={18} /> Klik WhatsApp (30 hari terakhir)
+          </h2>
+        </div>
+
+        {!waStats ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-slate-400 text-sm">
+              Data klik WhatsApp belum tersedia. Pastikan tabel wa_clicks sudah dibuat (db:push).
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <MessageCircle size={14} /> Klik WhatsApp
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {waStats.total.toLocaleString("id-ID")}
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-5">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium uppercase tracking-wide">
+                  <Inbox size={14} /> Inquiry via Form
+                </div>
+                <p className="text-2xl font-bold text-brand-dark mt-2">
+                  {recentInquiriesCount.toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <RankList title="Klik per Halaman" rows={waStats.byPage} fallback="(tanpa halaman)" />
+              <RankList title="Klik per Tombol" rows={waStats.byLabel} fallback="(tanpa teks)" />
+              <RankList
+                title="Klik per Pesan / Paket"
+                rows={waStats.byMessage}
+                fallback="(tanpa pesan)"
+              />
+              <RankList title="Klik per Sumber" rows={waStats.bySource} fallback="(tidak diketahui)" />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Recent inquiries */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <h2 className="font-semibold text-brand-dark">Inquiry Terbaru</h2>
+          <Link
+            href="/admin/inquiries"
+            className="text-sm text-brand-600 hover:underline flex items-center gap-1"
+          >
+            Lihat semua <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="divide-y">
+          {recentInquiries.map((inq) => (
+            <div key={inq.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                  <Mail size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-brand-dark truncate">{inq.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{inq.email ?? inq.phone ?? "-"}</p>
+                </div>
+              </div>
+              <span
+                className={`text-xs px-2 py-1 rounded shrink-0 ${
+                  inq.status === "new"
+                    ? "bg-amber-100 text-amber-700"
+                    : inq.status === "contacted"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {inq.status}
+              </span>
+            </div>
+          ))}
+          {recentInquiries.length === 0 && (
+            <p className="text-sm text-slate-400 italic px-5 py-8 text-center">
+              Belum ada inquiry masuk.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

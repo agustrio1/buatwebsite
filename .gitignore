@@ -4,6 +4,8 @@
 /node_modules/
 /flat-unit-a6a3/
 
-# React Router
-/.react-router/
-/build/
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo

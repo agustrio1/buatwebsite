@@ -1,5 +1,6 @@
+"use client";
+
 import { useState } from "react";
-import { Form } from "react-router";
 import { Plus, Trash2, Save } from "lucide-react";
 
 type Feature = { id?: string; featureText: string; isIncluded: boolean };
@@ -20,9 +21,11 @@ type ServiceFormValues = {
 };
 
 export function ServiceForm({
+  action,
   defaultValues,
   error,
 }: {
+  action: (formData: FormData) => void | Promise<void>;
   defaultValues?: ServiceFormValues;
   error?: string;
 }) {
@@ -46,7 +49,7 @@ export function ServiceForm({
   }
 
   return (
-    <Form method="post" className="space-y-6 max-w-3xl">
+    <form action={action} className="space-y-6 max-w-3xl">
       {error && (
         <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded p-3">
           {error}
@@ -227,6 +230,6 @@ export function ServiceForm({
       >
         <Save size={16} /> Simpan Layanan
       </button>
-    </Form>
+    </form>
   );
 }

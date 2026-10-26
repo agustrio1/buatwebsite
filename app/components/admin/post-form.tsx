@@ -1,9 +1,17 @@
-import { useState } from "react";
-import { Form, useNavigation } from "react-router";
+"use client";
+
+import { useState, useActionState } from "react";
 import { ImagePlus, Save } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
 import type { JSONContent } from "@tiptap/react";
 import { SCHEMA_TYPES, type SchemaType, type SeoErrors } from "~/lib/validation/post-seo";
+
+export type PostFormErrors = Partial<
+  Record<"title" | "slug" | "summary" | "categoryId" | "status", string>
+> &
+  SeoErrors;
+
+export type PostFormState = { errors?: PostFormErrors } | null;
 
 type PostFormValues = {
   id?: string;
@@ -41,17 +49,17 @@ function Counter({ value, max }: { value: string; max: number }) {
 }
 
 export function PostForm({
+  action,
   defaultValues,
   categories,
-  errors,
 }: {
+  action: (prevState: PostFormState, formData: FormData) => Promise<PostFormState>;
   defaultValues?: PostFormValues;
   categories: { id: string; name: string }[];
-  errors?: Partial<Record<"title" | "slug" | "summary" | "categoryId" | "status", string>> &
-    SeoErrors;
 }) {
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+  const [state, formAction, isPending] = useActionState(action, null);
+  const errors = state?.errors;
+  const isSubmitting = isPending;
 
   const [coverPreview, setCoverPreview] = useState<string | null>(
     defaultValues?.coverImageUrl ?? null
@@ -89,7 +97,7 @@ export function PostForm({
   const showOgPreview = ogPreview && !(removeOg && !hasNewOg);
 
   return (
-    <Form method="post" encType="multipart/form-data" className="space-y-6 max-w-3xl">
+    <form action={formAction} encType="multipart/form-data" className="space-y-6 max-w-3xl">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
@@ -326,6 +334,6 @@ export function PostForm({
       >
         <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Artikel"}
       </button>
-    </Form>
+    </form>
   );
 }

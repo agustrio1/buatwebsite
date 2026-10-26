@@ -1,0 +1,690 @@
+import Link from "next/link";
+import { db } from "~/db";
+import { services, projects, posts, cities } from "~/db/schema";
+import { asc, desc, eq } from "drizzle-orm";
+import { formatPrice, buildWaLink } from "~/lib/format";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
+import { safeJsonLd } from "~/lib/json-ld";
+import {
+  Check,
+  ArrowRight,
+  ArrowUpRight,
+  ExternalLink,
+  MapPin,
+  Star,
+} from "lucide-react";
+import { PortfolioMarquee, type PortfolioProject } from "~/components/site/portfolio-marquee";
+import { BriefForm } from "~/components/site/brief-form";
+import { FaqAccordion } from "~/components/site/faq-accordion";
+import { getPublicSettings } from "~/lib/settings.server";
+
+// ISR: beranda ikut ter-cache dan di-regenerate tiap 5 menit (lihat (site)/layout).
+export const revalidate = 300;
+
+function WhatsAppIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`shrink-0 fill-current ${className}`}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M12.012 2C6.486 2 2 6.479 2 12.005c0 2.13.663 4.106 1.794 5.733L2 22l4.406-1.748A9.957 9.957 0 0012.012 22c5.527 0 10.013-4.479 10.013-9.995C22.025 6.479 17.539 2 12.012 2zm0 18.232c-1.802 0-3.486-.487-4.938-1.339l-.354-.208-2.617 1.038.988-2.505-.23-.365A8.183 8.183 0 013.8 12.005c0-4.528 3.684-8.212 8.212-8.212 4.528 0 8.213 3.684 8.213 8.212 0 4.528-3.685 8.227-8.213 8.227zm4.502-6.155c-.247-.124-1.463-.722-1.69-.804-.227-.083-.392-.124-.557.124-.165.247-.64.804-.784.97-.144.165-.289.185-.536.062-.247-.124-1.044-.385-1.988-1.227-.735-.656-1.232-1.465-1.376-1.712-.144-.247-.015-.381.108-.504.111-.11.247-.289.371-.433.124-.144.165-.247.247-.412.083-.165.042-.31-.02-.433-.062-.124-.557-1.341-.763-1.836-.2-.482-.404-.417-.557-.425-.144-.008-.31-.008-.475-.008s-.433.062-.66.31c-.227.247-.866.846-.866 2.064 0 1.217.887 2.393 1.011 2.558.124.165 1.745 2.664 4.229 3.738.591.255 1.053.407 1.412.521.593.188 1.133.162 1.56.098.476-.071 1.463-.598 1.669-1.176.206-.578.206-1.073.144-1.176-.062-.103-.227-.185-.474-.309z" />
+    </svg>
+  );
+}
+
+async function getHomeData() {
+  const [allProjects, featuredServices, latestPosts, allProjectsCount, activeCities] =
+    await Promise.all([
+      db.query.projects.findMany({
+        orderBy: [desc(projects.isFeatured), desc(projects.createdAt)],
+        limit: 6,
+      }),
+      db.query.services.findMany({
+        orderBy: [asc(services.sortOrder)],
+        with: { features: true },
+        limit: 6,
+      }),
+      db.query.posts.findMany({
+        where: eq(posts.status, "published"),
+        orderBy: [desc(posts.publishedAt)],
+        with: { category: true },
+        limit: 3,
+      }),
+      db.$count(projects),
+      db.query.cities.findMany({
+        where: eq(cities.isActive, true),
+        orderBy: [asc(cities.sortOrder), asc(cities.name)],
+        columns: { name: true, slug: true },
+        limit: 12,
+      }),
+    ]);
+
+  return {
+    services: featuredServices,
+    projects: allProjects,
+    posts: latestPosts,
+    projectsCount: allProjectsCount,
+    cities: activeCities,
+  };
+}
+
+const processSteps = [
+  {
+    step: "01",
+    title: "Konsultasi",
+    desc: "Kami dengarkan kebutuhan bisnis Anda, target audiens, dan fitur yang diperlukan. Disesuaikan, bukan template mentah.",
+  },
+  {
+    step: "02",
+    title: "Desain & Struktur",
+    desc: "Tampilan dirancang mengikuti identitas brand Anda, dengan struktur konten yang SEO-friendly.",
+  },
+  {
+    step: "03",
+    title: "Pengembangan",
+    desc: "Dibangun dengan teknologi modern, responsif di semua perangkat, cepat, dan mudah dikelola.",
+  },
+  {
+    step: "04",
+    title: "Rilis & Pendampingan",
+    desc: "Website online, kami dampingi Anda di masa-masa awal pemakaian setelah rilis.",
+  },
+];
+
+type Testimonial = {
+  name: string;
+  role: string;
+  quote: string;
+  rating: number;
+};
+
+// Isi hanya dengan testimoni klien asli. Selama kosong, section testimoni tidak ditampilkan.
+const testimonials: Testimonial[] = [];
+
+const faqs = [
+  {
+    q: "Berapa lama waktu pengerjaan website?",
+    a: "Landing page atau website sederhana bisa selesai 1–2 hari kerja, company profile multi-halaman sekitar 3–5 hari kerja. Waktu dihitung sejak materi (teks, logo, foto) lengkap kami terima. Untuk sistem custom, estimasi diberikan setelah kebutuhan fitur dibahas.",
+  },
+  {
+    q: "Apakah sudah termasuk domain dan hosting?",
+    a: "Paket Starter dan Pro sudah termasuk domain dan hosting gratis untuk tahun pertama. Untuk tahun berikutnya ada biaya perpanjangan, dan kami infokan jelas sebelum kesepakatan supaya tidak ada biaya mendadak. Untuk paket Custom, kebutuhan hosting disesuaikan dengan sistemnya.",
+  },
+  {
+    q: "Apa yang perlu saya siapkan sebelum mulai?",
+    a: "Yang paling membantu: logo (kalau ada), teks tentang bisnis dan layanan Anda, foto produk atau usaha, serta contoh website yang Anda sukai. Kalau belum lengkap, kami bantu arahkan saat konsultasi.",
+  },
+  {
+    q: "Apakah bisa request revisi?",
+    a: "Bisa. Jumlah dan batas revisi kami sepakati di awal sebelum pengerjaan dimulai, supaya arahnya jelas untuk kedua pihak.",
+  },
+  {
+    q: "Bisa dikelola sendiri setelah website jadi?",
+    a: "Bisa. Kami sediakan panduan pemakaian dan website dibuat agar teks serta gambar mudah diubah tanpa harus paham coding.",
+  },
+  {
+    q: "Apakah bisa dibuatkan sistem custom seperti CRM, ERP, atau booking?",
+    a: "Bisa. Kami mengerjakan sistem bisnis custom seperti CRM, ERP/keuangan, toko online dengan pembayaran dan ekspedisi, serta sistem booking. Contohnya bisa dilihat di bagian demo di atas. Ceritakan alur kerja bisnis Anda lewat konsultasi, lalu kami usulkan fitur yang sesuai.",
+  },
+  {
+    q: "Apakah proyek di bagian demo itu milik klien?",
+    a: "Bukan. Proyek di bagian demo adalah sistem yang kami bangun sendiri untuk menunjukkan kemampuan teknis kami. Anda bisa mencobanya langsung untuk melihat cara kerjanya sebelum memutuskan.",
+  },
+  {
+    q: "Apakah konsultasi awal berbayar?",
+    a: "Tidak. Konsultasi lewat WhatsApp gratis dan tanpa komitmen. Kami dengarkan kebutuhan Anda dulu, lalu berikan saran dan estimasi.",
+  },
+];
+
+export default async function Home() {
+  const [data, settings] = await Promise.all([getHomeData(), getPublicSettings()]);
+  const { services, projects, posts, projectsCount, cities } = data;
+
+  const hero = settings.hero ?? {};
+  const contact = settings.contact ?? {};
+  const templates = settings.whatsapp_templates ?? {};
+  const features = settings.features ?? {};
+  const general = settings.general ?? {};
+  const briefForm = settings.brief_form ?? {};
+
+  const waConsult = buildWaLink(contact.whatsappNumber, templates.defaultConsultation);
+
+  const servicesJsonLd =
+    services.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          itemListElement: services.map((s, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            item: {
+              "@type": "Service",
+              name: s.title,
+              description: s.summary ?? undefined,
+              provider: {
+                "@type": "Organization",
+                name: general.siteName,
+              },
+              offers:
+                s.isPriceVisible && s.priceAmount
+                  ? {
+                      "@type": "Offer",
+                      price: s.priceAmount,
+                      priceCurrency: "IDR",
+                    }
+                  : undefined,
+            },
+          })),
+        }
+      : null;
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      {servicesJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(servicesJsonLd) }}
+        />
+      )}
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
+      />
+
+      <section className="relative overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 md:px-8 md:pb-12 md:pt-24 lg:grid lg:grid-cols-2 lg:items-center lg:gap-12 lg:pb-20">
+          <div className="text-center lg:text-left">
+            <h1 className="text-3xl font-bold leading-tight text-brand-dark sm:text-4xl md:text-5xl lg:text-6xl">
+              {hero.headline ?? (
+                <>
+                  Jasa Pembuatan Website Profesional untuk{" "}
+                  <span className="text-brand-500">UMKM & Bisnis</span>
+                </>
+              )}
+            </h1>
+
+            {hero.subheadline && (
+              <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-500 md:text-lg lg:mx-0">
+                {hero.subheadline}
+              </p>
+            )}
+
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+              <a
+                href={hero.ctaPrimaryUrl || waConsult}
+                target="_blank"
+                rel="noreferrer"
+                className="flex w-full items-center justify-center gap-2.5 rounded-full bg-brand-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-500/20 transition-colors hover:bg-brand-600 sm:w-auto"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                <span>{hero.ctaPrimaryText ?? "Konsultasi Sekarang"}</span>
+                <ArrowUpRight size={18} />
+              </a>
+
+              {features.showPortfolioDemoLinks !== false && projects.length > 0 && (
+                <a
+                  href="#projek"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full px-7 py-3.5 font-medium text-slate-600 transition-colors hover:text-brand-600 sm:w-auto"
+                >
+                  Lihat Demo Proyek
+                  <ArrowRight size={16} />
+                </a>
+              )}
+            </div>
+
+            {projectsCount > 0 && (
+              <p className="mt-5 text-sm text-slate-400">
+                Contoh sistem bisnis yang kami bangun sebagai demo kemampuan.
+              </p>
+            )}
+          </div>
+
+          {projects.length > 0 && (
+            <div className="mt-12 lg:mt-0">
+              <PortfolioMarquee projects={projects as PortfolioProject[]} />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
+          <div className="mb-14 text-center">
+            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+              Cara Kami Bekerja
+            </span>
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Proses yang Jelas dari Awal
+            </h2>
+          </div>
+
+          <div className="space-y-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-8">
+            {processSteps.map((item) => (
+              <div
+                key={item.step}
+                className="flex gap-6 border-t border-slate-100 pt-8 first:border-0 first:pt-0"
+              >
+                <span className="w-16 shrink-0 text-3xl font-bold text-slate-200 md:text-4xl">
+                  {item.step}
+                </span>
+                <div>
+                  <h3 className="text-lg font-semibold text-brand-dark">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {features.showPricingSection !== false && services.length > 0 && (
+        <section id="layanan">
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Harga
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">Paket & Harga</h2>
+              <p className="mt-2 text-slate-500">
+                Pilih paket yang sesuai dengan kebutuhan bisnis Anda.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {services.map((s) => {
+                const priceAmountText = formatPrice(s.priceAmount, s.priceUnit);
+                const waPackage = buildWaLink(
+                  contact.whatsappNumber,
+                  (templates.packageInquiry ?? "Halo, saya berminat dengan paket {packageName}").replace(
+                    "{packageName}",
+                    s.title
+                  )
+                );
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`relative flex flex-col rounded-3xl border bg-white p-7 ${
+                      s.isFeatured
+                        ? "border-brand-500 shadow-xl shadow-brand-500/10"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    {s.badge && (
+                      <span className="absolute -top-3 left-7 rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-white">
+                        {s.badge}
+                      </span>
+                    )}
+
+                    <h3 className="text-lg font-semibold text-brand-dark">{s.title}</h3>
+                    {s.summary && <p className="mt-1.5 text-sm text-slate-500">{s.summary}</p>}
+
+                    <div className="mt-5">
+                      {!s.isPriceVisible ? (
+                        <p className="text-lg font-semibold italic text-slate-400">
+                          Hubungi kami untuk harga
+                        </p>
+                      ) : priceAmountText ? (
+                        <>
+                          {s.priceLabel && (
+                            <p className="mb-1 text-sm font-medium text-slate-500">{s.priceLabel}</p>
+                          )}
+                          <p className="text-3xl font-bold text-brand-dark">{priceAmountText}</p>
+                        </>
+                      ) : s.priceLabel ? (
+                        <p className="text-3xl font-bold text-brand-dark">{s.priceLabel}</p>
+                      ) : (
+                        <p className="text-lg font-semibold italic text-slate-400">
+                          Hubungi kami untuk harga
+                        </p>
+                      )}
+                    </div>
+
+                    {s.features.length > 0 && (
+                      <ul className="mt-6 flex-1 space-y-2.5">
+                        {s.features.map((f) => (
+                          <li
+                            key={f.id}
+                            className={`flex items-start gap-2 text-sm ${
+                              f.isIncluded ? "text-slate-600" : "text-slate-300 line-through"
+                            }`}
+                          >
+                            <Check
+                              size={16}
+                              className={`mt-0.5 shrink-0 ${
+                                f.isIncluded ? "text-brand-500" : "text-slate-300"
+                              }`}
+                            />
+                            {f.featureText}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <a
+                      href={waPackage}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`mt-7 flex items-center justify-center gap-2.5 rounded-full px-4 py-3 font-medium transition-colors ${
+                        s.isFeatured
+                          ? "bg-brand-500 text-white hover:bg-brand-600"
+                          : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <WhatsAppIcon className="h-5 w-5" />
+                      <span>Pesan Sekarang</span>
+                      <ArrowRight size={16} />
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-10 text-center">
+              <Link
+                href="/layanan"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+              >
+                Lihat semua layanan
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {projects.length > 0 && (
+        <section id="projek">
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Showcase
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Demo Sistem Buatan Kami
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Proyek di bawah adalah demo yang kami bangun sendiri untuk menunjukkan kemampuan
+                teknis, bukan hasil kerja untuk klien tertentu.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {projects.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/projek/${p.slug}`}
+                  prefetch={false}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                >
+                  <div className="aspect-video overflow-hidden bg-slate-100">
+                    {p.coverImageUrl && (
+                      <img
+                        src={resizeImage(p.coverImageUrl, 640) ?? undefined}
+                        srcSet={buildSrcSet(p.coverImageUrl, 640) ?? undefined}
+                        sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                        alt={p.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="font-semibold text-brand-dark">{p.title}</h3>
+                    {features.showClientName === true && p.clientName && (
+                      <p className="mt-0.5 text-sm text-slate-400">{p.clientName}</p>
+                    )}
+
+                    {p.techStack && p.techStack.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {p.techStack.slice(0, 4).map((t) => (
+                          <span
+                            key={t}
+                            className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {features.showPortfolioDemoLinks !== false && p.liveDemoUrl && (
+                      <span className="mt-4 flex items-center gap-1.5 text-sm text-brand-600">
+                        Lihat Demo
+                        <ExternalLink size={14} />
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {projectsCount > projects.length && (
+              <div className="mt-10 text-center">
+                <Link
+                  href="/projek"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+                >
+                  Lihat semua proyek
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {testimonials.length > 0 && (
+        <section>
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Testimoni
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Apa Kata Klien Kami
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {testimonials.map((t) => {
+                const rating = Math.min(5, Math.max(0, t.rating));
+                return (
+                  <div key={t.name} className="rounded-2xl border border-slate-200 bg-white p-6">
+                    <div className="mb-4 flex gap-0.5" role="img" aria-label={`Rating ${rating} dari 5`}>
+                      {Array.from({ length: rating }).map((_, i) => (
+                        <Star key={i} size={14} className="fill-brand-500 text-brand-500" />
+                      ))}
+                      {Array.from({ length: 5 - rating }).map((_, i) => (
+                        <Star key={`empty-${i}`} size={14} className="text-slate-200" />
+                      ))}
+                    </div>
+
+                    <p className="text-sm leading-relaxed text-slate-600">{t.quote}</p>
+
+                    <div className="mt-5 flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                        {t.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-brand-dark">{t.name}</p>
+                        <p className="text-xs text-slate-400">{t.role}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section>
+        <div className="mx-auto max-w-3xl px-4 py-16 md:px-8 md:py-20">
+          <div className="mb-10 text-center">
+            <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+              FAQ
+            </span>
+            <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+              Pertanyaan yang Sering Ditanyakan
+            </h2>
+          </div>
+
+          <FaqAccordion faqs={faqs} />
+        </div>
+      </section>
+
+      {cities.length > 0 && (
+        <section id="area-layanan">
+          <div className="mx-auto max-w-5xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Area Layanan
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Jasa Pembuatan Website di Kota Anda
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Kami melayani klien dari berbagai kota di Indonesia secara online.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {cities.map((city) => (
+                <Link
+                  key={city.slug}
+                  href={`/jasa-pembuatan-website/${city.slug}`}
+                  prefetch={false}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition-colors hover:border-brand-500 hover:text-brand-600"
+                >
+                  <MapPin size={14} aria-hidden="true" />
+                  Jasa Website {city.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {features.showBlogSection !== false && (
+        <section id="blog">
+          <div className="mx-auto max-w-7xl px-4 py-16 md:px-8 md:py-20">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <span className="mb-4 inline-block rounded-full bg-brand-100 px-3 py-1.5 text-xs font-semibold text-brand-700">
+                Blog
+              </span>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">Artikel Terbaru</h2>
+              <p className="mt-2 text-slate-500">
+                Tips dan insight seputar website dan bisnis digital.
+              </p>
+            </div>
+
+            {posts.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                  {posts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/blog/${post.slug}`}
+                      prefetch={false}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <div className="aspect-video overflow-hidden bg-slate-100">
+                        {post.coverImageUrl && (
+                          <img
+                            src={resizeImage(post.coverImageUrl, 640) ?? undefined}
+                            srcSet={buildSrcSet(post.coverImageUrl, 640) ?? undefined}
+                            sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
+                            alt={post.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        )}
+                      </div>
+
+                      <div className="p-5">
+                        {post.category && (
+                          <span className="text-xs font-medium text-brand-600">
+                            {post.category.name}
+                          </span>
+                        )}
+                        <h3 className="mt-1.5 line-clamp-2 font-semibold text-brand-dark">
+                          {post.title}
+                        </h3>
+                        {post.summary && (
+                          <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">
+                            {post.summary}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                <div className="mt-10 text-center">
+                  <Link
+                    href="/blog"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+                  >
+                    Lihat semua artikel
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-sm text-slate-400">Artikel akan segera hadir.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section id="brief">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-20">
+          <div className="grid grid-cols-1 items-start gap-10 rounded-3xl border border-slate-200 bg-white p-6 md:p-10 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-bold text-brand-dark md:text-3xl">
+                Siap Memulai Proyek Website Anda?
+              </h2>
+              <p className="mt-3 max-w-md leading-relaxed text-slate-500">
+                Ceritakan kebutuhan Anda secara singkat. Kami balas lewat WhatsApp, gratis tanpa
+                komitmen.
+              </p>
+              <a
+                href={waConsult}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center gap-2.5 text-sm font-medium text-slate-600 transition-colors hover:text-brand-600"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                <span>Atau langsung chat via WhatsApp</span>
+                <ArrowRight size={16} />
+              </a>
+            </div>
+
+            <BriefForm
+              services={services}
+              budgetOptions={briefForm.budgetOptions}
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

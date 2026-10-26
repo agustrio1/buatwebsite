@@ -1,4 +1,6 @@
-import { Form, useNavigation } from "react-router";
+"use client";
+
+import { useTransition } from "react";
 import { Save } from "lucide-react";
 
 type UserFormValues = {
@@ -8,12 +10,18 @@ type UserFormValues = {
   role: "admin" | "editor";
 };
 
-export function UserForm({ defaultValues }: { defaultValues?: UserFormValues }) {
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state === "submitting";
+export function UserForm({
+  action,
+  defaultValues,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  defaultValues?: UserFormValues;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const isSubmitting = isPending;
 
   return (
-    <Form method="post" className="space-y-4 max-w-md">
+    <form action={(formData) => startTransition(() => action(formData))} className="space-y-4 max-w-md">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <div>
@@ -66,6 +74,6 @@ export function UserForm({ defaultValues }: { defaultValues?: UserFormValues }) 
       >
         <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan User"}
       </button>
-    </Form>
+    </form>
   );
 }

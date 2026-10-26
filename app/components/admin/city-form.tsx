@@ -1,12 +1,16 @@
-import { Form } from "react-router";
+"use client";
+
+import { useActionState } from "react";
 import { SortableTextList } from "./sortable-text-list";
 import { SortableFaqList } from "./sortable-faq-list";
 import { ChevronDown } from "lucide-react";
 
 type Faq = { question: string; answer: string };
 
+export type CityFormState = { errors?: Record<string, string> } | null;
+
 type CityFormProps = {
-  errors?: Record<string, string>;
+  action: (prevState: CityFormState, formData: FormData) => Promise<CityFormState>;
   defaultValues?: {
     id?: string;
     name: string;
@@ -58,9 +62,12 @@ function Section({
   );
 }
 
-export function CityForm({ errors, defaultValues }: CityFormProps) {
+export function CityForm({ action, defaultValues }: CityFormProps) {
+  const [state, formAction] = useActionState(action, null);
+  const errors = state?.errors;
+
   return (
-    <Form method="post" className="max-w-2xl space-y-4">
+    <form action={formAction} className="max-w-2xl space-y-4">
       <Section number={1} title="Informasi Kota" defaultOpen>
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">Nama Kota</label>
@@ -264,6 +271,6 @@ export function CityForm({ errors, defaultValues }: CityFormProps) {
           Simpan
         </button>
       </div>
-    </Form>
+    </form>
   );
 }
