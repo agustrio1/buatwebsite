@@ -3,13 +3,23 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pencil, Trash2, Search, X, FolderKanban } from "lucide-react";
+import { Pencil, Trash2, Search, X, FolderKanban, Star, StarOff } from "lucide-react";
 import { DeleteForm } from "~/components/admin/delete-form";
+import { toast } from "~/components/ui/toast";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogCloseButton,
+} from "~/components/ui/dialog";
 import { Card } from "~/components/ui/card";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input, Select, Label } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { EmptyState } from "~/components/ui/misc";
+import { resizeImage } from "~/lib/imagekit-url";
 
 export type ProjectRow = {
   id: string;
@@ -25,15 +35,18 @@ export function ProjectsIndexClient({
   featuredFilter,
   deleteProjectAction,
   bulkDeleteAction,
+  bulkSetFeaturedAction,
 }: {
   rows: ProjectRow[];
   q: string;
   featuredFilter: string;
   deleteProjectAction: (id: string) => Promise<void>;
   bulkDeleteAction: (ids: string[]) => Promise<void>;
+  bulkSetFeaturedAction: (ids: string[], value: boolean) => Promise<void>;
 }) {
   const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -56,9 +69,30 @@ export function ProjectsIndexClient({
     });
   }
 
-  function handleBulkDelete() {
-    if (!window.confirm(`Hapus ${selectedIds.size} proyek terpilih?`)) return;
-    startTransition(() => bulkDeleteAction(Array.from(selectedIds)));
+  function runBulk(fn: () => Promise<void>, okMsg: string) {
+    startTransition(async () => {
+      try {
+        await fn();
+        setSelectedIds(new Set());
+        toast(okMsg, "success");
+      } catch {
+        toast("Gagal memproses. Coba lagi.", "error");
+      }
+    });
+  }
+
+  function handleBulkFeatured(value: boolean) {
+    const ids = Array.from(selectedIds);
+    runBulk(
+      () => bulkSetFeaturedAction(ids, value),
+      value ? "Dijadikan unggulan" : "Batal unggulan"
+    );
+  }
+
+  function handleConfirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    setBulkDeleteOpen(false);
+    runBulk(() => bulkDeleteAction(ids), `${ids.length} proyek dihapus`);
   }
 
   const hasFilter = q || featuredFilter;
@@ -102,11 +136,19 @@ export function ProjectsIndexClient({
       </Card>
 
       {selectedIds.size > 0 ? (
-        <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
           <span className="text-sm text-brand-700 font-medium">{selectedIds.size} proyek dipilih</span>
-          <Button variant="ghost" size="sm" disabled={isPending} onClick={handleBulkDelete} className="text-rose-600 hover:bg-rose-50">
-            <Trash2 size={14} /> Hapus Terpilih
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleBulkFeatured(true)}>
+              <Star size={14} /> Jadikan Unggulan
+            </Button>
+            <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleBulkFeatured(false)}>
+              <StarOff size={14} /> Batal Unggulan
+            </Button>
+            <Button variant="ghost" size="sm" disabled={isPending} onClick={() => setBulkDeleteOpen(true)} className="text-rose-600 hover:bg-rose-50">
+              <Trash2 size={14} /> Hapus Terpilih
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -123,7 +165,13 @@ export function ProjectsIndexClient({
             </label>
             <div className="aspect-video bg-slate-100">
               {p.coverImageUrl && (
-                <img src={p.coverImageUrl} alt={p.title} className="w-full h-full object-cover" />
+                <img
+                  src={resizeImage(p.coverImageUrl, 640) ?? p.coverImageUrl}
+                  alt={p.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
               )}
             </div>
             <div className="p-4 space-y-2">
@@ -164,6 +212,24 @@ export function ProjectsIndexClient({
           </Card>
         )}
       </div>
+
+      <Dialog open={bulkDeleteOpen} onClose={() => !isPending && setBulkDeleteOpen(false)}>
+        <DialogCloseButton onClose={() => setBulkDeleteOpen(false)} />
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trash2 size={18} className="shrink-0 text-rose-500" /> Hapus proyek?
+          </DialogTitle>
+          <DialogDescription>{selectedIds.size} proyek terpilih akan dihapus permanen.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setBulkDeleteOpen(false)} disabled={isPending}>
+            Batal
+          </Button>
+          <Button variant="destructive" onClick={handleConfirmBulkDelete} disabled={isPending}>
+            {isPending ? "Menghapus..." : "Hapus"}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </>
   );
 }

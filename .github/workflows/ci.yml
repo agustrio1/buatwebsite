@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feat/nextjs-migration]
+  pull_request:
+    branches: [main, feat/nextjs-migration]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Test, typecheck & build
+    runs-on: ubuntu-latest
+    env:
+      # Build & test fase validasi env di-skip otomatis (NEXT_PHASE / NODE_ENV=test),
+      # jadi CI tetap jalan walau secrets opsional belum diisi.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Build perlu DATABASE_URL karena beberapa halaman publik di-SKG
+      # (mis. /jasa-pembuatan-website/[city] query tabel cities saat build).
+      # Neon serverless bisa diakses dari runner, jadi isi secret DATABASE_URL untuk
+      # mengaktifkan cek build penuh (menangkap bug server/client boundary).
+      - name: Build
+        if: env.DATABASE_URL != ''
+        run: npm run build
+
+      - name: Note (build dilewati)
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::Build dilewati karena secret DATABASE_URL belum di-set. Halaman SSG butuh DB saat build. Vercel tetap build saat deploy."
+
+  # Deploy ke Vercel hanya saat merge ke main. Langkah deploy dilewati bila
+  # VERCEL_TOKEN belum di-set. Konteks `secrets` tidak tersedia di `if` level step,
+  # jadi token dipetakan dulu ke env job lalu dicek lewat `env.VERCEL_TOKEN`.
+  deploy:
+    name: Deploy (Vercel)
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vercel CLI
+        if: env.VERCEL_TOKEN != ''
+        run: npm i -g vercel
+
+      - name: Deploy to production
+        if: env.VERCEL_TOKEN != ''
+        run: vercel deploy --prod --token "$VERCEL_TOKEN"

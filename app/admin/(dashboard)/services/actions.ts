@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { revalidateServicePages } from "~/lib/revalidate-public";
 import { db } from "~/db";
 import { services, serviceFeatures } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { requireAdmin } from "~/lib/session.server";
 
 type FeatureInput = { featureText: string; isIncluded: boolean };
@@ -80,6 +80,26 @@ export async function updateService(id: string, formData: FormData) {
 export async function deleteService(id: string) {
   await requireAdmin();
   await db.delete(services).where(eq(services.id, id));
+  revalidateServicePages();
+  revalidatePath("/admin/services");
+}
+
+export async function bulkDeleteServices(ids: string[]) {
+  await requireAdmin();
+  if (ids.length === 0) return;
+  // serviceFeatures punya FK onDelete: cascade, jadi ikut terhapus.
+  await db.delete(services).where(inArray(services.id, ids));
+  revalidateServicePages();
+  revalidatePath("/admin/services");
+}
+
+export async function bulkSetServicesFeatured(ids: string[], value: boolean) {
+  await requireAdmin();
+  if (ids.length === 0) return;
+  await db
+    .update(services)
+    .set({ isFeatured: value, updatedAt: new Date() })
+    .where(inArray(services.id, ids));
   revalidateServicePages();
   revalidatePath("/admin/services");
 }

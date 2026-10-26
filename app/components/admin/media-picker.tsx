@@ -13,6 +13,7 @@ import {
   DialogCloseButton,
 } from "~/components/ui/dialog";
 import { toast } from "~/components/ui/toast";
+import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { MediaItem } from "~/lib/media.server";
 
 /**
@@ -135,7 +136,15 @@ export function MediaPicker({
                 title={it.label}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-border transition hover:border-brand-500 hover:ring-2 hover:ring-brand-500/30"
               >
-                <img src={it.url} alt={it.label} loading="lazy" className="h-full w-full object-cover" />
+                <img
+                  src={resizeImage(it.url, 300) ?? it.url}
+                  srcSet={buildSrcSet(it.url, 300)}
+                  sizes="150px"
+                  alt={it.label}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
                 <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-1.5 py-1 text-[10px] text-white opacity-0 transition group-hover:opacity-100">
                   {it.source}
                 </span>
