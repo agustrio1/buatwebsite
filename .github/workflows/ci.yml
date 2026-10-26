@@ -40,13 +40,18 @@ jobs:
         run: npm run build
 
   # Deploy ke Vercel hanya saat merge ke main. Langkah deploy dilewati bila
-  # VERCEL_TOKEN belum di-set (kondisi dicek di level step, tempat secrets tersedia).
+  # VERCEL_TOKEN belum di-set. Konteks `secrets` tidak tersedia di `if` level step,
+  # jadi token dipetakan dulu ke env job lalu dicek lewat `env.VERCEL_TOKEN`.
   deploy:
     name: Deploy (Vercel)
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -56,12 +61,9 @@ jobs:
           cache: npm
 
       - name: Install Vercel CLI
-        if: secrets.VERCEL_TOKEN != ''
+        if: env.VERCEL_TOKEN != ''
         run: npm i -g vercel
 
       - name: Deploy to production
-        if: secrets.VERCEL_TOKEN != ''
-        run: vercel deploy --prod --token "${{ secrets.VERCEL_TOKEN }}"
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        if: env.VERCEL_TOKEN != ''
+        run: vercel deploy --prod --token "$VERCEL_TOKEN"
