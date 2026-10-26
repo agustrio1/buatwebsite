@@ -7,7 +7,7 @@ import { requireAdmin } from "~/lib/session.server";
 import { DeleteForm } from "~/components/admin/delete-form";
 import { deleteUser } from "./actions";
 import { Card } from "~/components/ui/card";
-import { buttonVariants } from "~/components/ui/button";
+import { buttonVariants } from "~/lib/button-variants";
 import { Badge } from "~/components/ui/badge";
 import { EmptyState } from "~/components/ui/misc";
 import {
