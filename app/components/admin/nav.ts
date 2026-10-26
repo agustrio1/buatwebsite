@@ -9,6 +9,7 @@ import {
   MapPin,
   ArrowRightLeft,
   History,
+  Images,
 } from "lucide-react";
 
 export type NavItem = {
@@ -32,6 +33,7 @@ export const navGroups: NavGroup[] = [
       { label: "Kota", path: "/admin/cities", icon: MapPin },
       { label: "Projek", path: "/admin/projects", icon: FolderKanban },
       { label: "Blog", path: "/admin/posts", icon: FileText },
+      { label: "Media", path: "/admin/media", icon: Images },
     ],
   },
   {
