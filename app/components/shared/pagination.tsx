@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "~/lib/cn";
 
 type SearchParamsInput = Record<string, string | string[] | undefined>;
+
+const base =
+  "inline-flex items-center justify-center h-9 w-9 rounded-lg text-sm font-medium transition-colors select-none";
+const inactive = "text-muted-foreground border border-border hover:bg-muted";
+const disabled = "text-slate-300 border border-slate-100 pointer-events-none";
 
 /**
  * Versi Next dari pagination lama. React Router mengambil URL aktif lewat
@@ -40,11 +46,7 @@ export function Pagination({
       <Link
         href={pageHref(Math.max(1, currentPage - 1))}
         aria-disabled={currentPage === 1}
-        className={`flex items-center justify-center w-9 h-9 rounded-lg border text-sm ${
-          currentPage === 1
-            ? "text-slate-300 border-slate-100 pointer-events-none"
-            : "text-slate-500 border-slate-200 hover:bg-slate-50"
-        }`}
+        className={cn(base, currentPage === 1 ? disabled : inactive)}
       >
         <ChevronLeft size={16} />
       </Link>
@@ -53,11 +55,10 @@ export function Pagination({
         <Link
           key={p}
           href={pageHref(p)}
-          className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${
-            p === currentPage
-              ? "bg-brand-500 text-white"
-              : "text-slate-500 border border-slate-200 hover:bg-slate-50"
-          }`}
+          className={cn(
+            base,
+            p === currentPage ? "bg-brand-500 text-white shadow-sm" : inactive
+          )}
         >
           {p}
         </Link>
@@ -66,11 +67,7 @@ export function Pagination({
       <Link
         href={pageHref(Math.min(totalPages, currentPage + 1))}
         aria-disabled={currentPage === totalPages}
-        className={`flex items-center justify-center w-9 h-9 rounded-lg border text-sm ${
-          currentPage === totalPages
-            ? "text-slate-300 border-slate-100 pointer-events-none"
-            : "text-slate-500 border-slate-200 hover:bg-slate-50"
-        }`}
+        className={cn(base, currentPage === totalPages ? disabled : inactive)}
       >
         <ChevronRight size={16} />
       </Link>

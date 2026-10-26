@@ -4,6 +4,9 @@ import { useActionState } from "react";
 import { SortableTextList } from "./sortable-text-list";
 import { SortableFaqList } from "./sortable-faq-list";
 import { ChevronDown } from "lucide-react";
+import { Card } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Input, Textarea, Label } from "~/components/ui/input";
 
 type Faq = { question: string; answer: string };
 
@@ -35,6 +38,15 @@ type CityFormProps = {
   };
 };
 
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <Label className="mb-1 block text-sm text-slate-600">{children}</Label>;
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-red-500">{msg}</p>;
+}
+
 function Section({
   number,
   title,
@@ -47,17 +59,16 @@ function Section({
   defaultOpen?: boolean;
 }) {
   return (
-    <details
-      open={defaultOpen}
-      className="bg-white rounded-lg shadow overflow-hidden group"
-    >
-      <summary className="flex items-center justify-between px-5 py-4 cursor-pointer select-none list-none">
-        <span className="font-semibold text-brand-dark text-sm">
-          {number}. {title}
-        </span>
-        <ChevronDown size={16} className="text-slate-400 transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="px-5 pb-5 pt-1 space-y-4 border-t border-slate-100">{children}</div>
+    <details open={defaultOpen} className="group">
+      <Card className="overflow-hidden">
+        <summary className="flex cursor-pointer select-none list-none items-center justify-between px-5 py-4">
+          <span className="text-sm font-semibold text-brand-dark">
+            {number}. {title}
+          </span>
+          <ChevronDown size={16} className="text-slate-400 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="space-y-4 border-t border-border px-5 pb-5 pt-1">{children}</div>
+      </Card>
     </details>
   );
 }
@@ -70,99 +81,72 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
     <form action={formAction} className="max-w-2xl space-y-4">
       <Section number={1} title="Informasi Kota" defaultOpen>
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Nama Kota</label>
-          <input
+          <FieldLabel>Nama Kota</FieldLabel>
+          <Input
             type="text"
             name="name"
             defaultValue={defaultValues?.name}
             placeholder="Jakarta"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
-          {errors?.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          <FieldError msg={errors?.name} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Provinsi</label>
-          <input
+          <FieldLabel>Provinsi</FieldLabel>
+          <Input
             type="text"
             name="province"
             defaultValue={defaultValues?.province ?? ""}
             placeholder="DKI Jakarta"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Slug</label>
-          <input
-            type="text"
-            name="slug"
-            defaultValue={defaultValues?.slug}
-            placeholder="jakarta"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
-          <p className="text-xs text-slate-400 mt-1">
+          <FieldLabel>Slug</FieldLabel>
+          <Input type="text" name="slug" defaultValue={defaultValues?.slug} placeholder="jakarta" />
+          <p className="mt-1 text-xs text-muted-foreground">
             URL: /jasa-pembuatan-website/{defaultValues?.slug || "slug-kota"}
           </p>
-          {errors?.slug && <p className="text-red-500 text-xs mt-1">{errors.slug}</p>}
+          <FieldError msg={errors?.slug} />
         </div>
       </Section>
 
       <Section number={2} title="Konten Utama" defaultOpen>
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            H1 (judul utama halaman, kosongkan untuk pakai default)
-          </label>
-          <input
+          <FieldLabel>H1 (judul utama halaman, kosongkan untuk pakai default)</FieldLabel>
+          <Input
             type="text"
             name="h1"
             defaultValue={defaultValues?.h1 ?? ""}
             placeholder={`Jasa Pembuatan Website Profesional di ${defaultValues?.name || "[Kota]"}`}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Paragraf Pembuka</label>
-          <textarea
-            name="intro"
-            defaultValue={defaultValues?.intro ?? ""}
-            rows={3}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>Paragraf Pembuka</FieldLabel>
+          <Textarea name="intro" defaultValue={defaultValues?.intro ?? ""} rows={3} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Konteks Bisnis Lokal</label>
-          <textarea
+          <FieldLabel>Konteks Bisnis Lokal</FieldLabel>
+          <Textarea
             name="localContext"
             defaultValue={defaultValues?.localContext ?? ""}
             rows={4}
             placeholder="Ceritakan karakteristik bisnis di kota ini..."
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
         </div>
       </Section>
 
       <Section number={3} title="Kebutuhan Bisnis">
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Tantangan Bisnis Lokal</label>
-          <textarea
-            name="localChallenges"
-            defaultValue={defaultValues?.localChallenges ?? ""}
-            rows={3}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>Tantangan Bisnis Lokal</FieldLabel>
+          <Textarea name="localChallenges" defaultValue={defaultValues?.localChallenges ?? ""} rows={3} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Kenapa Website Dibutuhkan</label>
-          <textarea
-            name="whyWebsiteNeeded"
-            defaultValue={defaultValues?.whyWebsiteNeeded ?? ""}
-            rows={3}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>Kenapa Website Dibutuhkan</FieldLabel>
+          <Textarea name="whyWebsiteNeeded" defaultValue={defaultValues?.whyWebsiteNeeded ?? ""} rows={3} />
         </div>
 
         <SortableTextList
@@ -204,73 +188,56 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
 
       <Section number={7} title="SEO & CTA">
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Meta Title</label>
-          <input
-            type="text"
-            name="metaTitle"
-            defaultValue={defaultValues?.metaTitle ?? ""}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>Meta Title</FieldLabel>
+          <Input type="text" name="metaTitle" defaultValue={defaultValues?.metaTitle ?? ""} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Meta Description</label>
-          <textarea
-            name="metaDescription"
-            defaultValue={defaultValues?.metaDescription ?? ""}
-            rows={2}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>Meta Description</FieldLabel>
+          <Textarea name="metaDescription" defaultValue={defaultValues?.metaDescription ?? ""} rows={2} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">CTA Judul</label>
-          <input
+          <FieldLabel>CTA Judul</FieldLabel>
+          <Input
             type="text"
             name="ctaTitle"
             defaultValue={defaultValues?.ctaTitle ?? ""}
             placeholder="Siap Bangun Website Bisnis Anda?"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">CTA Deskripsi</label>
-          <textarea
-            name="ctaDescription"
-            defaultValue={defaultValues?.ctaDescription ?? ""}
-            rows={2}
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
-          />
+          <FieldLabel>CTA Deskripsi</FieldLabel>
+          <Textarea name="ctaDescription" defaultValue={defaultValues?.ctaDescription ?? ""} rows={2} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">
-            WhatsApp (opsional, kosongkan untuk pakai nomor default)
-          </label>
-          <input
+          <FieldLabel>WhatsApp (opsional, kosongkan untuk pakai nomor default)</FieldLabel>
+          <Input
             type="text"
             name="ctaWhatsappNumber"
             defaultValue={defaultValues?.ctaWhatsappNumber ?? ""}
             placeholder="62812xxxxxxx"
-            className="w-full border border-slate-300 rounded px-3 py-2 text-sm"
           />
         </div>
       </Section>
 
-      <div className="bg-white rounded-lg shadow p-5">
+      <Card className="p-5">
         <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" name="isActive" defaultChecked={defaultValues?.isActive ?? true} />
+          <input
+            type="checkbox"
+            name="isActive"
+            defaultChecked={defaultValues?.isActive ?? true}
+            className="h-4 w-4 accent-brand-500"
+          />
           Aktif (tampil di website)
         </label>
 
-        <button
-          type="submit"
-          className="w-full sm:w-auto mt-4 bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded text-sm font-medium"
-        >
+        <Button type="submit" className="mt-4 w-full sm:w-auto">
           Simpan
-        </button>
-      </div>
+        </Button>
+      </Card>
     </form>
   );
 }

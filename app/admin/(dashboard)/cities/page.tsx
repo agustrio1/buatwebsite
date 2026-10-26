@@ -2,9 +2,21 @@ import Link from "next/link";
 import { db } from "~/db";
 import { cities } from "~/db/schema";
 import { asc } from "drizzle-orm";
-import { Pencil, Trash2 } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { DeleteForm } from "~/components/admin/delete-form";
 import { deleteCity } from "./actions";
+import { Card } from "~/components/ui/card";
+import { buttonVariants } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { EmptyState } from "~/components/ui/misc";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "~/components/ui/table";
 
 export default async function CitiesIndex() {
   const rows = await db.query.cities.findMany({
@@ -15,69 +27,60 @@ export default async function CitiesIndex() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-brand-dark">Kota</h1>
-        <Link
-          href="/admin/cities/new"
-          className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded text-sm"
-        >
+        <Link href="/admin/cities/new" className={buttonVariants()}>
           + Tambah Kota
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm min-w-[600px]">
-          <thead className="bg-slate-100 text-left">
-            <tr>
-              <th className="p-3">Nama</th>
-              <th className="p-3">Slug</th>
-              <th className="p-3">Provinsi</th>
-              <th className="p-3">Status</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Nama</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Provinsi</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-3 font-medium">{c.name}</td>
-                <td className="p-3 text-slate-500">/jasa-pembuatan-website/{c.slug}</td>
-                <td className="p-3 text-slate-500">{c.province ?? "-"}</td>
-                <td className="p-3">
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      c.isActive
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
+              <TableRow key={c.id}>
+                <TableCell className="font-medium text-foreground">{c.name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  /jasa-pembuatan-website/{c.slug}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{c.province ?? "-"}</TableCell>
+                <TableCell>
+                  <Badge variant={c.isActive ? "success" : "secondary"}>
                     {c.isActive ? "Aktif" : "Nonaktif"}
-                  </span>
-                </td>
-                <td className="p-3 text-right space-x-3 whitespace-nowrap">
-                  <Link
-                    href={`/admin/cities/${c.id}/edit`}
-                    className="text-brand-600 hover:underline inline-flex items-center gap-1"
-                  >
-                    <Pencil size={14} /> Edit
-                  </Link>
-                  <DeleteForm
-                    action={deleteCity.bind(null, c.id)}
-                    confirmMessage={`Hapus kota "${c.name}"?`}
-                    buttonClassName="text-red-500 hover:underline inline-flex items-center gap-1"
-                  >
-                    <Trash2 size={14} /> Hapus
-                  </DeleteForm>
-                </td>
-              </tr>
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <div className="inline-flex items-center gap-1">
+                    <Link
+                      href={`/admin/cities/${c.id}/edit`}
+                      className={buttonVariants({ variant: "ghost", size: "sm" })}
+                    >
+                      Edit
+                    </Link>
+                    <DeleteForm
+                      action={deleteCity.bind(null, c.id)}
+                      confirmMessage={`Hapus kota "${c.name}"?`}
+                      buttonClassName={buttonVariants({ variant: "ghost", size: "sm", className: "text-rose-500 hover:bg-rose-50" })}
+                    >
+                      Hapus
+                    </DeleteForm>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-6 text-center text-slate-400">
-                  Belum ada kota.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+        {rows.length === 0 && (
+          <EmptyState icon={<MapPin size={28} />} title="Belum ada kota." />
+        )}
+      </Card>
     </div>
   );
 }

@@ -16,6 +16,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/input";
 
 type Faq = { id: string; question: string; answer: string };
 
@@ -117,15 +119,17 @@ export function SortableFaqList({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-medium text-slate-600">FAQ Khusus Kota Ini</label>
-        <button
+      <div className="mb-2 flex items-center justify-between">
+        <Label className="text-sm text-slate-600">FAQ Khusus Kota Ini</Label>
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={addItem}
-          className="text-xs text-brand-600 hover:underline inline-flex items-center gap-1"
+          className="text-brand-600"
         >
           <Plus size={14} /> Tambah FAQ
-        </button>
+        </Button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

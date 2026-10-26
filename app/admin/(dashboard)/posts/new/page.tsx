@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft, Eye } from "lucide-react";
 import { db } from "~/db";
+import { getPublicSettings } from "~/lib/settings.server";
 import { PostForm } from "~/components/admin/post-form";
 import { createPost } from "../actions";
 
 export default async function NewPost() {
   const categoryList = await db.query.categories.findMany();
+  const settings = await getPublicSettings();
+  const siteName: string = settings.general?.siteName ?? "";
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -34,7 +37,7 @@ export default async function NewPost() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-8">
-        <PostForm action={createPost} categories={categoryList} />
+        <PostForm action={createPost} categories={categoryList} siteName={siteName} />
       </div>
     </div>
   );

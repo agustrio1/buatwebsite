@@ -3,8 +3,21 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pencil, Trash2, Search, X } from "lucide-react";
+import { Pencil, Trash2, Search, X, FileText } from "lucide-react";
 import { DeleteForm } from "~/components/admin/delete-form";
+import { Card } from "~/components/ui/card";
+import { Button, buttonVariants } from "~/components/ui/button";
+import { Input, Select, Label } from "~/components/ui/input";
+import { Badge } from "~/components/ui/badge";
+import { EmptyState } from "~/components/ui/misc";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "~/components/ui/table";
 
 export type PostRow = {
   id: string;
@@ -70,94 +83,80 @@ export function PostsIndexClient({
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-brand-dark">Blog</h1>
         <div className="flex gap-2">
-          <Link
-            href="/admin/categories"
-            className="border border-slate-300 text-slate-600 hover:bg-slate-50 px-4 py-2 rounded text-sm"
-          >
+          <Link href="/admin/categories" className={buttonVariants({ variant: "outline" })}>
             Kelola Kategori
           </Link>
-          <Link
-            href="/admin/posts/new"
-            className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded text-sm"
-          >
+          <Link href="/admin/posts/new" className={buttonVariants()}>
             + Tulis Artikel
           </Link>
         </div>
       </div>
 
-      <form method="get" className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <div className="flex-1 min-w-50">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Cari judul</label>
-          <div className="relative">
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="Cari artikel..."
-              className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-sm"
-            />
+      <Card className="p-4 mb-4">
+        <form method="get" className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-56">
+            <Label className="mb-1.5 block text-xs">Cari judul</Label>
+            <div className="relative">
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input type="text" name="q" defaultValue={q} placeholder="Cari artikel..." className="pl-8" />
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
-          <select name="status" defaultValue={statusFilter} className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Semua</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Kategori</label>
-          <select name="category" defaultValue={categoryFilter} className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Semua</option>
-            {categoryList.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm">
-          Terapkan
-        </button>
-        {hasFilter ? (
-          <Link href="/admin/posts" className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 px-2 py-2">
-            <X size={14} /> Reset
-          </Link>
-        ) : null}
-      </form>
+          <div>
+            <Label className="mb-1.5 block text-xs">Status</Label>
+            <Select name="status" defaultValue={statusFilter} className="w-auto">
+              <option value="">Semua</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-1.5 block text-xs">Kategori</Label>
+            <Select name="category" defaultValue={categoryFilter} className="w-auto">
+              <option value="">Semua</option>
+              {categoryList.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+          </div>
+          <Button type="submit">Terapkan</Button>
+          {hasFilter ? (
+            <Link
+              href="/admin/posts"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 py-2"
+            >
+              <X size={14} /> Reset
+            </Link>
+          ) : null}
+        </form>
+      </Card>
 
       {selectedIds.size > 0 ? (
-        <div className="flex items-center justify-between bg-brand-50 border border-brand-200 rounded-lg px-4 py-2.5 mb-4">
+        <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
           <span className="text-sm text-brand-700 font-medium">{selectedIds.size} artikel dipilih</span>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={handleBulkDelete}
-            className="flex items-center gap-1.5 text-sm text-rose-600 hover:text-rose-700 font-medium disabled:opacity-50"
-          >
+          <Button variant="ghost" size="sm" disabled={isPending} onClick={handleBulkDelete} className="text-rose-600 hover:bg-rose-50">
             <Trash2 size={14} /> Hapus Terpilih
-          </button>
+          </Button>
         </div>
       ) : null}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
-        <table className="w-full text-sm min-w-162.5">
-          <thead className="bg-slate-100 text-left">
-            <tr>
-              <th className="p-3 w-10">
+      <Card className="overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <th className="w-10 px-4 py-2">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 accent-brand-500" />
               </th>
-              <th className="p-3">Judul</th>
-              <th className="p-3">Kategori</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Penulis</th>
-              <th className="p-3"></th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead>Judul</TableHead>
+              <TableHead>Kategori</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Penulis</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="p-3">
+              <TableRow key={p.id}>
+                <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(p.id)}
@@ -165,44 +164,44 @@ export function PostsIndexClient({
                     className="w-4 h-4 accent-brand-500"
                   />
                 </td>
-                <td className="p-3 font-medium">{p.title}</td>
-                <td className="p-3 text-slate-500">{p.categoryName ?? "-"}</td>
-                <td className="p-3">
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      p.status === "published"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
+                <TableCell className="font-medium text-foreground">{p.title}</TableCell>
+                <TableCell className="text-muted-foreground">{p.categoryName ?? "-"}</TableCell>
+                <TableCell>
+                  <Badge variant={p.status === "published" ? "success" : "default"}>
                     {p.status === "published" ? "Published" : "Draft"}
-                  </span>
-                </td>
-                <td className="p-3 text-slate-500">{p.authorName ?? "-"}</td>
-                <td className="p-3 text-right space-x-3 whitespace-nowrap">
-                  <Link href={`/admin/posts/${p.id}/edit`} className="text-brand-600 hover:underline inline-flex items-center gap-1">
-                    <Pencil size={14} /> Edit
-                  </Link>
-                  <DeleteForm
-                    action={() => deletePostAction(p.id)}
-                    confirmMessage={`Hapus artikel "${p.title}"?`}
-                    buttonClassName="text-red-500 hover:underline inline-flex items-center gap-1"
-                  >
-                    <Trash2 size={14} /> Hapus
-                  </DeleteForm>
-                </td>
-              </tr>
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{p.authorName ?? "-"}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  <div className="inline-flex items-center gap-1">
+                    <Link
+                      href={`/admin/posts/${p.id}/edit`}
+                      aria-label="Edit"
+                      className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+                    >
+                      <Pencil size={15} />
+                    </Link>
+                    <DeleteForm
+                      action={() => deletePostAction(p.id)}
+                      confirmMessage={`Hapus artikel "${p.title}"?`}
+                      buttonClassName="text-rose-500 hover:bg-rose-50 inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </DeleteForm>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-400">
-                  {hasFilter ? "Tidak ada artikel yang cocok dengan filter." : "Belum ada artikel."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+        {rows.length === 0 && (
+          <EmptyState
+            icon={<FileText size={28} />}
+            title={hasFilter ? "Tidak ada artikel yang cocok" : "Belum ada artikel"}
+            description={hasFilter ? "Coba ubah kata kunci atau filter." : "Tulis artikel pertama Anda."}
+          />
+        )}
+      </Card>
     </>
   );
 }

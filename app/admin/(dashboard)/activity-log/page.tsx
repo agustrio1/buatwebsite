@@ -4,7 +4,11 @@ import { activityLogs } from "~/db/schema";
 import { desc, eq, and, count } from "drizzle-orm";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, History } from "lucide-react";
+import { Card } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Select, Label } from "~/components/ui/input";
+import { EmptyState } from "~/components/ui/misc";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -68,69 +72,77 @@ export default async function ActivityLogIndex({ searchParams }: { searchParams:
     <div className="max-w-4xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-brand-dark">Activity Log</h1>
-        <p className="text-sm text-slate-400 mt-1">Riwayat perubahan yang dilakukan admin.</p>
+        <p className="text-sm text-muted-foreground mt-1">Riwayat perubahan yang dilakukan admin.</p>
       </div>
 
-      <form method="get" className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Jenis Data</label>
-          <select name="entityType" defaultValue={entityTypeFilter} className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Semua</option>
-            <option value="post">Artikel</option>
-            <option value="project">Proyek</option>
-            <option value="inquiry">Inquiry</option>
-            <option value="category">Kategori</option>
-            <option value="redirect">Redirect</option>
-            <option value="settings">Pengaturan</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Aksi</label>
-          <select name="action" defaultValue={actionFilter} className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Semua</option>
-            <option value="create">Tambah</option>
-            <option value="update">Ubah</option>
-            <option value="delete">Hapus</option>
-          </select>
-        </div>
-        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm">
-          Terapkan
-        </button>
-        {hasFilter ? (
-          <Link href="/admin/activity-log" className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 px-2 py-2">
-            <X size={14} /> Reset
-          </Link>
-        ) : null}
-      </form>
+      <Card className="p-4 mb-4">
+        <form method="get" className="flex flex-wrap gap-3 items-end">
+          <div>
+            <Label className="mb-1.5 block text-xs">Jenis Data</Label>
+            <Select name="entityType" defaultValue={entityTypeFilter} className="w-auto">
+              <option value="">Semua</option>
+              <option value="post">Artikel</option>
+              <option value="project">Proyek</option>
+              <option value="inquiry">Inquiry</option>
+              <option value="category">Kategori</option>
+              <option value="redirect">Redirect</option>
+              <option value="settings">Pengaturan</option>
+            </Select>
+          </div>
+          <div>
+            <Label className="mb-1.5 block text-xs">Aksi</Label>
+            <Select name="action" defaultValue={actionFilter} className="w-auto">
+              <option value="">Semua</option>
+              <option value="create">Tambah</option>
+              <option value="update">Ubah</option>
+              <option value="delete">Hapus</option>
+            </Select>
+          </div>
+          <Button type="submit">Terapkan</Button>
+          {hasFilter ? (
+            <Link
+              href="/admin/activity-log"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 py-2"
+            >
+              <X size={14} /> Reset
+            </Link>
+          ) : null}
+        </form>
+      </Card>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
+      <Card className="divide-y divide-border">
         {logs.map((log) => {
           const Icon = actionIcon[log.action] ?? Pencil;
           return (
             <div key={log.id} className="flex items-start gap-3 px-4 py-3.5">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${actionStyle[log.action] ?? "bg-slate-50 text-slate-500"}`}>
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  actionStyle[log.action] ?? "bg-muted text-muted-foreground"
+                }`}
+              >
                 <Icon size={14} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   <span className="font-medium">{log.userName ?? "Seseorang"}</span>{" "}
                   {log.action === "create" ? "menambahkan" : log.action === "update" ? "mengubah" : "menghapus"}{" "}
                   {entityTypeLabel[log.entityType] ?? log.entityType}
                   {log.entityLabel ? (
-                    <span className="font-medium text-slate-800"> "{log.entityLabel}"</span>
+                    <span className="font-medium text-foreground"> "{log.entityLabel}"</span>
                   ) : null}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">{formatDate(log.createdAt)}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatDate(log.createdAt)}</p>
               </div>
             </div>
           );
         })}
         {logs.length === 0 && (
-          <p className="text-sm text-slate-400 italic px-4 py-10 text-center">
-            {hasFilter ? "Tidak ada log yang cocok dengan filter." : "Belum ada aktivitas tercatat."}
-          </p>
+          <EmptyState
+            icon={<History size={28} />}
+            title={hasFilter ? "Tidak ada log yang cocok dengan filter." : "Belum ada aktivitas tercatat."}
+          />
         )}
-      </div>
+      </Card>
 
       <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/admin/activity-log" searchParams={sp} />
     </div>

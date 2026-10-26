@@ -2,8 +2,13 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Mail, Phone, Search, X, MessageCircle } from "lucide-react";
+import { Trash2, Mail, Phone, Search, X, MessageCircle, Inbox } from "lucide-react";
 import { DeleteForm } from "~/components/admin/delete-form";
+import { Card } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Input, Select, Label } from "~/components/ui/input";
+import { Badge } from "~/components/ui/badge";
+import { EmptyState } from "~/components/ui/misc";
 
 export type InquiryRow = {
   id: string;
@@ -18,10 +23,10 @@ export type InquiryRow = {
   status: string;
 };
 
-const statusStyle: Record<string, string> = {
-  new: "bg-amber-100 text-amber-700",
-  contacted: "bg-blue-100 text-blue-700",
-  closed: "bg-slate-100 text-slate-500",
+const statusVariant: Record<string, "warning" | "default" | "secondary"> = {
+  new: "warning",
+  contacted: "default",
+  closed: "secondary",
 };
 
 // Nomor Indonesia: 08xx / 8xx / +62 / 62 -> link wa.me
@@ -73,78 +78,77 @@ export function InquiriesIndexClient({
     <div>
       <h1 className="text-2xl font-bold text-brand-dark mb-6">Inquiries</h1>
 
-      <form method="get" className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <div className="flex-1 min-w-50">
-          <label className="block text-xs font-medium text-slate-500 mb-1">Cari nama/email/nomor</label>
-          <div className="relative">
-            <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="Cari inquiry..."
-              className="w-full border border-slate-200 rounded-lg pl-8 pr-3 py-2 text-sm"
-            />
+      <Card className="p-4 mb-4">
+        <form method="get" className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-56">
+            <Label className="mb-1.5 block text-xs">Cari nama/email/nomor</Label>
+            <div className="relative">
+              <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input type="text" name="q" defaultValue={q} placeholder="Cari inquiry..." className="pl-8" />
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
-          <select name="status" defaultValue={statusFilter} className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
-            <option value="">Semua</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="closed">Closed</option>
-          </select>
-        </div>
-        <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm">
-          Terapkan
-        </button>
-        {hasFilter ? (
-          <a href="/admin/inquiries" className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600 px-2 py-2">
-            <X size={14} /> Reset
-          </a>
-        ) : null}
-      </form>
+          <div>
+            <Label className="mb-1.5 block text-xs">Status</Label>
+            <Select name="status" defaultValue={statusFilter} className="w-auto">
+              <option value="">Semua</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="closed">Closed</option>
+            </Select>
+          </div>
+          <Button type="submit">Terapkan</Button>
+          {hasFilter ? (
+            <a
+              href="/admin/inquiries"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground px-2 py-2"
+            >
+              <X size={14} /> Reset
+            </a>
+          ) : null}
+        </form>
+      </Card>
 
       {selectedIds.size > 0 ? (
-        <div className="flex items-center justify-between flex-wrap gap-3 bg-brand-50 border border-brand-200 rounded-lg px-4 py-2.5 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3 bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
           <span className="text-sm text-brand-700 font-medium">{selectedIds.size} inquiry dipilih</span>
           <div className="flex items-center gap-3">
-            <select
+            <Select
               value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value)}
-              className="border border-brand-200 rounded-lg px-2 py-1.5 text-sm bg-white"
+              className="w-auto h-8"
             >
               <option value="new">New</option>
               <option value="contacted">Contacted</option>
               <option value="closed">Closed</option>
-            </select>
-            <button
-              type="button"
+            </Select>
+            <Button
+              variant="ghost"
+              size="sm"
               disabled={isPending}
               onClick={() => startTransition(() => bulkStatusAction(Array.from(selectedIds), bulkStatus))}
-              className="text-sm text-brand-700 hover:text-brand-800 font-medium disabled:opacity-50"
+              className="text-brand-700 hover:bg-brand-100/50"
             >
               Ubah Status
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               disabled={isPending}
               onClick={() => {
                 if (!window.confirm(`Hapus ${selectedIds.size} inquiry terpilih?`)) return;
                 startTransition(() => bulkDeleteAction(Array.from(selectedIds)));
               }}
-              className="flex items-center gap-1.5 text-sm text-rose-600 hover:text-rose-700 font-medium disabled:opacity-50"
+              className="text-rose-600 hover:bg-rose-50"
             >
               <Trash2 size={14} /> Hapus
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
       <div className="space-y-3">
         {rows.map((inq) => (
-          <div key={inq.id} className="bg-white rounded-lg shadow p-4 sm:p-5">
+          <Card key={inq.id} className="p-4 sm:p-5">
             <div className="flex items-start gap-3">
               <input
                 type="checkbox"
@@ -156,11 +160,9 @@ export function InquiriesIndexClient({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-brand-dark">{inq.name}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded ${statusStyle[inq.status]}`}>
-                      {inq.status}
-                    </span>
+                    <Badge variant={statusVariant[inq.status] ?? "default"}>{inq.status}</Badge>
                   </div>
-                  {inq.companyName && <p className="text-sm text-slate-400">{inq.companyName}</p>}
+                  {inq.companyName && <p className="text-sm text-muted-foreground">{inq.companyName}</p>}
                   <div className="flex flex-wrap gap-3 text-sm text-slate-500 mt-1">
                     {inq.email && (
                       <span className="flex items-center gap-1">
@@ -176,16 +178,8 @@ export function InquiriesIndexClient({
                   {inq.serviceType && <p className="text-xs text-brand-600 mt-1">Layanan: {inq.serviceType}</p>}
                   {(inq.budget || inq.source) && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {inq.budget && (
-                        <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
-                          Budget: {inq.budget}
-                        </span>
-                      )}
-                      {inq.source && (
-                        <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded">
-                          Sumber: {inq.source}
-                        </span>
-                      )}
+                      {inq.budget && <Badge variant="success">Budget: {inq.budget}</Badge>}
+                      {inq.source && <Badge variant="secondary">Sumber: {inq.source}</Badge>}
                     </div>
                   )}
                   <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{inq.message}</p>
@@ -197,40 +191,43 @@ export function InquiriesIndexClient({
                       href={waHref(inq.phone)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded px-2.5 py-1.5"
+                      className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1.5"
                     >
                       <MessageCircle size={14} /> Chat WA
                     </a>
                   )}
-                  <select
+                  <Select
                     defaultValue={inq.status}
                     onChange={(e) => {
                       const next = e.target.value;
                       startTransition(() => updateStatusAction(inq.id, next));
                     }}
-                    className="border rounded px-2 py-1.5 text-sm bg-white"
+                    className="w-auto h-8"
                   >
                     <option value="new">New</option>
                     <option value="contacted">Contacted</option>
                     <option value="closed">Closed</option>
-                  </select>
+                  </Select>
                   <DeleteForm
                     action={() => deleteAction(inq.id)}
                     confirmMessage={`Hapus inquiry dari "${inq.name}"?`}
                     className="inline"
-                    buttonClassName="text-red-500 hover:text-red-700 p-1.5"
+                    buttonClassName="text-rose-500 hover:text-rose-700 inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-rose-50 transition-colors"
                   >
                     <Trash2 size={16} />
                   </DeleteForm>
                 </div>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
         {rows.length === 0 && (
-          <p className="text-center text-slate-400 italic py-10">
-            {hasFilter ? "Tidak ada inquiry yang cocok dengan filter." : "Belum ada inquiry masuk."}
-          </p>
+          <Card>
+            <EmptyState
+              icon={<Inbox size={28} />}
+              title={hasFilter ? "Tidak ada inquiry yang cocok" : "Belum ada inquiry masuk"}
+            />
+          </Card>
         )}
       </div>
     </div>
