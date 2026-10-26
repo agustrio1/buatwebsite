@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Mail, Lock, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
 
 export default function Login() {
@@ -10,6 +10,7 @@ export default function Login() {
     null
   );
   const isSubmitting = isPending;
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-white">
@@ -107,12 +108,21 @@ export default function Login() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full border border-slate-300 rounded-lg pl-10 pr-3.5 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-shadow"
+                  className="w-full border border-slate-300 rounded-lg pl-10 pr-11 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-shadow"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 

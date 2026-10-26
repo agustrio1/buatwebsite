@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { Label } from "~/components/ui/input";
 
 export function ImageUploadField({
   name,
@@ -52,7 +53,7 @@ export function ImageUploadField({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1.5 text-slate-700">{label}</label>
+      <Label className="mb-1.5 block text-sm text-slate-700">{label}</Label>
 
       <input type="hidden" name={name} value={value ?? ""} />
 

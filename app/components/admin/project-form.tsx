@@ -4,6 +4,9 @@ import { useState, useTransition } from "react";
 import { ImagePlus, Save, Trash2, Eye } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
 import { uploadDirect } from "~/lib/image-client";
+import { Card, CardTitle } from "~/components/ui/card";
+import { Button, buttonVariants } from "~/components/ui/button";
+import { Input, Textarea, Label } from "~/components/ui/input";
 import type { JSONContent } from "@tiptap/react";
 
 type GalleryImage = { id: string; imageUrl: string; imageId: string };
@@ -21,6 +24,21 @@ type ProjectFormValues = {
   coverImageUrl: string | null;
   existingGallery?: GalleryImage[];
 };
+
+function FL({ children }: { children: React.ReactNode }) {
+  return <Label className="mb-1 block text-sm text-slate-600">{children}</Label>;
+}
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <div className="p-5 pb-3 sm:p-6 sm:pb-3">
+        <CardTitle>{title}</CardTitle>
+      </div>
+      <div className="space-y-4 px-5 pb-5 sm:px-6 sm:pb-6">{children}</div>
+    </Card>
+  );
+}
 
 export function ProjectForm({
   action,
@@ -91,90 +109,87 @@ export function ProjectForm({
     <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-brand-dark">Info Proyek</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <SectionCard title="Info Proyek">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium mb-1">Judul</label>
-            <input name="title" defaultValue={defaultValues?.title} required
-              className="w-full border rounded px-3 py-2" />
+            <FL>Judul</FL>
+            <Input name="title" defaultValue={defaultValues?.title} required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Slug</label>
-            <input name="slug" defaultValue={defaultValues?.slug} required
-              className="w-full border rounded px-3 py-2" />
+            <FL>Slug</FL>
+            <Input name="slug" defaultValue={defaultValues?.slug} required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Nama Klien</label>
-            <input name="clientName" defaultValue={defaultValues?.clientName ?? ""}
-              className="w-full border rounded px-3 py-2" />
+            <FL>Nama Klien</FL>
+            <Input name="clientName" defaultValue={defaultValues?.clientName ?? ""} />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Live Demo URL</label>
-            <input name="liveDemoUrl" type="url" defaultValue={defaultValues?.liveDemoUrl ?? ""}
-              className="w-full border rounded px-3 py-2" />
+            <FL>Live Demo URL</FL>
+            <Input name="liveDemoUrl" type="url" defaultValue={defaultValues?.liveDemoUrl ?? ""} />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Ringkasan</label>
-          <textarea name="summary" defaultValue={defaultValues?.summary ?? ""} rows={3}
-            className="w-full border rounded px-3 py-2" />
-          <p className="text-xs text-slate-400 mt-1">Teks pendek buat card/list, bukan konten lengkap.</p>
+          <FL>Ringkasan</FL>
+          <Textarea name="summary" defaultValue={defaultValues?.summary ?? ""} rows={3} />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Teks pendek buat card/list, bukan konten lengkap.
+          </p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Tech Stack</label>
-          <input
+          <FL>Tech Stack</FL>
+          <Input
             name="techStack"
             defaultValue={defaultValues?.techStack?.join(", ") ?? ""}
             placeholder="React, Tailwind, Drizzle"
-            className="w-full border rounded px-3 py-2"
           />
-          <p className="text-xs text-slate-400 mt-1">Pisahkan dengan koma</p>
+          <p className="mt-1 text-xs text-muted-foreground">Pisahkan dengan koma</p>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="isFeatured" value="true" defaultChecked={defaultValues?.isFeatured} />
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            name="isFeatured"
+            value="true"
+            defaultChecked={defaultValues?.isFeatured}
+            className="h-4 w-4 accent-brand-500"
+          />
           Tandai sebagai Featured
         </label>
-      </div>
+      </SectionCard>
 
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-brand-dark">Deskripsi Lengkap</h2>
+      <SectionCard title="Deskripsi Lengkap">
         <RichTextEditor name="descriptionRich" defaultValue={defaultValues?.descriptionRich} />
-      </div>
+      </SectionCard>
 
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-brand-dark">Cover Image</h2>
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg h-40 cursor-pointer hover:border-brand-500 transition-colors overflow-hidden">
+      <SectionCard title="Cover Image">
+        <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed border-input transition-colors hover:border-brand-500">
           {coverPreview ? (
             <img src={coverPreview} alt="Preview" className="h-full w-full object-cover" />
           ) : (
             <>
               <ImagePlus size={28} className="text-slate-400" />
-              <span className="text-sm text-slate-400">Pilih gambar cover</span>
+              <span className="text-sm text-muted-foreground">Pilih gambar cover</span>
             </>
           )}
           <input type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
         </label>
         {defaultValues?.coverImageUrl && (
-          <p className="text-xs text-slate-400">Pilih file baru untuk mengganti cover.</p>
+          <p className="text-xs text-muted-foreground">Pilih file baru untuk mengganti cover.</p>
         )}
-      </div>
+      </SectionCard>
 
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-brand-dark">Galeri</h2>
-
+      <SectionCard title="Galeri">
         {defaultValues?.existingGallery && defaultValues.existingGallery.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {defaultValues.existingGallery.map((img) => (
-              <div key={img.id} className="relative group">
-                <img src={img.imageUrl} alt="" className="aspect-square object-cover rounded w-full" />
+              <div key={img.id} className="group relative">
+                <img src={img.imageUrl} alt="" className="aspect-square w-full rounded object-cover" />
                 <button
                   type="button"
                   onClick={() => {
                     if (!window.confirm("Hapus gambar ini?")) return;
                     onDeleteImage?.(img.imageId);
                   }}
-                  className="absolute top-1 right-1 bg-white/90 rounded p-1 text-red-500 hover:bg-white"
+                  className="absolute right-1 top-1 rounded bg-white/90 p-1 text-red-500 hover:bg-white"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -183,38 +198,34 @@ export function ProjectForm({
           </div>
         )}
 
-        <label className="flex items-center justify-center gap-2 border-2 border-dashed rounded-lg h-24 cursor-pointer hover:border-brand-500 transition-colors">
+        <label className="flex h-24 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-input transition-colors hover:border-brand-500">
           <ImagePlus size={20} className="text-slate-400" />
-          <span className="text-sm text-slate-400">Tambah gambar galeri</span>
+          <span className="text-sm text-muted-foreground">Tambah gambar galeri</span>
           <input type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
         </label>
         {galleryPreviews.length > 0 && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {galleryPreviews.map((src, i) => (
-              <img key={i} src={src} alt="" className="aspect-square object-cover rounded" />
+              <img key={i} src={src} alt="" className="aspect-square rounded object-cover" />
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-2.5 rounded"
-        >
+        <Button type="submit" disabled={isSubmitting}>
           <Save size={16} />{" "}
           {uploading ? "Mengunggah gambar..." : isSubmitting ? "Menyimpan..." : "Simpan Proyek"}
-        </button>
+        </Button>
 
         {defaultValues?.id && (
           <a
             href={`/admin/posts/${defaultValues.id}/preview`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 px-5 py-2.5 rounded"
+            className={buttonVariants({ variant: "outline" })}
           >
             <Eye size={16} /> Preview
           </a>

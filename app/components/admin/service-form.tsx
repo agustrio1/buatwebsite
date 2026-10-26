@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
+import { Card, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+import { Input, Textarea, Label } from "~/components/ui/input";
 
 type Feature = { id?: string; featureText: string; isIncluded: boolean };
 
@@ -19,6 +22,10 @@ type ServiceFormValues = {
   sortOrder: number;
   features: Feature[];
 };
+
+function FL({ children }: { children: React.ReactNode }) {
+  return <Label className="mb-1 block text-sm text-slate-600">{children}</Label>;
+}
 
 export function ServiceForm({
   action,
@@ -51,7 +58,7 @@ export function ServiceForm({
   return (
     <form action={action} className="space-y-6 max-w-3xl">
       {error && (
-        <p className="text-red-500 text-sm bg-red-50 border border-red-200 rounded p-3">
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-500">
           {error}
         </p>
       )}
@@ -62,174 +69,148 @@ export function ServiceForm({
       <input type="hidden" name="featuresJson" value={JSON.stringify(features)} />
 
       {/* Info dasar */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-brand-dark">Info Dasar</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Judul</label>
-            <input
-              name="title"
-              defaultValue={defaultValues?.title}
-              required
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Slug</label>
-            <input
-              name="slug"
-              defaultValue={defaultValues?.slug}
-              required
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
+      <Card>
+        <div className="p-5 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle>Info Dasar</CardTitle>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Ringkasan</label>
-          <textarea
-            name="summary"
-            defaultValue={defaultValues?.summary ?? ""}
-            rows={3}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Badge</label>
-            <input
-              name="badge"
-              defaultValue={defaultValues?.badge ?? ""}
-              placeholder="Paling Populer"
-              className="w-full border rounded px-3 py-2"
-            />
+        <div className="space-y-4 px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <FL>Judul</FL>
+              <Input name="title" defaultValue={defaultValues?.title} required />
+            </div>
+            <div>
+              <FL>Slug</FL>
+              <Input name="slug" defaultValue={defaultValues?.slug} required />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Urutan</label>
-            <input
-              type="number"
-              name="sortOrder"
-              defaultValue={defaultValues?.sortOrder ?? 0}
-              className="w-full border rounded px-3 py-2"
-            />
+            <FL>Ringkasan</FL>
+            <Textarea name="summary" defaultValue={defaultValues?.summary ?? ""} rows={3} />
           </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <FL>Badge</FL>
+              <Input name="badge" defaultValue={defaultValues?.badge ?? ""} placeholder="Paling Populer" />
+            </div>
+            <div>
+              <FL>Urutan</FL>
+              <Input
+                type="number"
+                name="sortOrder"
+                defaultValue={defaultValues?.sortOrder ?? 0}
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input
+              type="checkbox"
+              name="isFeatured"
+              value="true"
+              defaultChecked={defaultValues?.isFeatured}
+              className="h-4 w-4 accent-brand-500"
+            />
+            Tandai sebagai Featured
+          </label>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="isFeatured"
-            value="true"
-            defaultChecked={defaultValues?.isFeatured}
-          />
-          Tandai sebagai Featured
-        </label>
-      </div>
+      </Card>
 
       {/* Harga */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-brand-dark">Harga</h2>
-          <label className="flex items-center gap-2 text-sm">
+      <Card>
+        <div className="flex items-center justify-between p-5 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle>Harga</CardTitle>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
             <input
               type="checkbox"
               name="isPriceVisible"
               value="true"
               checked={isPriceVisible}
               onChange={(e) => setIsPriceVisible(e.target.checked)}
+              className="h-4 w-4 accent-brand-500"
             />
             Tampilkan harga
           </label>
         </div>
-
-        {isPriceVisible ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Nominal</label>
-              <input
-                type="number"
-                step="0.01"
-                name="priceAmount"
-                defaultValue={defaultValues?.priceAmount ?? ""}
-                placeholder="1500000"
-                className="w-full border rounded px-3 py-2"
-              />
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          {isPriceVisible ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <FL>Nominal</FL>
+                <Input
+                  type="number"
+                  step="0.01"
+                  name="priceAmount"
+                  defaultValue={defaultValues?.priceAmount ?? ""}
+                  placeholder="1500000"
+                />
+              </div>
+              <div>
+                <FL>Label</FL>
+                <Input
+                  name="priceLabel"
+                  defaultValue={defaultValues?.priceLabel ?? ""}
+                  placeholder="Mulai dari / Nego / Custom"
+                />
+              </div>
+              <div>
+                <FL>Satuan</FL>
+                <Input name="priceUnit" defaultValue={defaultValues?.priceUnit ?? ""} placeholder="/projek" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Label</label>
-              <input
-                name="priceLabel"
-                defaultValue={defaultValues?.priceLabel ?? ""}
-                placeholder="Mulai dari / Nego / Custom"
-                className="w-full border rounded px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Satuan</label>
-              <input
-                name="priceUnit"
-                defaultValue={defaultValues?.priceUnit ?? ""}
-                placeholder="/projek"
-                className="w-full border rounded px-3 py-2"
-              />
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-400 italic">
-            Harga disembunyikan dari halaman publik.
-          </p>
-        )}
-      </div>
+          ) : (
+            <p className="text-sm italic text-muted-foreground">
+              Harga disembunyikan dari halaman publik.
+            </p>
+          )}
+        </div>
+      </Card>
 
       {/* Fitur */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-brand-dark">Fitur Layanan</h2>
-          <button
-            type="button"
-            onClick={addFeature}
-            className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700"
-          >
+      <Card>
+        <div className="flex items-center justify-between p-5 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle>Fitur Layanan</CardTitle>
+          <Button type="button" variant="ghost" size="sm" onClick={addFeature} className="text-brand-600">
             <Plus size={16} /> Tambah Fitur
-          </button>
+          </Button>
         </div>
-
-        <div className="space-y-2">
+        <div className="space-y-2 px-5 pb-5 sm:px-6 sm:pb-6">
           {features.map((feature, i) => (
-            <div key={i} className="flex flex-col sm:flex-row gap-2 sm:items-center">
-              <input
+            <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
                 value={feature.featureText}
                 onChange={(e) => updateFeature(i, { featureText: e.target.value })}
                 placeholder="Contoh: Free 3x revisi"
-                className="flex-1 border rounded px-3 py-2 text-sm"
+                className="flex-1"
               />
-              <label className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+              <label className="flex shrink-0 items-center gap-2 text-xs text-slate-500">
                 <input
                   type="checkbox"
                   checked={feature.isIncluded}
                   onChange={(e) => updateFeature(i, { isIncluded: e.target.checked })}
+                  className="h-4 w-4 accent-brand-500"
                 />
                 Termasuk
               </label>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => removeFeature(i)}
-                className="text-red-500 hover:text-red-700 self-end sm:self-auto shrink-0"
+                className="self-end text-rose-500 hover:bg-rose-50 sm:self-auto"
               >
                 <Trash2 size={16} />
-              </button>
+              </Button>
             </div>
           ))}
           {features.length === 0 && (
-            <p className="text-sm text-slate-400 italic">Belum ada fitur.</p>
+            <p className="text-sm italic text-muted-foreground">Belum ada fitur.</p>
           )}
         </div>
-      </div>
+      </Card>
 
-      <button
-        type="submit"
-        className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded"
-      >
+      <Button type="submit">
         <Save size={16} /> Simpan Layanan
-      </button>
+      </Button>
     </form>
   );
 }

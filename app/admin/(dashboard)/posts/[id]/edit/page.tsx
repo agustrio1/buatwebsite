@@ -5,6 +5,7 @@ import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { db } from "~/db";
 import { posts } from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { getPublicSettings } from "~/lib/settings.server";
 import { PostForm } from "~/components/admin/post-form";
 import type { SchemaType } from "~/lib/validation/post-seo";
 import { updatePost } from "../../actions";
@@ -18,6 +19,8 @@ export default async function EditPost({ params }: { params: Params }) {
   if (!post) notFound();
 
   const categoryList = await db.query.categories.findMany();
+  const settings = await getPublicSettings();
+  const siteName: string = settings.general?.siteName ?? "";
   const isPublished = post.status === "published";
   const previewHref = "/blog/" + post.slug;
 
@@ -51,6 +54,7 @@ export default async function EditPost({ params }: { params: Params }) {
         <PostForm
           action={updatePost.bind(null, post.id)}
           categories={categoryList}
+          siteName={siteName}
           defaultValues={{
             id: post.id,
             title: post.title,

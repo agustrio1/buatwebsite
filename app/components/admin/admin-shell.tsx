@@ -4,71 +4,28 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  LayoutGrid,
-  FolderKanban,
-  FileText,
-  Inbox,
-  Users,
-  Settings,
   PanelLeft,
   X,
   LogOut,
-  MapPin,
   ChevronsUpDown,
   ChevronRight,
-  ArrowRightLeft,
-  History,
+  Search,
 } from "lucide-react";
-
-type NavItem = {
-  label: string;
-  path: string;
-  icon: typeof LayoutDashboard;
-  exact?: boolean;
-};
-
-type NavGroup = {
-  label: string;
-  items: NavItem[];
-};
-
-const navGroups: NavGroup[] = [
-  {
-    label: "Utama",
-    items: [{ label: "Dashboard", path: "/admin", icon: LayoutDashboard, exact: true }],
-  },
-  {
-    label: "Konten",
-    items: [
-      { label: "Layanan", path: "/admin/services", icon: LayoutGrid },
-      { label: "Kota", path: "/admin/cities", icon: MapPin },
-      { label: "Projek", path: "/admin/projects", icon: FolderKanban },
-      { label: "Blog", path: "/admin/posts", icon: FileText },
-    ],
-  },
-  {
-    label: "Kelola",
-    items: [
-      { label: "Inquiries", path: "/admin/inquiries", icon: Inbox },
-      { label: "Redirects", path: "/admin/redirects", icon: ArrowRightLeft },
-      { label: "Users", path: "/admin/users", icon: Users },
-      { label: "Activity Log", path: "/admin/activity-log", icon: History },
-      { label: "Pengaturan", path: "/admin/settings", icon: Settings },
-    ],
-  },
-];
+import { navGroups, type NavItem } from "./nav";
+import { CommandMenu } from "./command-menu";
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+} from "~/components/ui/dropdown-menu";
+import { cn } from "~/lib/cn";
 
 function isItemActive(item: NavItem, pathname: string) {
   return item.exact ? pathname === item.path : pathname.startsWith(item.path);
 }
 
-/**
- * Padanan admin/layout.tsx versi React Router. Data (role, brand, siteName)
- * dikirim dari Server Component induk; bagian interaktif (sidebar collapse,
- * user menu, drawer mobile) tetap client. useLocation -> usePathname,
- * useNavigation -> tidak dipakai (progress bar digantikan state native Next).
- */
 export function AdminShell({
   role,
   siteName,
@@ -86,8 +43,12 @@ export function AdminShell({
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("admin_sidebar_collapsed");
@@ -100,24 +61,25 @@ export function AdminShell({
 
   useEffect(() => {
     setIsSidebarOpen(false);
-    setIsUserMenuOpen(false);
   }, [pathname]);
 
+  // Shortcut global command palette.
   useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setIsUserMenuOpen(false);
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((p) => !p);
       }
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   const activeItem = navGroups.flatMap((g) => g.items).find((item) => isItemActive(item, pathname));
-  const sidebarWidthClass = isCollapsed ? "md:w-14" : "md:w-64";
+  const sidebarWidthClass = isCollapsed ? "md:w-16" : "md:w-64";
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 flex text-slate-900 font-sans text-sm">
+    <div className="h-screen overflow-hidden bg-background flex text-foreground font-sans text-sm">
       {isSidebarOpen ? (
         <div
           onClick={() => setIsSidebarOpen(false)}
@@ -130,29 +92,29 @@ export function AdminShell({
         className={
           "fixed md:static inset-y-0 left-0 z-50 h-full w-64 " +
           sidebarWidthClass +
-          " bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-200 ease-in-out " +
+          " bg-card border-r border-border flex flex-col shrink-0 transition-all duration-200 ease-in-out " +
           (isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0")
         }
       >
         {/* Header */}
-        <div className="h-14 flex items-center gap-2 px-3 border-b border-slate-200 shrink-0">
-          <div className="w-7 h-7 rounded-md bg-brand-500 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="h-14 flex items-center gap-2.5 px-3 border-b border-border shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shrink-0 overflow-hidden">
             {brandIconUrl ? (
               <img src={brandIconUrl} alt={siteName} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white font-bold text-xs">{siteName.slice(0, 1).toUpperCase()}</span>
+              <span className="text-white font-bold text-sm">{siteName.slice(0, 1).toUpperCase()}</span>
             )}
           </div>
           {isCollapsed ? null : (
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate leading-tight">{siteName}</p>
-              <p className="text-xs text-slate-400 truncate leading-tight">Admin Panel</p>
+              <p className="text-xs text-muted-foreground truncate leading-tight">Admin Panel</p>
             </div>
           )}
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="md:hidden ml-auto p-1.5 text-slate-400 hover:text-slate-700 rounded-md transition-colors"
+            className="md:hidden ml-auto p-1.5 text-slate-400 hover:text-foreground rounded-md transition-colors"
             aria-label="Tutup menu"
           >
             <X size={18} />
@@ -160,13 +122,13 @@ export function AdminShell({
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-3 space-y-4">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-2 py-3 space-y-5">
           {navGroups.map((group) => (
             <div key={group.label}>
               {isCollapsed ? (
-                <div className="h-px bg-slate-100 mx-2 mb-2" />
+                <div className="h-px bg-border mx-2 mb-2" />
               ) : (
-                <p className="px-2 pb-1.5 text-[11px] font-medium text-slate-400 tracking-wide">
+                <p className="px-2.5 pb-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                   {group.label}
                 </p>
               )}
@@ -179,15 +141,15 @@ export function AdminShell({
                       key={item.path}
                       href={item.path}
                       title={isCollapsed ? item.label : undefined}
-                      className={
-                        "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors " +
-                        (isCollapsed ? "justify-center " : "") +
-                        (isActive
-                          ? "bg-slate-100 text-slate-900 font-medium"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")
-                      }
+                      className={cn(
+                        "flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors",
+                        isCollapsed && "justify-center",
+                        isActive
+                          ? "bg-brand-50 text-brand-700 font-medium"
+                          : "text-slate-600 hover:bg-muted hover:text-foreground"
+                      )}
                     >
-                      <Icon size={16} className={isActive ? "text-brand-600" : "text-slate-400"} strokeWidth={2} />
+                      <Icon size={17} className={isActive ? "text-brand-600" : "text-slate-400"} strokeWidth={2} />
                       {isCollapsed ? null : <span className="flex-1 truncate">{item.label}</span>}
                     </Link>
                   );
@@ -198,52 +160,58 @@ export function AdminShell({
         </nav>
 
         {/* Footer: user menu */}
-        <div className="p-2 border-t border-slate-200 shrink-0 relative" ref={userMenuRef}>
-          {isUserMenuOpen ? (
-            <div className="absolute bottom-full left-2 right-2 mb-1 bg-white border border-slate-200 rounded-lg shadow-md py-1 overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-sm font-medium text-slate-800 capitalize truncate">{role}</p>
-                <p className="text-xs text-slate-400">Sedang login</p>
-              </div>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
-                >
-                  <LogOut size={15} />
-                  Logout
-                </button>
-              </form>
-            </div>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => setIsUserMenuOpen((prev) => !prev)}
-            className={
-              "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-slate-50 transition-colors " +
-              (isCollapsed ? "justify-center" : "")
-            }
-          >
-            <div className="w-7 h-7 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">
-              {role.slice(0, 2)}
-            </div>
-            {isCollapsed ? null : (
-              <>
-                <div className="min-w-0 text-left flex-1">
-                  <p className="text-sm font-medium text-slate-800 capitalize truncate leading-tight">{role}</p>
-                  <p className="text-xs text-slate-400 truncate leading-tight">Admin</p>
+        <div className="p-2 border-t border-border shrink-0">
+          <DropdownMenu
+            align="start"
+            contentClassName="w-[calc(100%-1rem)] bottom-full mb-1.5 left-2 right-2 min-w-0"
+            trigger={({ toggle }) => (
+              <button
+                type="button"
+                onClick={toggle}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors",
+                  isCollapsed && "justify-center"
+                )}
+              >
+                <div className="w-8 h-8 rounded-full bg-brand-500/10 text-brand-600 flex items-center justify-center text-xs font-semibold uppercase shrink-0">
+                  {role.slice(0, 2)}
                 </div>
-                <ChevronsUpDown size={14} className="text-slate-400 shrink-0" />
+                {isCollapsed ? null : (
+                  <>
+                    <div className="min-w-0 text-left flex-1">
+                      <p className="text-sm font-medium text-foreground capitalize truncate leading-tight">{role}</p>
+                      <p className="text-xs text-muted-foreground truncate leading-tight">Admin</p>
+                    </div>
+                    <ChevronsUpDown size={14} className="text-slate-400 shrink-0" />
+                  </>
+                )}
+              </button>
+            )}
+          >
+            {(close) => (
+              <>
+                <DropdownLabel>
+                  <span className="capitalize">{role}</span> · Sedang login
+                </DropdownLabel>
+                <DropdownSeparator />
+                <form action={logoutAction}>
+                  <DropdownItem
+                    type="submit"
+                    onClick={close}
+                    className="text-rose-600 hover:bg-rose-50"
+                  >
+                    <LogOut size={15} /> Logout
+                  </DropdownItem>
+                </form>
               </>
             )}
-          </button>
+          </DropdownMenu>
         </div>
       </aside>
 
       {/* Main area */}
       <div className="flex-1 min-w-0 flex flex-col h-full">
-        <header className="h-14 shrink-0 bg-white border-b border-slate-200 px-4 flex items-center gap-3">
+        <header className="h-14 shrink-0 bg-card border-b border-border px-4 flex items-center gap-3">
           <button
             type="button"
             onClick={() => {
@@ -253,18 +221,30 @@ export function AdminShell({
                 setIsCollapsed((prev) => !prev);
               }
             }}
-            className="p-1.5 -ml-1 text-slate-500 hover:bg-slate-100 rounded-md transition-colors"
+            className="p-1.5 -ml-1 text-slate-500 hover:bg-muted rounded-md transition-colors"
             aria-label="Toggle sidebar"
           >
             <PanelLeft size={18} />
           </button>
 
-          <div className="h-4 w-px bg-slate-200" />
-
-          <div className="flex items-center gap-1.5 text-sm min-w-0">
+          <div className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
             <span className="text-slate-400">Admin</span>
             <ChevronRight size={13} className="text-slate-300 shrink-0" />
-            <span className="font-medium text-slate-800 truncate">{activeItem?.label ?? "Dashboard"}</span>
+            <span className="font-medium text-foreground truncate">{activeItem?.label ?? "Dashboard"}</span>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 h-9 w-full sm:w-64 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground hover:bg-muted transition-colors"
+            >
+              <Search size={15} />
+              <span className="hidden sm:inline truncate">Cari...</span>
+              <kbd className="ml-auto hidden sm:inline rounded border border-border bg-card px-1.5 text-[11px] text-slate-400">
+                {isMac ? "⌘K" : "Ctrl K"}
+              </kbd>
+            </button>
           </div>
         </header>
 
@@ -272,6 +252,8 @@ export function AdminShell({
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
+
+      <CommandMenu open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }
