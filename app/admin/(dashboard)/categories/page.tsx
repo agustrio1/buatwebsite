@@ -13,7 +13,7 @@ export default async function CategoriesIndex() {
   const rows = await db.query.categories.findMany({ orderBy: [asc(categories.name)] });
 
   return (
-    <div className="max-w-xl">
+    <div className="w-full">
       <h1 className="text-2xl font-bold text-brand-dark mb-6">Kategori Blog</h1>
 
       <Card className="p-4 sm:p-5 mb-4">

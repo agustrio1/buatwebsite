@@ -78,7 +78,7 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
   const errors = state?.errors;
 
   return (
-    <form action={formAction} className="max-w-2xl space-y-4">
+    <form action={formAction} className="w-full space-y-4">
       <Section number={1} title="Informasi Kota" defaultOpen>
         <div>
           <FieldLabel>Nama Kota</FieldLabel>

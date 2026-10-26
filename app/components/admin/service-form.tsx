@@ -56,7 +56,7 @@ export function ServiceForm({
   }
 
   return (
-    <form action={action} className="space-y-6 max-w-3xl">
+    <form action={action} className="space-y-6 w-full">
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-500">
           {error}

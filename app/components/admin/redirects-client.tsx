@@ -38,7 +38,7 @@ export function RedirectsClient({
   }, [state]);
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-brand-dark">Redirect Management</h1>
         <p className="text-sm text-muted-foreground mt-1">

@@ -67,7 +67,7 @@ export function SettingsClient({ settings }: { settings: Record<string, any> }) 
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-brand-dark">Pengaturan</h1>
         <p className="text-sm text-slate-400 mt-1.5">Konfigurasi umum website kamu.</p>
