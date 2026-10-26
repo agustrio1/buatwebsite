@@ -238,3 +238,29 @@ export async function bulkDeletePosts(ids: string[]) {
   revalidatePostPages(rows.map((r) => r.slug));
   revalidatePath("/admin/posts");
 }
+
+export async function bulkSetPostStatus(ids: string[], status: "draft" | "published") {
+  await requireAdmin();
+  if (ids.length === 0) return;
+
+  const rows = await db.query.posts.findMany({ where: inArray(posts.id, ids) });
+  for (const row of rows) {
+    await db
+      .update(posts)
+      .set({
+        status,
+        updatedAt: new Date(),
+        publishedAt: status === "published" ? (row.publishedAt ?? new Date()) : null,
+      })
+      .where(eq(posts.id, row.id));
+    await logActivity({
+      action: "update",
+      entityType: "post",
+      entityId: row.id,
+      entityLabel: row.title,
+    });
+  }
+
+  revalidatePostPages(rows.map((r) => r.slug));
+  revalidatePath("/admin/posts");
+}

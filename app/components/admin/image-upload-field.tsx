@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { Label } from "~/components/ui/input";
+import { MediaPicker } from "~/components/admin/media-picker";
 
 export function ImageUploadField({
   name,
@@ -18,6 +19,7 @@ export function ImageUploadField({
   const [value, setValue] = useState<string | null>(defaultValue ?? null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -97,14 +99,35 @@ export function ImageUploadField({
       </div>
 
       {value && !isUploading && (
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="text-xs font-medium text-brand-600 hover:text-brand-700"
+          >
+            Ganti gambar
+          </button>
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="text-xs font-medium text-slate-500 hover:text-brand-600"
+          >
+            Pilih dari pustaka
+          </button>
+        </div>
+      )}
+
+      {!value && (
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
-          className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700"
+          onClick={() => setPickerOpen(true)}
+          className="mt-2 text-xs font-medium text-slate-500 hover:text-brand-600"
         >
-          Ganti gambar
+          Pilih dari pustaka
         </button>
       )}
+
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={(url) => setValue(url)} />
 
       <input
         ref={inputRef}

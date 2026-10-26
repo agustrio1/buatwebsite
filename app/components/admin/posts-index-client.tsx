@@ -3,8 +3,17 @@
 import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pencil, Trash2, Search, X, FileText } from "lucide-react";
+import { Pencil, Trash2, Search, X, FileText, Check, PenLine } from "lucide-react";
 import { DeleteForm } from "~/components/admin/delete-form";
+import { toast } from "~/components/ui/toast";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogCloseButton,
+} from "~/components/ui/dialog";
 import { Card } from "~/components/ui/card";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input, Select, Label } from "~/components/ui/input";
@@ -35,6 +44,7 @@ export function PostsIndexClient({
   categoryFilter,
   deletePostAction,
   bulkDeleteAction,
+  bulkSetStatusAction,
 }: {
   rows: PostRow[];
   categoryList: { id: string; name: string }[];
@@ -43,9 +53,11 @@ export function PostsIndexClient({
   categoryFilter: string;
   deletePostAction: (id: string) => Promise<void>;
   bulkDeleteAction: (ids: string[]) => Promise<void>;
+  bulkSetStatusAction: (ids: string[], status: "draft" | "published") => Promise<void>;
 }) {
   const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -71,9 +83,30 @@ export function PostsIndexClient({
     });
   }
 
-  function handleBulkDelete() {
-    if (!window.confirm(`Hapus ${selectedIds.size} artikel terpilih?`)) return;
-    startTransition(() => bulkDeleteAction(Array.from(selectedIds)));
+  function runBulk(fn: () => Promise<void>, okMsg: string) {
+    startTransition(async () => {
+      try {
+        await fn();
+        setSelectedIds(new Set());
+        toast(okMsg, "success");
+      } catch {
+        toast("Gagal memproses. Coba lagi.", "error");
+      }
+    });
+  }
+
+  function handleBulkStatus(status: "draft" | "published") {
+    const ids = Array.from(selectedIds);
+    runBulk(
+      () => bulkSetStatusAction(ids, status),
+      status === "published" ? "Artikel dipublikasikan" : "Artikel dijadikan draft"
+    );
+  }
+
+  function handleConfirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    setBulkDeleteOpen(false);
+    runBulk(() => bulkDeleteAction(ids), `${ids.length} artikel dihapus`);
   }
 
   const hasFilter = q || statusFilter || categoryFilter;
@@ -131,11 +164,19 @@ export function PostsIndexClient({
       </Card>
 
       {selectedIds.size > 0 ? (
-        <div className="flex items-center justify-between bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap bg-brand-50 border border-brand-100 rounded-lg px-4 py-2.5 mb-4">
           <span className="text-sm text-brand-700 font-medium">{selectedIds.size} artikel dipilih</span>
-          <Button variant="ghost" size="sm" disabled={isPending} onClick={handleBulkDelete} className="text-rose-600 hover:bg-rose-50">
-            <Trash2 size={14} /> Hapus Terpilih
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleBulkStatus("published")}>
+              <Check size={14} /> Terbitkan
+            </Button>
+            <Button variant="outline" size="sm" disabled={isPending} onClick={() => handleBulkStatus("draft")}>
+              <PenLine size={14} /> Jadikan Draft
+            </Button>
+            <Button variant="ghost" size="sm" disabled={isPending} onClick={() => setBulkDeleteOpen(true)} className="text-rose-600 hover:bg-rose-50">
+              <Trash2 size={14} /> Hapus Terpilih
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -202,6 +243,24 @@ export function PostsIndexClient({
           />
         )}
       </Card>
+
+      <Dialog open={bulkDeleteOpen} onClose={() => !isPending && setBulkDeleteOpen(false)}>
+        <DialogCloseButton onClose={() => setBulkDeleteOpen(false)} />
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Trash2 size={18} className="shrink-0 text-rose-500" /> Hapus artikel?
+          </DialogTitle>
+          <DialogDescription>{selectedIds.size} artikel terpilih akan dihapus permanen.</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setBulkDeleteOpen(false)} disabled={isPending}>
+            Batal
+          </Button>
+          <Button variant="destructive" onClick={handleConfirmBulkDelete} disabled={isPending}>
+            {isPending ? "Menghapus..." : "Hapus"}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </>
   );
 }
