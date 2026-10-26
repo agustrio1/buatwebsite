@@ -4,7 +4,7 @@ import { desc, count, and, ilike, eq, asc } from "drizzle-orm";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { PostsIndexClient, type PostRow } from "~/components/admin/posts-index-client";
-import { deletePost, bulkDeletePosts } from "./actions";
+import { deletePost, bulkDeletePosts, bulkSetPostStatus } from "./actions";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -54,6 +54,7 @@ export default async function PostsIndex({ searchParams }: { searchParams: Searc
         categoryFilter={categoryFilter}
         deletePostAction={deletePost}
         bulkDeleteAction={bulkDeletePosts}
+        bulkSetStatusAction={bulkSetPostStatus}
       />
       <Pagination
         currentPage={currentPage}

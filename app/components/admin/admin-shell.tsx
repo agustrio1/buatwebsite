@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { navGroups, type NavItem } from "./nav";
 import { CommandMenu } from "./command-menu";
+import { Toaster } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
@@ -254,6 +255,7 @@ export function AdminShell({
       </div>
 
       <CommandMenu open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <Toaster />
     </div>
   );
 }

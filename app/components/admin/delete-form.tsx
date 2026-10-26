@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { toast } from "~/components/ui/toast";
 import {
   Dialog,
   DialogHeader,
@@ -41,8 +42,13 @@ export function DeleteForm({
 
   function handleConfirm() {
     startTransition(async () => {
-      await action();
-      setOpen(false);
+      try {
+        await action();
+        setOpen(false);
+        toast("Berhasil dihapus", "success");
+      } catch {
+        toast("Gagal menghapus. Coba lagi.", "error");
+      }
     });
   }
 
