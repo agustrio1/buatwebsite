@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feat/nextjs-migration]
+  pull_request:
+    branches: [main, feat/nextjs-migration]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Test, typecheck & build
+    runs-on: ubuntu-latest
+    env:
+      # Build & test fase validasi env di-skip otomatis (NEXT_PHASE / NODE_ENV=test),
+      # jadi CI tetap jalan walau secrets opsional belum diisi.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  # Deploy ke Vercel hanya saat merge ke main. Langkah deploy dilewati bila
+  # VERCEL_TOKEN belum di-set (kondisi dicek di level step, tempat secrets tersedia).
+  deploy:
+    name: Deploy (Vercel)
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vercel CLI
+        if: secrets.VERCEL_TOKEN != ''
+        run: npm i -g vercel
+
+      - name: Deploy to production
+        if: secrets.VERCEL_TOKEN != ''
+        run: vercel deploy --prod --token "${{ secrets.VERCEL_TOKEN }}"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
