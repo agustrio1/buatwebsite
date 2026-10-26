@@ -1,7 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Search, Upload, Copy, ExternalLink, Loader2, Image as ImageIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Search,
+  Upload,
+  Copy,
+  ExternalLink,
+  Loader2,
+  Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Card } from "~/components/ui/card";
@@ -10,9 +19,12 @@ import { EmptyState } from "~/components/ui/misc";
 import { toast } from "~/components/ui/toast";
 import type { MediaItem } from "~/lib/media.server";
 
+const PAGE_SIZE = 24;
+
 export function MediaGallery({ initialItems }: { initialItems: MediaItem[] }) {
   const [items, setItems] = useState<MediaItem[]>(initialItems);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -28,6 +40,17 @@ export function MediaGallery({ initialItems }: { initialItems: MediaItem[] }) {
               it.source.toLowerCase().includes(q)
           ),
     [items, q]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  // Reset ke halaman 1 setiap kata kunci berubah agar tidak "nyangkut" di halaman kosong.
+  useEffect(() => {
+    setPage(1);
+  }, [q]);
+  const visible = useMemo(
+    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filtered, safePage]
   );
 
   async function copy(url: string) {
@@ -102,7 +125,7 @@ export function MediaGallery({ initialItems }: { initialItems: MediaItem[] }) {
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {filtered.map((it) => (
+          {visible.map((it) => (
             <Card key={it.url} className="overflow-hidden">
               <div className="aspect-square bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -133,6 +156,43 @@ export function MediaGallery({ initialItems }: { initialItems: MediaItem[] }) {
             </Card>
           ))}
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav className="mt-6 flex items-center justify-center gap-1.5" aria-label="Navigasi halaman media">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            aria-label="Halaman sebelumnya"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPage(p)}
+              className={
+                p === safePage
+                  ? "inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-sm font-medium text-white shadow-sm"
+                  : "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+              }
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+            aria-label="Halaman berikutnya"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </nav>
       )}
     </div>
   );
