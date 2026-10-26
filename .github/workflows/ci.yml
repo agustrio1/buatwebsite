@@ -36,8 +36,17 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Build perlu DATABASE_URL karena beberapa halaman publik di-SKG
+      # (mis. /jasa-pembuatan-website/[city] query tabel cities saat build).
+      # Neon serverless bisa diakses dari runner, jadi isi secret DATABASE_URL untuk
+      # mengaktifkan cek build penuh (menangkap bug server/client boundary).
       - name: Build
+        if: env.DATABASE_URL != ''
         run: npm run build
+
+      - name: Note (build dilewati)
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::Build dilewati karena secret DATABASE_URL belum di-set. Halaman SSG butuh DB saat build. Vercel tetap build saat deploy."
 
   # Deploy ke Vercel hanya saat merge ke main. Langkah deploy dilewati bila
   # VERCEL_TOKEN belum di-set. Konteks `secrets` tidak tersedia di `if` level step,
