@@ -106,7 +106,7 @@ export function ProjectForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <SectionCard title="Info Proyek">

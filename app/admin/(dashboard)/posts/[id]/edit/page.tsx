@@ -25,7 +25,7 @@ export default async function EditPost({ params }: { params: Params }) {
   const previewHref = "/blog/" + post.slug;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="w-full">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/admin/posts" className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-brand-600 hover:border-brand-200 transition-colors" aria-label="Kembali ke daftar artikel">

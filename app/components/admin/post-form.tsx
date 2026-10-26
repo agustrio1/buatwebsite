@@ -118,7 +118,7 @@ export function PostForm({
   const showOgPreview = ogPreview && !(removeOg && !hasNewOg);
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="space-y-6 max-w-3xl">
+    <form action={formAction} encType="multipart/form-data" className="space-y-6 w-full">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
       <Card>
