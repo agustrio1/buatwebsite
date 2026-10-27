@@ -780,6 +780,7 @@ export function Builder({
           <form
             ref={formRef}
             action={formAction}
+            className="flex min-h-0 min-w-0 flex-1 flex-col"
           >
             <input type="hidden" name="content" value={JSON.stringify(doc)} />
             <input type="hidden" name="status" value={status} />
@@ -792,7 +793,7 @@ export function Builder({
             <input type="hidden" name="noindex" value={seo.noindex ? "true" : "false"} />
 
             <main
-              className="min-w-0 flex-1 overflow-y-auto p-4"
+              className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4"
               onClick={() => setSelection(null)}
             >
               <SortableContext
