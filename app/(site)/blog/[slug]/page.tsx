@@ -9,13 +9,54 @@ import { richTextToHtml } from "~/components/site/rich-text-view";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import type { JSONContent } from "@tiptap/react";
 import { getPublicSettings } from "~/lib/settings.server";
-import { getSiteUrl } from "~/lib/seo";
+import { getSiteUrl, ogUrl } from "~/lib/seo";
 import { safeJsonLd } from "~/lib/json-ld";
 import { buildMetadata } from "~/lib/metadata";
 import type { FaqItem } from "~/lib/validation/post-seo";
 import { TocNav } from "~/components/site/toc-nav";
+import { servicePages } from "~/data/service-pages";
+import { ArrowRight } from "lucide-react";
 
 type TocItem = { id: string; text: string; level: number };
+
+// ---------- tautan layanan internal ----------
+
+const GENERIC_TOKENS = new Set([
+  "jasa",
+  "buat",
+  "bikin",
+  "website",
+  "web",
+  "sistem",
+  "custom",
+  "profesional",
+  "murah",
+]);
+
+/**
+ * Cocokkan artikel dengan halaman layanan: sebutan slug ("toko-online"),
+ * kedua kata kunci slug ("company" + "profile"), atau frasa keyword terdaftar.
+ */
+function matchServicePages(hay: string): { slug: string; title: string }[] {
+  const out: { slug: string; title: string; score: number }[] = [];
+  for (const s of servicePages) {
+    let score = 0;
+    if (hay.includes(s.slug)) score += 2;
+    const tokens = s.slug.split("-").filter((t) => t.length > 3 && !GENERIC_TOKENS.has(t));
+    if (tokens.length && tokens.every((t) => hay.includes(t))) score += 2;
+    for (const kw of s.keywords ?? []) {
+      if (hay.includes(kw.toLowerCase())) {
+        score += 1;
+        break;
+      }
+    }
+    if (score >= 2) out.push({ slug: s.slug, title: s.title, score });
+  }
+  return out
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ slug, title }) => ({ slug, title }));
+}
 
 function slugify(text: string) {
   return text
@@ -90,6 +131,10 @@ const getBlogPageData = cache(async (slug: string) => {
     ? addHeadingIdsAndToc(rawHtml)
     : { html: "", toc: [] as TocItem[] };
 
+  // Layanan yang disebut artikel ini → box tautan internal (dofollow)
+  const hay = `${post.title} ${post.summary ?? ""} ${(contentHtml || "").replace(/<[^>]+>/g, " ")}`.toLowerCase();
+  const relatedServices = matchServicePages(hay);
+
   const relatedRows = post.categoryId
     ? await db.query.posts.findMany({
         where: and(
@@ -109,12 +154,12 @@ const getBlogPageData = cache(async (slug: string) => {
   const canonicalUrl = post.canonicalUrl || `${siteUrl}/blog/${post.slug}`;
   const description = post.metaDescription || post.summary || "";
 
-  // Gambar OG: upload khusus > cover image
+  // Gambar OG: upload khusus > cover image > generator dinamis /og
   const ogImage = post.ogImageUrl
     ? absoluteUrl(siteUrl, post.ogImageUrl)
     : post.coverImageUrl
       ? absoluteUrl(siteUrl, resizeImage(post.coverImageUrl, 1200) ?? "")
-      : undefined;
+      : ogUrl({ siteUrl, title: post.title, subtitle: description, label: siteName });
 
   const schemaImages = post.ogImageUrl
     ? [absoluteUrl(siteUrl, post.ogImageUrl)]
@@ -227,6 +272,7 @@ const getBlogPageData = cache(async (slug: string) => {
     contentHtml,
     toc,
     relatedPosts,
+    relatedServices,
     faqs,
     jsonLd,
     canonicalUrl,
@@ -255,8 +301,9 @@ export async function generateMetadata({ params }: { params: Params }) {
     canonical: canonicalUrl,
     ogImage,
     ogImageAlt: post.title,
-    // Dimensi hanya pasti kalau gambar berasal dari cover (di-resize 1200).
-    ogImageDimensions: ogImage && !post.ogImageUrl ? { width: 1200, height: 675 } : undefined,
+    // Dimensi pasti hanya utk generator /og (1200x630); cover/upload tingginya variatif.
+    ogImageDimensions:
+      !post.ogImageUrl && !post.coverImageUrl ? { width: 1200, height: 630 } : undefined,
     ogType: "article",
     noindex: post.noindex ?? undefined,
     article: {
@@ -273,7 +320,7 @@ export default async function BlogDetail({ params }: { params: Params }) {
   const data = await getBlogPageData(slug);
   if (!data) notFound();
 
-  const { post, contentHtml = "", toc = [], relatedPosts = [], faqs = [], jsonLd } = data;
+  const { post, contentHtml = "", toc = [], relatedPosts = [], relatedServices = [], faqs = [], jsonLd } = data;
 
   const formattedDate = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString("id-ID", {
@@ -347,6 +394,25 @@ export default async function BlogDetail({ params }: { params: Params }) {
           className="prose prose-sm sm:prose-base max-w-none mt-8 [&_h2]:scroll-mt-24 [&_h3]:scroll-mt-24"
           dangerouslySetInnerHTML={{ __html: contentHtml }}
         />
+      )}
+
+      {relatedServices.length > 0 && (
+        <section className="mt-10 rounded-2xl border border-brand-200 bg-brand-50/60 p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-brand-700">Layanan terkait</h2>
+          <ul className="mt-3 space-y-2">
+            {relatedServices.map((s) => (
+              <li key={s.slug}>
+                <Link
+                  href={`/layanan/${s.slug}`}
+                  className="group inline-flex items-center gap-2 text-sm font-medium text-brand-dark hover:text-brand-600"
+                >
+                  <ArrowRight size={15} className="text-brand-500 transition-transform group-hover:translate-x-0.5" />
+                  {s.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {faqs.length > 0 && (

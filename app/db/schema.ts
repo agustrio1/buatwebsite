@@ -243,6 +243,27 @@ export const activityLogs = pgTable('activity_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// 11. Custom Pages (hasil Page Builder — dokumen blok di JSONB)
+export const pages = pgTable('pages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull().unique(),
+  status: postStatusEnum('status').default('draft').notNull(),
+  content: jsonb('content'), // PageDocument { version, sections }
+
+  // SEO
+  metaTitle: varchar('meta_title', { length: 255 }),
+  metaDescription: text('meta_description'),
+  ogImageUrl: varchar('og_image_url', { length: 500 }),
+  canonicalUrl: varchar('canonical_url', { length: 500 }),
+  noindex: boolean('noindex').default(false).notNull(),
+
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // 10. WhatsApp Clicks (tracking klik tombol/link WA di website)
 export const waClicks = pgTable('wa_clicks', {
   id: uuid('id').defaultRandom().primaryKey(),
