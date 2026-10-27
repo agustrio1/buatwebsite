@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Search, Upload, Loader2, X } from "lucide-react";
+import { compressImage } from "~/lib/image-compress";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/misc";
@@ -62,7 +63,7 @@ export function MediaPicker({
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await compressImage(file));
       const res = await fetch("/api/upload-image", { method: "POST", body: fd });
       const data = (await res.json()) as { url?: string };
       if (data?.url) {

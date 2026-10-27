@@ -56,7 +56,7 @@ export function ServiceForm({
   }
 
   return (
-    <form action={action} className="space-y-6 w-full">
+    <form action={action} className="w-full">
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-500">
           {error}
@@ -68,6 +68,9 @@ export function ServiceForm({
       )}
       <input type="hidden" name="featuresJson" value={JSON.stringify(features)} />
 
+      {/* Desktop (xl): dua kolom — info & harga di kiri, fitur + simpan di kanan. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+      <div className="min-w-0 space-y-6">
       {/* Info dasar */}
       <Card>
         <div className="p-5 pb-3 sm:p-6 sm:pb-3">
@@ -165,6 +168,9 @@ export function ServiceForm({
         </div>
       </Card>
 
+      </div>
+
+      <div className="min-w-0 space-y-6">
       {/* Fitur */}
       <Card>
         <div className="flex items-center justify-between p-5 pb-3 sm:p-6 sm:pb-3">
@@ -211,6 +217,8 @@ export function ServiceForm({
       <Button type="submit">
         <Save size={16} /> Simpan Layanan
       </Button>
+      </div>
+      </div>
     </form>
   );
 }

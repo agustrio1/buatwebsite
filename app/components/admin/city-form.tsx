@@ -78,7 +78,10 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
   const errors = state?.errors;
 
   return (
-    <form action={formAction} className="w-full space-y-4">
+    <form action={formAction} className="w-full">
+      {/* Desktop (xl): dua kolom — section 1-5 di kiri, FAQ/SEO/aksi di kanan. */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+      <div className="min-w-0 space-y-4">
       <Section number={1} title="Informasi Kota" defaultOpen>
         <div>
           <FieldLabel>Nama Kota</FieldLabel>
@@ -182,6 +185,9 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
         />
       </Section>
 
+      </div>
+
+      <div className="min-w-0 space-y-4">
       <Section number={6} title="FAQ Kota">
         <SortableFaqList name="faqs" defaultValue={defaultValues?.faqs ?? []} />
       </Section>
@@ -238,6 +244,8 @@ export function CityForm({ action, defaultValues }: CityFormProps) {
           Simpan
         </Button>
       </Card>
+      </div>
+      </div>
     </form>
   );
 }
