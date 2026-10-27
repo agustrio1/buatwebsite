@@ -118,9 +118,12 @@ export function PostForm({
   const showOgPreview = ogPreview && !(removeOg && !hasNewOg);
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="space-y-6 w-full">
+    <form action={formAction} encType="multipart/form-data" className="w-full">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
+      {/* Desktop (xl): dua kolom — konten di kiri, setting/SEO di kanan. Mobile tetap satu kolom. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+      <div className="min-w-0 space-y-6">
       <Card>
         <div className="p-5 pb-3 sm:p-6 sm:pb-3">
           <CardTitle>Info Artikel</CardTitle>
@@ -193,7 +196,9 @@ export function PostForm({
           />
         </div>
       </Card>
+      </div>
 
+      <div className="min-w-0 space-y-6">
       <Card>
         <div className="p-5 pb-3 sm:p-6 sm:pb-3">
           <CardTitle>Cover Image</CardTitle>
@@ -387,6 +392,8 @@ export function PostForm({
       <Button type="submit" disabled={isSubmitting}>
         <Save size={16} /> {isSubmitting ? "Menyimpan..." : "Simpan Artikel"}
       </Button>
+      </div>
+      </div>
     </form>
   );
 }
