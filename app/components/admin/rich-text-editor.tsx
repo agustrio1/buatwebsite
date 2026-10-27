@@ -10,6 +10,7 @@ import {
 import { BubbleMenu, FloatingMenu } from "@tiptap/react/menus";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
+import { Markdown } from "tiptap-markdown";
 import Highlight from "@tiptap/extension-highlight";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -223,6 +224,16 @@ export function RichTextEditor({
           autolink: true,
           HTMLAttributes: { class: "text-brand-600 underline underline-offset-2" },
         },
+      }),
+      // Tempel teks markdown (mis. copas dari catatan/ChatGPT di HP) otomatis
+      // jadi rich text: heading, list, tabel, bold, kode, dll.
+      Markdown.configure({
+        html: true,
+        linkify: true,
+        breaks: false,
+        tightLists: true,
+        transformPastedText: true,
+        transformCopiedText: false,
       }),
       Highlight,
       TaskList,
