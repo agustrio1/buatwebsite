@@ -41,3 +41,9 @@ export function revalidateSettings() {
   // Settings dipakai header/footer/JSON-LD di seluruh halaman publik.
   revalidatePath("/", "layout");
 }
+
+export function revalidateCustomPages(slugs: Slug[]) {
+  for (const slug of uniqueSlugs(slugs)) revalidatePath(`/${slug}`);
+  // Sitemap menyertakan halaman custom published.
+  revalidatePath("/sitemap-1.xml");
+}
