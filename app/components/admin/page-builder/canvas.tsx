@@ -61,7 +61,11 @@ function ColumnDropZone({
   return (
     <div
       ref={setNodeRef}
-      onClick={() => onSelect({ sectionId: loc.sectionId, colId: loc.colId })}
+      onClick={(e) => {
+        // Stop agar tidak bubbling ke <main> (deselect) saat memilih kolom.
+        e.stopPropagation();
+        onSelect({ sectionId: loc.sectionId, colId: loc.colId });
+      }}
       className={`relative rounded-xl transition ${
         isOver && target
           ? "ring-2 ring-brand-500 bg-brand-50/60"
@@ -170,7 +174,11 @@ export function BlockShell({
         }`}
       />
       <div
-        onClick={() => onSelect({ ...loc, blockId: block.id })}
+        onClick={(e) => {
+          // Stop agar tidak ditimpa handler kolom/induk & deselect di <main>.
+          e.stopPropagation();
+          onSelect({ ...loc, blockId: block.id });
+        }}
         className={`rounded-lg ${selected ? "" : "cursor-move"}`}
         {...attributes}
         {...listeners}
