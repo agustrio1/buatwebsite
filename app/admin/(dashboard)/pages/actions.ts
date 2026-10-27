@@ -15,7 +15,7 @@ import {
   flattenPageErrors,
   parsePageContent,
   type PageFormErrors,
-} from "~/lib/validation/page";
+} from "~/lib/validation/custom-page";
 
 export type PageAdminState = { errors?: PageFormErrors; savedAt?: number } | null;
 

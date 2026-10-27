@@ -1,8 +1,11 @@
+import { eq } from "drizzle-orm";
+import { db } from "~/db";
+import { pages } from "~/db/schema";
 import { getSiteUrl } from "~/lib/seo";
 import { getPublicSettings } from "~/lib/settings.server";
 import { normalizeCalculatorConfig } from "~/lib/price-calculator";
 import { servicePages } from "~/data/service-pages";
-import { buildUrlset, xmlResponse } from "~/lib/sitemap.server";
+import { buildUrlset, toIso, xmlResponse } from "~/lib/sitemap.server";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +33,21 @@ export async function GET() {
     paths.push(`/layanan/${s.slug}`);
   }
 
-  return xmlResponse(buildUrlset(paths.map((p) => ({ loc: `${base}${p}` }))));
+  // Halaman custom dari Page Builder (published saja)
+  const customPages = await db.query.pages.findMany({
+    where: eq(pages.status, "published"),
+    columns: { slug: true, updatedAt: true },
+  });
+
+  const entries: Array<{ loc: string; lastmod?: string }> = paths.map((p) => ({
+    loc: `${base}${p}`,
+  }));
+  for (const p of customPages) {
+    entries.push({
+      loc: `${base}/${p.slug}`,
+      lastmod: toIso(p.updatedAt),
+    });
+  }
+
+  return xmlResponse(buildUrlset(entries));
 }

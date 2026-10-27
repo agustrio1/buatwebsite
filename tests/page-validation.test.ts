@@ -4,7 +4,7 @@ import {
   pageDocumentSchema,
   isReservedPageSlug,
   parsePageContent,
-} from "../app/lib/validation/page";
+} from "../app/lib/validation/custom-page";
 import { BLOCK_DEFS, parseBlockProps } from "../app/lib/page-builder/blocks";
 import { BLOCK_TYPES } from "../app/lib/page-builder/types";
 
