@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ImagePlus, Save, Trash2, Eye } from "lucide-react";
 import { RichTextEditor } from "~/components/admin/rich-text-editor";
 import { uploadDirect } from "~/lib/image-client";
+import { compressImage } from "~/lib/image-compress";
 import { Card, CardTitle } from "~/components/ui/card";
 import { Button, buttonVariants } from "~/components/ui/button";
 import { Input, Textarea, Label } from "~/components/ui/input";
@@ -62,16 +63,23 @@ export function ProjectForm({
   );
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
-  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
-    setCoverFile(file);
-    setCoverPreview(file ? URL.createObjectURL(file) : defaultValues?.coverImageUrl ?? null);
+    if (!file) {
+      setCoverFile(null);
+      setCoverPreview(defaultValues?.coverImageUrl ?? null);
+      return;
+    }
+    const compressed = await compressImage(file);
+    setCoverFile(compressed);
+    setCoverPreview(URL.createObjectURL(compressed));
   }
 
-  function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleGalleryChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    setGalleryFiles(files);
-    setGalleryPreviews(files.map((f) => URL.createObjectURL(f)));
+    const compressed = await Promise.all(files.map((f) => compressImage(f)));
+    setGalleryFiles(compressed);
+    setGalleryPreviews(compressed.map((f) => URL.createObjectURL(f)));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -106,9 +114,12 @@ export function ProjectForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 w-full">
+    <form onSubmit={handleSubmit} className="w-full">
       {defaultValues?.id && <input type="hidden" name="id" value={defaultValues.id} />}
 
+      {/* Desktop (xl): dua kolom — info/deskripsi di kiri, gambar & aksi di kanan. */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
+      <div className="min-w-0 space-y-6">
       <SectionCard title="Info Proyek">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -163,7 +174,9 @@ export function ProjectForm({
           autosaveKey={`project:${defaultValues?.id ?? "new"}:descriptionRich`}
         />
       </SectionCard>
+      </div>
 
+      <div className="min-w-0 space-y-6">
       <SectionCard title="Cover Image">
         <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed border-input transition-colors hover:border-brand-500">
           {coverPreview ? (
@@ -234,6 +247,8 @@ export function ProjectForm({
             <Eye size={16} /> Preview
           </a>
         )}
+      </div>
+      </div>
       </div>
     </form>
   );

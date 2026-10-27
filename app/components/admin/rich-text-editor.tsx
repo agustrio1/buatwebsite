@@ -25,6 +25,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import { ResizableImageEditable as ResizableImage } from "~/lib/tiptap-extensions/resizable-image-view";
 import { Callout } from "~/lib/tiptap-extensions/callout";
 import { BLOCK_COMMANDS } from "~/lib/editor-blocks";
+import { compressImage } from "~/lib/image-compress";
 import {
   SlashCommandList,
   type SlashCommandListHandle,
@@ -374,7 +375,7 @@ export function RichTextEditor({
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.set("file", file);
+      formData.set("file", await compressImage(file));
       const response = await fetch("/api/upload-image", { method: "POST", body: formData });
       const data = await response.json();
       if (data.url) {

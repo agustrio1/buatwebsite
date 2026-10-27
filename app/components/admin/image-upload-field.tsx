@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { Label } from "~/components/ui/input";
 import { MediaPicker } from "~/components/admin/media-picker";
+import { compressImage } from "~/lib/image-compress";
 
 export function ImageUploadField({
   name,
@@ -31,7 +32,7 @@ export function ImageUploadField({
 
     try {
       const fd = new FormData();
-      fd.set("file", file);
+      fd.set("file", await compressImage(file));
       const res = await fetch("/api/upload-image", { method: "POST", body: fd });
       const data = (await res.json()) as { url?: string };
 

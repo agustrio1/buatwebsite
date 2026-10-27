@@ -9,6 +9,7 @@ import { SCHEMA_TYPES, type SchemaType, type SeoErrors } from "~/lib/validation/
 import { Card, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input, Textarea, Select, Label } from "~/components/ui/input";
+import { compressImage, setInputFiles } from "~/lib/image-compress";
 
 export type PostFormErrors = Partial<
   Record<"title" | "slug" | "summary" | "categoryId" | "status", string>
@@ -98,15 +99,24 @@ export function PostForm({
     defaultValues?.contentRich ?? null
   );
 
-  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    setCoverPreview(file ? URL.createObjectURL(file) : defaultValues?.coverImageUrl ?? null);
+    if (!file) {
+      setCoverPreview(defaultValues?.coverImageUrl ?? null);
+      return;
+    }
+    // Kompres dulu; hasil diganti ke input supaya FormData ikut yang kecil.
+    const compressed = await compressImage(file);
+    if (compressed !== file && e.target) setInputFiles(e.target, [compressed]);
+    setCoverPreview(URL.createObjectURL(compressed));
   }
 
-  function handleOgChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleOgChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
-      setOgPreview(URL.createObjectURL(file));
+      const compressed = await compressImage(file);
+      if (compressed !== file && e.target) setInputFiles(e.target, [compressed]);
+      setOgPreview(URL.createObjectURL(compressed));
       setHasNewOg(true);
       setRemoveOg(false);
     } else {
