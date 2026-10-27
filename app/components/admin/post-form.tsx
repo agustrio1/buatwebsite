@@ -189,6 +189,7 @@ export function PostForm({
             name="contentRich"
             defaultValue={defaultValues?.contentRich}
             onUpdate={setEditorJson}
+            autosaveKey={`post:${defaultValues?.id ?? "new"}:contentRich`}
           />
         </div>
       </Card>

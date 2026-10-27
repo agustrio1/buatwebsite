@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   useEditor,
   EditorContent,
@@ -50,6 +50,7 @@ import {
   Undo,
   Redo,
   Loader2,
+  Save,
   Table as TableIcon,
   Trash2,
   Rows3,
@@ -146,15 +147,23 @@ export function RichTextEditor({
   name,
   defaultValue,
   onUpdate,
+  autosaveKey,
 }: {
   name: string;
   defaultValue?: JSONContent | null;
   onUpdate?: (json: JSONContent) => void;
+  autosaveKey?: string;
 }) {
   const [content, setContent] = useState<JSONContent>(defaultValue ?? EMPTY_DOC);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const openImageRef = useRef<() => void>(() => {});
+
+  // Kunci draf di localStorage; autosave hanya aktif bila autosaveKey diberikan.
+  const draftId = autosaveKey ? `tiptap-draft:${autosaveKey}` : null;
 
   // Slash menu: daftar blok saat mengetik "/" di awal baris kosong.
   const slashExtension = useMemo(
@@ -261,8 +270,88 @@ export function RichTextEditor({
       const json = editor.getJSON();
       setContent(json);
       onUpdate?.(json);
+      // Autosave debounce 800ms ke localStorage (aman kalau tab tertutup).
+      if (draftId) {
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+          try {
+            window.localStorage.setItem(draftId, JSON.stringify(json));
+            setDraftSavedAt(Date.now());
+          } catch {
+            /* storage penuh / tidak tersedia */
+          }
+        }, 800);
+      }
     },
   });
+
+  // Saat mount: tawarkan pemulihan kalau ada draf yang belum di-submit.
+  useEffect(() => {
+    if (!draftId) return;
+    try {
+      const raw = window.localStorage.getItem(draftId);
+      if (raw && raw !== JSON.stringify(defaultValue ?? EMPTY_DOC)) {
+        setPendingDraft(raw);
+      }
+    } catch {
+      try {
+        window.localStorage.removeItem(draftId);
+      } catch {
+        /* ignore */
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+
+  // Bersihkan draf saat form disubmit (server action yang menyimpan).
+  useEffect(() => {
+    if (!editor || !draftId) return;
+    const form = editor.view.dom.closest("form");
+    if (!form) return;
+    const clearDraft = () => {
+      try {
+        window.localStorage.removeItem(draftId);
+      } catch {
+        /* ignore */
+      }
+      setPendingDraft(null);
+    };
+    form.addEventListener("submit", clearDraft);
+    return () => form.removeEventListener("submit", clearDraft);
+  }, [editor, draftId]);
+
+  function saveDraftNow() {
+    if (!draftId || !editor) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    try {
+      window.localStorage.setItem(draftId, JSON.stringify(editor.getJSON()));
+      setDraftSavedAt(Date.now());
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function restoreDraft() {
+    if (!pendingDraft || !editor) return;
+    try {
+      editor.commands.setContent(JSON.parse(pendingDraft) as JSONContent, { emitUpdate: true });
+    } catch {
+      /* draf rusak, buang saja */
+    }
+    setPendingDraft(null);
+  }
+
+  function discardDraft() {
+    if (draftId) {
+      try {
+        window.localStorage.removeItem(draftId);
+      } catch {
+        /* ignore */
+      }
+    }
+    setPendingDraft(null);
+    setDraftSavedAt(null);
+  }
 
   // Sambungkan command "image" (slash/floating) ke input file.
   openImageRef.current = () => fileInputRef.current?.click();
@@ -493,6 +582,28 @@ export function RichTextEditor({
         </ToolbarButton>
       </div>
 
+      {pendingDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <span>Draf lokal yang belum tersimpan ke server ditemukan. Pulihkan untuk melanjutkan menulis.</span>
+          <span className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="rounded-md bg-amber-600 px-2 py-1 font-medium text-white hover:bg-amber-700"
+            >
+              Pulihkan
+            </button>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="rounded-md border border-amber-300 px-2 py-1 hover:bg-amber-100"
+            >
+              Buang
+            </button>
+          </span>
+        </div>
+      )}
+
       <EditorContent editor={editor} />
 
       {/* BubbleMenu: toolbar mengambang saat seleksi teks */}
@@ -541,7 +652,22 @@ export function RichTextEditor({
 
       <div className="flex items-center justify-between border-t border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
         <span>{editor.storage.characterCount.words()} kata</span>
-        <span>{editor.storage.characterCount.characters()} karakter</span>
+        <span className="flex items-center gap-3">
+          {autosaveKey && (
+            <button
+              type="button"
+              onClick={saveDraftNow}
+              title="Simpan draf ke perangkat ini"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-slate-200 hover:text-slate-700"
+            >
+              <Save size={13} />
+              {draftSavedAt
+                ? `Draf ${new Date(draftSavedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`
+                : "Simpan draf"}
+            </button>
+          )}
+          <span>{editor.storage.characterCount.characters()} karakter</span>
+        </span>
       </div>
 
       <input type="hidden" name={name} value={JSON.stringify(content)} />

@@ -157,7 +157,11 @@ export function ProjectForm({
       </SectionCard>
 
       <SectionCard title="Deskripsi Lengkap">
-        <RichTextEditor name="descriptionRich" defaultValue={defaultValues?.descriptionRich} />
+        <RichTextEditor
+          name="descriptionRich"
+          defaultValue={defaultValues?.descriptionRich}
+          autosaveKey={`project:${defaultValues?.id ?? "new"}:descriptionRich`}
+        />
       </SectionCard>
 
       <SectionCard title="Cover Image">
