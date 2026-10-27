@@ -28,6 +28,7 @@ import { COLUMN_RATIOS, type BlockNode, type PageDocument, type Section } from "
 import { RichTextView } from "~/components/site/rich-text-view";
 import { FaqAccordion } from "~/components/site/faq-accordion";
 import { LeadFormBlock } from "~/components/site/lead-form-block";
+import { InlineText, InlineTextarea } from "~/components/admin/page-builder/inline-text";
 
 const ICONS: Record<string, typeof Zap> = {
   Zap,
@@ -67,6 +68,9 @@ const PADDING: Record<Section["padding"], string> = {
 export type BlockRenderCtx = {
   slug: string;
   whatsappNumber?: string | null;
+  /** Mode inline-edit kanvas builder; teks jadi contentEditable. */
+  editing?: boolean;
+  onEdit?: (key: string, value: string) => void;
 };
 
 // ---------- pembaca props ----------
@@ -114,6 +118,10 @@ function youtubeOrVimeo(raw: string): string | null {
 
 function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx }) {
   const p = parseBlockProps(block.type, block.props);
+  // Editor inline hanya aktif untuk blok terpilih (editing && onEdit).
+  const ed = ctx.editing && ctx.onEdit ? ctx : undefined;
+  const t = (k: string, v: string) =>
+    ed ? <InlineText ctx={ed} k={k} v={v} /> : v;
 
   switch (block.type) {
     case "hero": {
@@ -124,14 +132,14 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
         <div className={center ? "text-center" : ""}>
           {s(p, "eyebrow") && (
             <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">
-              {s(p, "eyebrow")}
+              {t("eyebrow", s(p, "eyebrow"))}
             </p>
           )}
           <h2 className="text-3xl font-extrabold leading-tight text-brand-dark md:text-4xl">
-            {s(p, "title")}
+            {t("title", s(p, "title"))}
           </h2>
           {s(p, "subtitle") && (
-            <p className="mt-4 text-base leading-relaxed text-slate-600 md:text-lg">{s(p, "subtitle")}</p>
+            <p className="mt-4 text-base leading-relaxed text-slate-600 md:text-lg">{t("subtitle", s(p, "subtitle"))}</p>
           )}
           {buttons.length > 0 && (
             <div className={`mt-6 flex flex-wrap gap-3 ${center ? "justify-center" : ""}`}>
@@ -145,7 +153,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
                       : "border border-slate-300 text-brand-dark hover:border-brand-400 hover:text-brand-600"
                   }`}
                 >
-                  {String(btn.label ?? "")}
+                  {t(`buttons.${i}.label`, String(btn.label ?? ""))}
                 </a>
               ))}
             </div>
@@ -164,14 +172,31 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
     }
 
     case "rich_text":
-      return <RichTextView content={p.content as JSONContent} />;
+      return (
+        <div>
+          {ed &&
+            (() => {
+              const cur = JSON.stringify(p.content ?? { type: "doc", content: [] });
+              return (
+                <InlineTextarea
+                  ctx={ed}
+                  k="content"
+                  v={cur}
+                  isJson
+                  placeholder='JSON TipTap — contoh: {"type":"doc","content":[{"type":"paragraph","text":"Halo"}]}'
+                />
+              );
+            })()}
+          <RichTextView content={p.content as JSONContent} />
+        </div>
+      );
 
     case "features": {
       const cols = s(p, "columns") || "3";
       const gridCls = cols === "2" ? "sm:grid-cols-2" : cols === "4" ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3";
       return (
         <div>
-          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{s(p, "title")}</h2>}
+          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
           <div className={`grid grid-cols-1 gap-5 ${gridCls}`}>
             {arr(p, "items").map((it, i) => {
               const Icon = ICONS[String(it.icon ?? "Zap")] ?? Zap;
@@ -180,9 +205,9 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
                   <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <Icon size={22} />
                   </div>
-                  <h3 className="font-semibold text-brand-dark">{String(it.title ?? "")}</h3>
+                  <h3 className="font-semibold text-brand-dark">{t(`items.${i}.title`, String(it.title ?? ""))}</h3>
                   {String(it.description ?? "") && (
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{String(it.description)}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{t(`items.${i}.description`, String(it.description))}</p>
                   )}
                 </div>
               );
@@ -214,7 +239,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
             img
           )}
           {s(p, "caption") && (
-            <figcaption className="mt-2 text-center text-sm text-slate-500">{s(p, "caption")}</figcaption>
+            <figcaption className="mt-2 text-center text-sm text-slate-500">{t("caption", s(p, "caption"))}</figcaption>
           )}
         </figure>
       );
@@ -227,15 +252,15 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
         : "#";
       return (
         <div className="rounded-3xl bg-gradient-to-r from-brand-500 to-brand-600 p-8 text-center text-white md:p-12">
-          <h2 className="text-2xl font-bold md:text-3xl">{s(p, "title")}</h2>
-          {s(p, "description") && <p className="mx-auto mt-3 max-w-xl text-white/85">{s(p, "description")}</p>}
+          <h2 className="text-2xl font-bold md:text-3xl">{t("title", s(p, "title"))}</h2>
+          {s(p, "description") && <p className="mx-auto mt-3 max-w-xl text-white/85">{t("description", s(p, "description"))}</p>}
           <a
             href={href}
             target="_blank"
             rel="noreferrer"
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 font-semibold text-brand-700 shadow transition-transform hover:scale-[1.02]"
           >
-            {s(p, "buttonLabel")}
+            {t("buttonLabel", s(p, "buttonLabel"))}
           </a>
         </div>
       );
@@ -248,7 +273,16 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
       }));
       return (
         <div>
-          {s(p, "title") && <h2 className="mb-6 text-2xl font-bold text-brand-dark">{s(p, "title")}</h2>}
+          {s(p, "title") && <h2 className="mb-6 text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
+          {ed && (
+            <InlineTextarea
+              ctx={ed}
+              k="items"
+              v={JSON.stringify(arr(p, "items"), null, 1)}
+              isJson
+              placeholder="JSON daftar pertanyaan"
+            />
+          )}
           <FaqAccordion faqs={faqs} />
         </div>
       );
@@ -257,13 +291,13 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
     case "testimonial": {
       return (
         <div>
-          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{s(p, "title")}</h2>}
+          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {arr(p, "items").map((it, i) => (
               <figure key={String(it.id ?? i)} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <Stars rating={Math.min(5, Math.max(1, Number(it.rating) || 5))} />
                 <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">
-                  “{String(it.quote ?? "")}”
+                  “{t(`items.${i}.quote`, String(it.quote ?? ""))}”
                 </blockquote>
                 <figcaption className="mt-4 flex items-center gap-3">
                   {String(it.imageUrl ?? "") && (
@@ -271,8 +305,8 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
                     <img src={String(it.imageUrl)} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" />
                   )}
                   <div>
-                    <p className="text-sm font-semibold text-brand-dark">{String(it.name ?? "")}</p>
-                    {String(it.role ?? "") && <p className="text-xs text-slate-500">{String(it.role)}</p>}
+                    <p className="text-sm font-semibold text-brand-dark">{t(`items.${i}.name`, String(it.name ?? ""))}</p>
+                    {String(it.role ?? "") && <p className="text-xs text-slate-500">{t(`items.${i}.role`, String(it.role))}</p>}
                   </div>
                 </figcaption>
               </figure>
@@ -287,7 +321,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
       const gridCls = cols === "2" ? "sm:grid-cols-2" : cols === "4" ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3";
       return (
         <div>
-          {s(p, "title") && <h2 className="mb-6 text-2xl font-bold text-brand-dark">{s(p, "title")}</h2>}
+          {s(p, "title") && <h2 className="mb-6 text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
           <div className={`grid grid-cols-1 gap-4 ${gridCls}`}>
             {arr(p, "images").map((im, i) =>
               String(im.url ?? "") ? (
@@ -305,7 +339,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
     case "pricing": {
       return (
         <div>
-          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{s(p, "title")}</h2>}
+          {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {arr(p, "items").map((it, i) => {
               const feats = String(it.features ?? "")
@@ -320,15 +354,15 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
                     hot ? "border-brand-500 ring-2 ring-brand-100" : "border-slate-200"
                   }`}
                 >
-                  <h3 className="font-semibold text-brand-dark">{String(it.name ?? "")}</h3>
+                  <h3 className="font-semibold text-brand-dark">{t(`items.${i}.name`, String(it.name ?? ""))}</h3>
                   <p className="mt-2 text-2xl font-extrabold text-brand-600">
-                    {String(it.price ?? "")}
+                    {t(`items.${i}.price`, String(it.price ?? ""))}
                     {String(it.period ?? "") && (
                       <span className="text-sm font-medium text-slate-400">{String(it.period)}</span>
                     )}
                   </p>
                   {String(it.description ?? "") && (
-                    <p className="mt-1 text-sm text-slate-500">{String(it.description)}</p>
+                    <p className="mt-1 text-sm text-slate-500">{t(`items.${i}.description`, String(it.description))}</p>
                   )}
                   <ul className="mt-4 flex-1 space-y-2">
                     {feats.map((f, j) => (
@@ -343,13 +377,13 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
                       hot ? "bg-brand-500 text-white hover:bg-brand-600" : "border border-brand-300 text-brand-600 hover:bg-brand-50"
                     }`}
                   >
-                    {String(it.ctaLabel ?? "Pilih")}
+                    {t(`items.${i}.ctaLabel`, String(it.ctaLabel ?? "Pilih"))}
                   </a>
                 </div>
               );
             })}
           </div>
-          {s(p, "note") && <p className="mt-6 text-center text-sm text-slate-500">{s(p, "note")}</p>}
+          {s(p, "note") && <p className="mt-6 text-center text-sm text-slate-500">{t("note", s(p, "note"))}</p>}
         </div>
       );
     }
@@ -379,10 +413,10 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
           {arr(p, "items").map((st, i) => (
             <div key={String(st.id ?? i)}>
               <p className="text-3xl font-extrabold text-brand-600 md:text-4xl">
-                {String(st.value ?? "")}
+                {t(`items.${i}.value`, String(st.value ?? ""))}
                 <span className="text-xl md:text-2xl">{String(st.suffix ?? "")}</span>
               </p>
-              <p className="mt-1 text-sm text-slate-500">{String(st.label ?? "")}</p>
+              <p className="mt-1 text-sm text-slate-500">{t(`items.${i}.label`, String(st.label ?? ""))}</p>
             </div>
           ))}
         </div>
@@ -394,7 +428,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
         <div>
           {s(p, "title") && (
             <p className="mb-5 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-              {s(p, "title")}
+              {t("title", s(p, "title"))}
             </p>
           )}
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
@@ -425,6 +459,7 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
             submitLabel={s(p, "submitLabel")}
             successMessage={s(p, "successMessage")}
             source={`page:${ctx.slug}`}
+            editorCtx={ed}
           />
         </div>
       );

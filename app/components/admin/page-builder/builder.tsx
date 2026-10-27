@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   Eye,
   Laptop,
+  Pencil,
   Redo2,
   Save,
   Smartphone,
@@ -144,6 +145,25 @@ function mapColumn(
   return changed ? { ...doc, sections } : null;
 }
 
+/** Buang kunci sementara hasil inline edit ("items.0.title" dan semacamnya). */
+function stripTransient(
+  oldProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(nextProps)) {
+    if (k.includes(".") && !(k in oldProps)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+/** Jaga id item repeater tetap ada saat user mengedit JSON manual. */
+function normalizeDraftItem(it: unknown): Record<string, unknown> {
+  const obj = (it && typeof it === "object" ? it : {}) as Record<string, unknown>;
+  return { id: typeof obj.id === "string" && obj.id ? obj.id : nodeId(), ...obj };
+}
+
 export function Builder({
   page,
   siteName,
@@ -161,6 +181,10 @@ export function Builder({
     docRef.current = doc;
   }, [doc]);
 
+  const draftKey = `page-builder:${page.id}`;
+  const [draftAt, setDraftAt] = useState<number | null>(null);
+  const pageSavedRef = useRef<number | null>(null);
+
   // undo/redo — stack in-memory
   const pastRef = useRef<PageDocument[]>([]);
   const futureRef = useRef<PageDocument[]>([]);
@@ -176,6 +200,27 @@ export function Builder({
     setDoc(resolved);
     bumpHist((n) => n + 1);
   }, []);
+
+  // Simpan draf 1s setelah terakhir mengubah dokumen (debounce sederhana)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ at: Date.now(), doc: docRef.current }));
+      } catch {
+        /* kuota penuh / private mode: abaikan */
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [doc, draftKey]);
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      /* noop */
+    }
+    setDraftAt(null);
+  };
 
   const undo = useCallback(() => {
     const past = pastRef.current;
@@ -201,10 +246,40 @@ export function Builder({
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const [device, setDevice] = useState<keyof typeof DEVICES>("desktop");
+  const [inlineMode, setInlineMode] = useState(true);
   const [activeDrag, setActiveDrag] = useState<DragTarget>(null);
   const [pickerLoc, setPickerLoc] = useState<Location | null>(null);
   const [status, setStatus] = useState(page.status);
+  const [seo, setSeo] = useState({
+    metaTitle: page.metaTitle ?? "",
+    metaDescription: page.metaDescription ?? "",
+    ogImageUrl: page.ogImageUrl ?? "",
+    canonicalUrl: page.canonicalUrl ?? "",
+    noindex: !!page.noindex,
+  });
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Draf autosave (localStorage) — pulihkan otomatis bila lebih baru dari simpanan server
+  useEffect(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(draftKey) ?? "null") as
+        | { at?: number; doc?: PageDocument }
+        | null;
+      if (d?.at && d.doc && d.at > (pageSavedRef.current ?? 0)) {
+        // Langsung pulihkan draf yang lebih baru dari simpanan server
+        setDoc(() => {
+          const restored = loadDocument(d.doc);
+          docRef.current = restored;
+          return restored;
+        });
+        bumpHist((n) => n + 1);
+        setDraftAt(d.at);
+      }
+    } catch {
+      /* draf rusak diabaikan */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [state, formAction, isPending] = useActionState<SaveState, FormData>(action, null);
   const errors = state?.errors;
@@ -389,12 +464,66 @@ export function Builder({
           if (col.blocks.some((b) => b.id === blockId)) {
             const loc = { sectionId: sec.id, colId: col.id };
             commit((d) => mapColumn(d, loc, (blocks) =>
-              blocks.map((b) => (b.id === blockId ? { ...b, props } : b))
+              blocks.map((b) => (b.id === blockId ? { ...b, props: stripTransient(b.props, props) } : b))
             ));
             return;
           }
         }
       }
+    },
+    [commit]
+  );
+
+  /** Inline edit: kunci (mungkin dotted) dipetakan balik ke props blok. */
+  const applyInlineEdit = useCallback(
+    (blockId: string, key: string, raw: string) => {
+      commit((d) => {
+        for (const sec of d.sections) {
+          for (const col of sec.columns) {
+            if (!col.blocks.some((b) => b.id === blockId)) continue;
+            return mapColumn(d, { sectionId: sec.id, colId: col.id }, (blocks) =>
+              blocks.map((b) => {
+                if (b.id !== blockId) return b;
+                const props = stripTransient(b.props, { ...b.props });
+                const mArr = key.match(/^(items|buttons|images)\.(\d+)\.(\w+)$/);
+                if (mArr) {
+                  const [, arrKey, idxStr, field] = mArr;
+                  const i = Number(idxStr);
+                  const list = Array.isArray(props[arrKey])
+                    ? (props[arrKey] as Record<string, unknown>[])
+                    : [];
+                  if (!list[i]) return b;
+                  const next = list.map((it, j) => (j === i ? { ...it, [field]: raw } : it));
+                  return { ...b, props: { ...props, [arrKey]: next } };
+                }
+                if (key === "items" || key === "texts") {
+                  try {
+                    const v = JSON.parse(raw);
+                    if (key === "items" && Array.isArray(v)) {
+                      return { ...b, props: { ...props, items: v.map((it) => normalizeDraftItem(it)) } };
+                    }
+                    if (key === "texts" && v && typeof v === "object") {
+                      return { ...b, props: { ...props, ...(v as Record<string, unknown>) } };
+                    }
+                  } catch {
+                    return b;
+                  }
+                  return b;
+                }
+                if (key === "content") {
+                  try {
+                    return { ...b, props: { ...props, content: JSON.parse(raw) } };
+                  } catch {
+                    return b;
+                  }
+                }
+                return { ...b, props: { ...props, [key]: raw } };
+              })
+            );
+          }
+        }
+        return null;
+      });
     },
     [commit]
   );
@@ -484,15 +613,28 @@ export function Builder({
   // ---------- simpan ----------
 
   useEffect(() => {
-    if (state?.savedAt) toast("Halaman tersimpan", "success");
+    if (state?.savedAt) {
+      pageSavedRef.current = state.savedAt;
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* noop */
+      }
+      setDraftAt(null);
+      toast("Halaman tersimpan", "success");
+    }
     if (errors?.content) toast(errors.content, "error");
     if (errors?.slug) toast(errors.slug, "error");
     if (errors?.title) toast(errors.title, "error");
-  }, [state, errors]);
+  }, [state, errors, draftKey]);
 
   const ctx: BlockRenderCtx = useMemo(
     () => ({ slug: page.slug, whatsappNumber }),
     [page.slug, whatsappNumber]
+  );
+  const editing: BlockRenderCtx = useMemo(
+    () => ({ ...ctx, editing: inlineMode }),
+    [ctx, inlineMode]
   );
 
   const selectedSection = selection ? doc.sections.find((s) => s.id === selection.sectionId) ?? null : null;
@@ -552,6 +694,22 @@ export function Builder({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
+            onClick={() => setInlineMode((v) => !v)}
+            title={
+              inlineMode
+                ? "Mode teks AKTIF — klik tulisan di kanvas untuk edit langsung"
+                : "Mode drag AKTIF — blok hanya bisa digeser, edit lewat panel kanan"
+            }
+            className={`rounded-lg border p-1.5 transition ${
+              inlineMode
+                ? "border-brand-300 bg-brand-50 text-brand-600"
+                : "border-slate-200 text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            type="button"
             onClick={undo}
             disabled={pastRef.current.length === 0}
             title="Undo (Ctrl+Z)"
@@ -591,6 +749,22 @@ export function Builder({
         </div>
       </div>
 
+      {draftAt && (
+        <div className="flex items-center justify-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-xs text-amber-800">
+          <span>
+            Draf otomatis dipulihkan dari {new Date(draftAt).toLocaleString("id-ID")} — perubahan
+            belum tersimpan ke server.
+          </span>
+          <button
+            type="button"
+            onClick={discardDraft}
+            className="font-semibold underline underline-offset-2 hover:text-amber-900"
+          >
+            Buang draf
+          </button>
+        </div>
+      )}
+
       {/* ===== tiga panel ===== */}
       <DndContext
         sensors={sensors}
@@ -611,11 +785,11 @@ export function Builder({
             <input type="hidden" name="status" value={status} />
             <input type="hidden" name="title" value={page.title} />
             <input type="hidden" name="slug" value={page.slug} />
-            <input type="hidden" name="metaTitle" value={page.metaTitle ?? ""} />
-            <input type="hidden" name="metaDescription" value={page.metaDescription ?? ""} />
-            <input type="hidden" name="ogImageUrl" value={page.ogImageUrl ?? ""} />
-            <input type="hidden" name="canonicalUrl" value={page.canonicalUrl ?? ""} />
-            <input type="hidden" name="noindex" value={page.noindex ? "true" : "false"} />
+            <input type="hidden" name="metaTitle" value={seo.metaTitle} />
+            <input type="hidden" name="metaDescription" value={seo.metaDescription} />
+            <input type="hidden" name="ogImageUrl" value={seo.ogImageUrl} />
+            <input type="hidden" name="canonicalUrl" value={seo.canonicalUrl} />
+            <input type="hidden" name="noindex" value={seo.noindex ? "true" : "false"} />
 
             <main
               className="min-w-0 flex-1 overflow-y-auto p-4"
@@ -655,7 +829,8 @@ export function Builder({
                             selection={selection}
                             dragTarget={activeDrag}
                             document={doc}
-                            ctx={ctx}
+                            ctx={editing}
+                            onInlineEdit={applyInlineEdit}
                             onSelect={setSelection}
                             onChange={updateSection}
                             onSectionMove={moveSection}
@@ -681,6 +856,8 @@ export function Builder({
           <Inspector
             section={selectedSection}
             block={selectedBlock}
+            seo={seo}
+            onSeoChange={setSeo}
             onSectionChange={updateSection}
             onBlockPropsChange={(props) => {
               if (selection?.blockId) updateBlockProps(selection.blockId, props);

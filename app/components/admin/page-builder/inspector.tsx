@@ -484,16 +484,108 @@ function SectionPanel({
   );
 }
 
+// ---------- panel SEO (dokumen) ----------
+
+export type PageSeo = {
+  metaTitle: string;
+  metaDescription: string;
+  ogImageUrl: string;
+  canonicalUrl: string;
+  noindex: boolean;
+};
+
+function Counter({ value, max }: { value: string; max: number }) {
+  const over = value.length > max;
+  return (
+    <span className={`text-[11px] ${over ? "text-amber-600" : "text-slate-400"}`}>
+      {value.length}/{max}
+    </span>
+  );
+}
+
+function SeoPanel({
+  seo,
+  onChange,
+  onPickImage,
+}: {
+  seo: PageSeo;
+  onChange: (s: PageSeo) => void;
+  onPickImage: (apply: (url: string) => void) => void;
+}) {
+  return (
+    <div className="space-y-3.5">
+      <p className="text-sm font-bold text-brand-dark">SEO Halaman</p>
+
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <Label className="text-[11px] font-medium text-slate-500">Meta title</Label>
+          <Counter value={seo.metaTitle} max={60} />
+        </div>
+        <Input
+          value={seo.metaTitle}
+          onChange={(e) => onChange({ ...seo, metaTitle: e.target.value })}
+          placeholder={`${seo.metaTitle ? "" : "Judul di hasil pencarian"}`}
+        />
+      </div>
+
+      <div>
+        <div className="mb-1 flex items-center justify-between">
+          <Label className="text-[11px] font-medium text-slate-500">Meta description</Label>
+          <Counter value={seo.metaDescription} max={160} />
+        </div>
+        <Textarea
+          rows={3}
+          value={seo.metaDescription}
+          onChange={(e) => onChange({ ...seo, metaDescription: e.target.value })}
+        />
+      </div>
+
+      <div>
+        <Label className="mb-1 block text-[11px] font-medium text-slate-500">Gambar OG</Label>
+        <ControlField
+          control={{ key: "ogImageUrl", kind: "image", label: "OG" }}
+          value={seo.ogImageUrl}
+          onChange={(v) => onChange({ ...seo, ogImageUrl: String(v) })}
+          onPickImage={onPickImage}
+        />
+      </div>
+
+      <div>
+        <Label className="mb-1 block text-[11px] font-medium text-slate-500">Canonical URL (opsional)</Label>
+        <Input
+          value={seo.canonicalUrl}
+          onChange={(e) => onChange({ ...seo, canonicalUrl: e.target.value })}
+          placeholder="https://…"
+        />
+      </div>
+
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={seo.noindex}
+          onChange={(e) => onChange({ ...seo, noindex: e.target.checked })}
+          className="h-4 w-4 accent-brand-500"
+        />
+        Sembunyikan dari mesin pencari (noindex)
+      </label>
+    </div>
+  );
+}
+
 // ---------- inspector ----------
 
 export function Inspector({
   section,
   block,
+  seo,
+  onSeoChange,
   onSectionChange,
   onBlockPropsChange,
 }: {
   section: Section | null;
   block: BlockNode | null;
+  seo: PageSeo;
+  onSeoChange: (s: PageSeo) => void;
   onSectionChange: (s: Section) => void;
   onBlockPropsChange: (props: Record<string, unknown>) => void;
 }) {
@@ -511,13 +603,7 @@ export function Inspector({
         ) : section ? (
           <SectionPanel section={section} onChange={onSectionChange} onPickImage={onPickImage} />
         ) : (
-          <div className="mt-8 space-y-3 px-2 text-center">
-            <p className="text-sm font-semibold text-slate-600">Belum ada yang dipilih</p>
-            <p className="text-xs leading-relaxed text-slate-400">
-              Klik blok di kanvas untuk mengedit isinya, atau klik label "Section" di pojok section
-              untuk mengubah warna, latar, dan jaraknya.
-            </p>
-          </div>
+          <SeoPanel seo={seo} onChange={onSeoChange} onPickImage={onPickImage} />
         )}
       </div>
 

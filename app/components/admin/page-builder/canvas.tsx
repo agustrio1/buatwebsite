@@ -238,6 +238,7 @@ export function SectionFrame({
   dragTarget,
   document,
   ctx,
+  onInlineEdit,
   onSelect,
   onChange,
   onSectionMove,
@@ -257,6 +258,7 @@ export function SectionFrame({
   dragTarget: DragTarget;
   document: PageDocument;
   ctx: BlockRenderCtx;
+  onInlineEdit: (blockId: string, key: string, value: string) => void;
   onSelect: (sel: Selection) => void;
   onChange: (section: Section) => void;
   onSectionMove: (id: string, dir: -1 | 1) => void;
@@ -271,6 +273,12 @@ export function SectionFrame({
 }) {
   const secSelected = selection?.sectionId === section.id && !selection.blockId;
   const bg = section.background ?? {};
+
+  // ctx per blok: hanya blok terpilih yang dapat editing/onEdit (inline edit)
+  const ctxFor = (blockId: string): BlockRenderCtx =>
+    selection?.blockId === blockId && ctx.editing
+      ? { ...ctx, onEdit: (key, value) => onInlineEdit(blockId, key, value) }
+      : ctx;
 
   const setProp = <K extends keyof Section>(key: K, value: Section[K]) =>
     onChange({ ...section, [key]: value });
@@ -386,7 +394,7 @@ export function SectionFrame({
                         onDuplicate={onBlockDuplicate}
                         onDelete={onBlockDelete}
                         onMoveColumn={onBlockMoveColumn}
-                        ctx={ctx}
+                        ctx={ctxFor(block.id)}
                       />
                     ))}
                     {col.blocks.length === 0 && (

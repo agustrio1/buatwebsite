@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { submitInquiry, type InquiryResult } from "~/lib/actions/inquiry";
+import { InlineTextarea } from "~/components/admin/page-builder/inline-text";
+import type { BlockRenderCtx } from "~/components/site/page-blocks";
 
 /**
  * Blok "Form Lead" untuk Page Builder — memakai action inquiry yang sudah ada
@@ -15,12 +17,15 @@ export function LeadFormBlock({
   submitLabel,
   successMessage,
   source,
+  editorCtx,
 }: {
   title: string;
   description: string;
   submitLabel: string;
   successMessage: string;
   source: string;
+  /** ctx builder ketika inline-edit aktif; publik = undefined. */
+  editorCtx?: BlockRenderCtx;
 }) {
   const [data, formAction, isSubmitting] = useActionState(submitInquiry, {} as InquiryResult);
 
@@ -35,6 +40,15 @@ export function LeadFormBlock({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {editorCtx && (
+        <InlineTextarea
+          ctx={editorCtx}
+          k="texts"
+          v={JSON.stringify({ title, description, submitLabel, successMessage }, null, 1)}
+          isJson
+          placeholder="JSON judul/deskripsi/tombol"
+        />
+      )}
       {title && <h3 className="text-lg font-bold text-brand-dark">{title}</h3>}
       {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
 
