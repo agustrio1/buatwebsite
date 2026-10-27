@@ -4,6 +4,8 @@ import { getPublicSettings } from "~/lib/settings.server";
 import { safeJsonLd } from "~/lib/json-ld";
 import { buildRootMetadata } from "~/lib/metadata";
 import { WaTracker } from "~/components/site/wa-tracker";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Sama seperti versi React Router: CSS ditempel ke <head> lewat
 // experimental.inlineCss supaya tidak ada request stylesheet yang memblokir
@@ -119,6 +121,8 @@ export default async function RootLayout({
         <WaTracker />
         <StructuredData settings={settings} />
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
