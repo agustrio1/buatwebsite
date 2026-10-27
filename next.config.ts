@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
     // Meniru perilaku CSS inline di root.tsx versi React Router:
     // CSS ditempel ke <head> supaya tidak ada request stylesheet yang memblokir render.
     inlineCss: true,
+    // Default server action 1MB terlalu kecil: JSON TipTap artikel panjang +
+    // upload cover lewat form multipart cepat melewatinya. 4.5MB = plafon
+    // payload function di Vercel.
+    serverActions: {
+      bodySizeLimit: "4.5mb",
+    },
   },
 
   async headers() {
