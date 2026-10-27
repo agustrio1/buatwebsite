@@ -275,13 +275,11 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
         <div>
           {s(p, "title") && <h2 className="mb-6 text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
           {ed && (
-            <InlineTextarea
-              ctx={ed}
-              k="items"
-              v={JSON.stringify(arr(p, "items"), null, 1)}
-              isJson
-              placeholder="JSON daftar pertanyaan"
-            />
+            <p className="mb-3 rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-[11px] leading-relaxed text-brand-700">
+              ✏️ Kelola daftar pertanyaan & jawaban di panel <strong>Inspektur</strong> di kanan:
+              klik sebuah baris untuk membuka, <strong>Tambah item</strong> untuk menambah, panah
+              untuk mengurutkan, dan ikon tempat sampah untuk menghapus.
+            </p>
           )}
           <FaqAccordion faqs={faqs} />
         </div>
@@ -292,6 +290,12 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
       return (
         <div>
           {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
+          {ed && (
+            <p className="mb-3 rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-[11px] leading-relaxed text-brand-700">
+              ✏️ Klik teks untuk mengubah. Untuk menambah/menghapus testimoni, ganti foto, atau
+              atur rating, gunakan panel <strong>Inspektur</strong> di kanan.
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {arr(p, "items").map((it, i) => (
               <figure key={String(it.id ?? i)} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -340,6 +344,12 @@ function BlockViewInner({ block, ctx }: { block: BlockNode; ctx: BlockRenderCtx 
       return (
         <div>
           {s(p, "title") && <h2 className="mb-8 text-center text-2xl font-bold text-brand-dark">{t("title", s(p, "title"))}</h2>}
+          {ed && (
+            <p className="mb-3 rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-[11px] leading-relaxed text-brand-700">
+              ✏️ Klik nama/harga paket untuk mengubah. Untuk menambah/menghapus paket, edit daftar
+              fitur, tombol, atau menandai paket unggulan, gunakan panel <strong>Inspektur</strong> di kanan.
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {arr(p, "items").map((it, i) => {
               const feats = String(it.features ?? "")
