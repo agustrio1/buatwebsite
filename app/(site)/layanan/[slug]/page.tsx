@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { servicePages, type ServicePage } from "~/data/service-pages";
 import { ArrowRight, ChevronRight, Check, MessageCircle } from "lucide-react";
 import { buildWaLink } from "~/lib/format";
-import { getSiteUrl } from "~/lib/seo";
+import { getSiteUrl, ogUrl } from "~/lib/seo";
 import { safeJsonLd } from "~/lib/json-ld";
 import { absoluteUrl, buildMetadata } from "~/lib/metadata";
 import { getPublicSettings } from "~/lib/settings.server";
@@ -42,9 +42,11 @@ export async function generateMetadata({ params }: { params: Params }) {
     title: service.metaTitle,
     description: service.metaDesc,
     path: `/layanan/${service.slug}`,
-    ogImages: image ? [image] : undefined,
+    // Tanpa gambar layanan: pakai generator OG dinamis
+    ogImages: image ? [image] : [ogUrl({ siteUrl, title: service.title, subtitle: service.metaDesc, label: "Layanan" })],
     ogImageAlt: service.title,
-    ogImageDimensions: image ? { width: 1200, height: 630 } : undefined,
+    // Dimensi pasti hanya utk generator /og; gambar layanan asli variatif.
+    ogImageDimensions: image ? undefined : { width: 1200, height: 630 },
   });
 }
 

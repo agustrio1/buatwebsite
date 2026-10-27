@@ -7,6 +7,8 @@ import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
 import { resizeImage, buildSrcSet } from "~/lib/imagekit-url";
 import { buildMetadata } from "~/lib/metadata";
+import { safeJsonLd } from "~/lib/json-ld";
+import { getSiteUrl } from "~/lib/seo";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -42,8 +44,48 @@ export default async function BlogIndex({ searchParams }: { searchParams: Search
     offset,
   });
 
+  // Schema CollectionPage + ItemList (padan dgn pola halaman /projek)
+  const siteUrl = await getSiteUrl();
+  const pageUrl = `${siteUrl}/blog${currentPage > 1 ? `?page=${currentPage}` : ""}`;
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Blog & Artikel JadikanWeb",
+    description:
+      "Tips, panduan, dan insight seputar pembuatan website, SEO, dan strategi bisnis online.",
+    url: pageUrl,
+    inLanguage: "id-ID",
+    isPartOf: { "@type": "WebSite", name: "JadikanWeb", url: siteUrl },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: totalItems,
+      itemListElement: allPosts.map((p, i) => ({
+        "@type": "ListItem",
+        position: offset + i + 1,
+        url: `${siteUrl}/blog/${p.slug}`,
+        name: p.title,
+      })),
+    },
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Beranda", item: `${siteUrl}/` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${siteUrl}/blog` },
+    ],
+  };
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
+      />
       <section className="border-b border-slate-100">
         <div className="max-w-3xl mx-auto px-4 md:px-8 py-16 text-center">
           <span className="inline-block bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">

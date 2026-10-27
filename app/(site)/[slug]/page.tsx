@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "~/db";
 import { pages } from "~/db/schema";
 import { getPublicSettings } from "~/lib/settings.server";
-import { getSiteUrl } from "~/lib/seo";
+import { getSiteUrl, ogUrl } from "~/lib/seo";
 import { safeJsonLd } from "~/lib/json-ld";
 import { buildMetadata, siteNameFrom } from "~/lib/metadata";
 import { parsePageContent } from "~/lib/validation/custom-page";
@@ -59,7 +59,7 @@ const getCustomPageData = cache(async (slug: string) => {
     `${page.title} — informasi dari ${siteName}.`;
   const ogImage = page.ogImageUrl
     ? (/^https?:\/\//i.test(page.ogImageUrl) ? page.ogImageUrl : `${siteUrl}${page.ogImageUrl}`)
-    : undefined;
+    : ogUrl({ siteUrl, title: page.title, subtitle: description, label: siteName });
 
   const faqs = collectPageFaqs(document);
 
@@ -108,6 +108,7 @@ const getCustomPageData = cache(async (slug: string) => {
     canonicalUrl,
     description,
     ogImage,
+    ogIsGenerated: !page.ogImageUrl,
     siteName,
     whatsappNumber: toWaNumber(contact.whatsappNumber || contact.phoneOffice) || null,
   };
@@ -120,7 +121,7 @@ export async function generateMetadata({ params }: { params: Params }) {
   const data = await getCustomPageData(slug);
   if (!data) return { title: "Halaman tidak ditemukan" };
 
-  const { page, canonicalUrl, siteName, description, ogImage } = data;
+  const { page, canonicalUrl, siteName, description, ogImage, ogIsGenerated } = data;
   const title = page.metaTitle || `${page.title} | ${siteName}`;
 
   return buildMetadata({
@@ -131,6 +132,7 @@ export async function generateMetadata({ params }: { params: Params }) {
     canonical: canonicalUrl,
     ogImage,
     ogImageAlt: page.title,
+    ogImageDimensions: ogIsGenerated ? { width: 1200, height: 630 } : undefined,
     ogType: "website",
     noindex: page.noindex ?? undefined,
   });

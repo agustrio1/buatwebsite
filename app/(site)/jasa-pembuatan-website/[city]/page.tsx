@@ -16,6 +16,7 @@ import { safeJsonLd } from "~/lib/json-ld";
 import { normalizeCalculatorConfig } from "~/lib/price-calculator";
 import { servicePages } from "~/data/service-pages";
 import { getPublicSettings } from "~/lib/settings.server";
+import { getSiteUrl, ogUrl } from "~/lib/seo";
 import { buildMetadata } from "~/lib/metadata";
 import { BriefForm } from "~/components/site/brief-form";
 import { CityFaqAccordion } from "~/components/site/city-faq-accordion";
@@ -113,10 +114,15 @@ export async function generateMetadata({ params }: { params: Params }) {
     city.metaDescription ||
     `Jasa pembuatan website profesional untuk bisnis di ${city.name}. Cepat, modern, dan terjangkau.`;
 
+  const siteUrl = await getSiteUrl();
+
   return buildMetadata({
     title,
     description,
     path: `/jasa-pembuatan-website/${city.slug}`,
+    // Kota tidak punya gambar OG sendiri → selalu pakai generator dinamis
+    ogImage: ogUrl({ siteUrl, title, subtitle: `Layanan untuk bisnis di ${city.name}`, label: "JadikanWeb" }),
+    ogImageDimensions: { width: 1200, height: 630 },
   });
 }
 
