@@ -4,7 +4,7 @@ import { pages } from "~/db/schema";
 import { desc, count, and, ilike, eq } from "drizzle-orm";
 import { parsePage, getPagination } from "~/lib/pagination";
 import { Pagination } from "~/components/shared/pagination";
-import { buttonVariants } from "~/components/ui/button";
+import { buttonVariants } from "~/lib/button-variants";
 import { PagesIndexClient, type PageRow } from "~/components/admin/pages-index-client";
 import { deletePage } from "./actions";
 
